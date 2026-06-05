@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Model weights (too large, regenerate with training scripts)
+saved_models/
+saved_data/
+
+# Logs and outputs
+logs/
+outputs/
+
+# OS
+.DS_Store
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
