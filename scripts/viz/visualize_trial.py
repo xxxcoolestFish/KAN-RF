@@ -14,8 +14,8 @@ import matplotlib.patches as patches
 from matplotlib import animation
 from PIL import Image
 from kanrf import KAN
-from strategy_v2 import compute_gap, desired_velocity, strategy_mode
-from execute_v2 import execute_v2
+from control.strategy_v2 import compute_gap, desired_velocity, strategy_mode
+from control.execute_v2 import execute_v2
 
 
 def draw_pendulum(ax, s, a, v_des, mode, step, s_goal=np.array([0, 1, 0])):

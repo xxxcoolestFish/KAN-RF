@@ -8,7 +8,7 @@ Methods:
 import torch, numpy as np, time, argparse
 import gymnasium as gym
 from kanrf import KAN
-from cartpole_decision import CartPoleDecisionNet
+from control.cartpole_decision import CartPoleDecisionNet
 
 MAX_K = 8
 

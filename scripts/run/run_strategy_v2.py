@@ -8,8 +8,8 @@ import torch
 import gymnasium as gym
 import numpy as np
 from kanrf import KAN
-from strategy_v2 import compute_gap, desired_velocity, strategy_mode
-from execute_v2 import execute_v2
+from control.strategy_v2 import compute_gap, desired_velocity, strategy_mode
+from control.execute_v2 import execute_v2
 
 _LOG = None
 

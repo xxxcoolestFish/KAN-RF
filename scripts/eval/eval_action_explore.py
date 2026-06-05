@@ -12,7 +12,7 @@ The decision network learns: "when you see this state, output this action".
 import torch, numpy as np, time, argparse, copy
 import gymnasium as gym
 from kanrf import KAN
-from action_explorer import ActionExplorer, angle_error
+from control.action_explorer import ActionExplorer, angle_error
 
 PI_2 = np.pi / 2
 

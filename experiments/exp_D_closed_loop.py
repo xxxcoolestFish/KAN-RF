@@ -17,8 +17,8 @@ import torch
 import gymnasium as gym
 import numpy as np
 from kanrf import KAN
-from online_learning_v2 import ThreeFactorUpdater, compute_training_stats
-from strategy_v2 import compute_gap, desired_velocity, strategy_mode
+from control.online_learning_v2 import ThreeFactorUpdater, compute_training_stats
+from control.strategy_v2 import compute_gap, desired_velocity, strategy_mode
 
 G = 10.0; PI_2 = np.pi / 2
 

@@ -14,7 +14,7 @@ import torch
 import gymnasium as gym
 import numpy as np
 from kanrf import KAN
-from shoot_v2 import shoot_uncertainty
+from control.shoot_v2 import shoot_uncertainty
 
 _LOG = None
 

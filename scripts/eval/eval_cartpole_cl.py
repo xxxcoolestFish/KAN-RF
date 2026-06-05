@@ -12,7 +12,7 @@ This requires zero system-specific knowledge — just the world model + MPC.
 import torch, numpy as np, time, argparse, copy
 import gymnasium as gym
 from kanrf import KAN
-from continuous_learner import ContinuousLearner
+from control.continuous_learner import ContinuousLearner
 
 
 def load_wm(path='kan_cartpole.pt'):

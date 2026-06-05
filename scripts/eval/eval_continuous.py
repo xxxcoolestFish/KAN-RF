@@ -12,7 +12,7 @@ Only assumption: we can compute ||f_model(s,a,k) - s'_real||.
 import torch, numpy as np, time, argparse, copy
 import gymnasium as gym
 from kanrf import KAN
-from continuous_learner import ContinuousLearner
+from control.continuous_learner import ContinuousLearner
 
 PI_2 = np.pi / 2
 K_VALS = [1, 2, 4, 8, 16]

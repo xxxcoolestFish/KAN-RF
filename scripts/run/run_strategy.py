@@ -9,8 +9,8 @@ import torch
 import gymnasium as gym
 import numpy as np
 from kanrf import KAN
-from strategy import deviation, strategy_mode, intermediate_target
-from execute import execute
+from control.strategy import deviation, strategy_mode, intermediate_target
+from control.execute import execute
 
 _LOG = None
 

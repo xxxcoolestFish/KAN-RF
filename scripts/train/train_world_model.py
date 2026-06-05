@@ -1,7 +1,7 @@
 """Phase 1: Train KAN world model to predict s_{t+1} from (s_t, a_t)."""
 import torch
 from kanrf import KAN
-from env import PointMass, generate_data
+from control.env import PointMass, generate_data
 
 
 def main():

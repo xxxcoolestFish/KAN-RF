@@ -9,7 +9,7 @@ Usage:
 import torch, numpy as np, gymnasium as gym, time, sys, os, argparse
 from kanrf import KAN
 from decision_v2.core import FeatureComputer, TinyDecisionNet
-from action_explorer import ActionExplorer, angle_error
+from control.action_explorer import ActionExplorer, angle_error
 
 PI_2 = np.pi / 2
 MAX_K = 12

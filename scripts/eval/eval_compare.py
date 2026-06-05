@@ -10,7 +10,7 @@ import torch
 import gymnasium as gym
 import numpy as np
 from kanrf import KAN
-from shoot import shoot
+from control.shoot import shoot
 
 _LOG = None
 

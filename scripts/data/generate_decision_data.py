@@ -5,7 +5,7 @@ then distills them into single-step (first_action, horizon) labels.
 """
 import torch, numpy as np, time, argparse
 from kanrf import KAN
-from shoot import shoot
+from control.shoot import shoot
 
 
 def load_model(path):

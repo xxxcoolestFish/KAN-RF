@@ -5,7 +5,7 @@ Output: (a_norm, H_class) — continuous action + discrete horizon class
 Loss:   MSE(action) + alpha * CrossEntropy(horizon)
 """
 import torch, argparse
-from decision_network import DecisionKAN
+from control.decision_network import DecisionKAN
 
 
 def main(n_epochs=2000, alpha=0.5, lr=1e-2, device='cpu'):

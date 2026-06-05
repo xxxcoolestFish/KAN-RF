@@ -1,7 +1,7 @@
 """Evaluate decision network on pendulum swing-up task."""
 import torch, numpy as np, time, argparse
 import gymnasium as gym
-from decision_network import DecisionKAN
+from control.decision_network import DecisionKAN
 from kanrf import KAN
 
 G = 10.0; PI_2 = np.pi / 2

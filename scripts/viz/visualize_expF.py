@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 from kanrf import KAN
-from online_learning_v2 import ThreeFactorUpdater, compute_training_stats
+from control.online_learning_v2 import ThreeFactorUpdater, compute_training_stats
 
 G = 10.0; PI_2 = np.pi / 2; E_DES = G
 

@@ -1,7 +1,7 @@
 """Phase 2: Decision via gradient descent in action space through frozen KAN."""
 import torch
 from kanrf import KAN
-from env import PointMass
+from control.env import PointMass
 
 
 def decide(model: KAN, s: torch.Tensor, s_target: torch.Tensor,

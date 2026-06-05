@@ -19,14 +19,14 @@ import torch
 import gymnasium as gym
 import numpy as np
 from kanrf import KAN
-from strategy_v2 import compute_gap, desired_velocity, strategy_mode
-from execute_v2 import execute_v2
-from online_learning import (
+from control.strategy_v2 import compute_gap, desired_velocity, strategy_mode
+from control.execute_v2 import execute_v2
+from control.online_learning import (
     FeedbackAlignmentUpdater,
     online_update_sgd,
     online_update_sgd_local,
 )
-from online_learning_v2 import compute_training_stats, ThreeFactorUpdater
+from control.online_learning_v2 import compute_training_stats, ThreeFactorUpdater
 
 _LOG = None
 

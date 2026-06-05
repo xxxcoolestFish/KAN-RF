@@ -1,7 +1,7 @@
 """KAN Online Learning: approaches C (Feedback Alignment) and B (full BP).
 
 Usage:
-  from online_learning import online_update_feedback_alignment, online_update_sgd
+  from control.online_learning import online_update_feedback_alignment, online_update_sgd
 
   # After each env step:
   online_update_feedback_alignment(model, s, a, s_true, lr=1e-4)

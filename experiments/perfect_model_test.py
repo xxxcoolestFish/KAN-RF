@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 import gymnasium as gym
 import numpy as np
-from strategy_v2 import compute_gap, desired_velocity, strategy_mode
+from control.strategy_v2 import compute_gap, desired_velocity, strategy_mode
 
 _LOG = None
 G = 10.0
