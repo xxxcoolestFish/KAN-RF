@@ -16,8 +16,8 @@ import gymnasium as gym
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from kanrf import KAN
 from decision_v3.core import (KANPolicy, ResidualPhysicsPolicy,
-                               KANGradientTrainer, KANDensityWeight,
-                               KANMultiStepTrainer)
+                               KANGradientTrainer, KANEnergyTrainer,
+                               KANDensityWeight, KANMultiStepTrainer)
 
 PI_2 = np.pi / 2
 S_TARGET = torch.tensor([[0.0, 1.0, 0.0]])  # upright, at rest
@@ -156,7 +156,7 @@ def train(args):
         k_norm = torch.tensor([[k_val / 16.0]], device=device)
         print(f"  Multi-scale: fixed k={k_val} (k_norm={k_val/16:.4f})")
 
-    trainer_cls = KANMultiStepTrainer if args.multi_step > 1 else KANGradientTrainer
+    loss_type = args.loss_type
     trainer_kwargs = dict(
         kan=kan, policy=policy, s_target=s_target,
         lr=args.lr, lambda_ctrl=args.lambda_ctrl,
@@ -166,12 +166,17 @@ def train(args):
         trainer_kwargs['multi_scale'] = ms_mode
         if ms_mode == 'fixed':
             trainer_kwargs['k_norm'] = k_norm
-    if args.multi_step > 1:
-        trainer_kwargs['horizon'] = args.multi_step
 
-    trainer = trainer_cls(**trainer_kwargs)
-    desc = f"MultiStep (H={args.multi_step})" if args.multi_step > 1 else "SingleStep"
-    print(f"  Trainer: {desc}, multi_scale={ms_mode}")
+    if loss_type == 'energy':
+        trainer = KANEnergyTrainer(**trainer_kwargs)
+        print(f"  Trainer: Energy-based (swing: maximize energy gain, stabilize: minimize distance)")
+    elif args.multi_step > 1:
+        trainer_kwargs['horizon'] = args.multi_step
+        trainer = KANMultiStepTrainer(**trainer_kwargs)
+        print(f"  Trainer: MultiStep (H={args.multi_step})")
+    else:
+        trainer = KANGradientTrainer(**trainer_kwargs)
+        print(f"  Trainer: SingleStep MSE(s_pred, s*)")
 
     # ── 5. Optional: activation density weighting ──
     density_weight = None
@@ -257,6 +262,9 @@ def main():
     parser.add_argument('--clip-grad', type=float, default=10.0)
     parser.add_argument('--multi-step', type=int, default=1,
                         help='Multi-step rollout horizon (1 = single-step)')
+    parser.add_argument('--loss-type', type=str, default='energy',
+                        choices=['mse', 'energy'],
+                        help="'energy': physics-informed energy gain + distance blend. 'mse': pure MSE(s_pred, s*)")
     parser.add_argument('--multi-scale', type=str, default='off',
                         choices=['off', 'fixed', 'policy'],
                         help="'fixed': fixed k for all states. 'policy': policy outputs (a,k)")

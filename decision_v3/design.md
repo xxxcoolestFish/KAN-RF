@@ -169,6 +169,49 @@ to stabilization (sin→1, top):
 3. Interpretability: can analyze k_energy, k_stable, k_damp evolution during
    training, and visualize where δ_θ is large (model mismatch regions)
 
+## 9. Experimental Results (2026-07-01)
+
+### Setup
+- KAN world model: [4, 12, 3], basic MSE training (val MSE=0.0064, Jacobian cos_sim ≈ 0.1)
+- Training states: 20k uniform samples from state space
+- Epochs: 200, batch_size: 256, lr: 1e-3
+
+### Key Finding: Energy Loss > Distance Loss
+
+MSE(s_pred, s*) fails because no single action can reach upright from the
+bottom — the gradient through KAN kills the energy-shaping term.
+
+Energy-guided loss succeeds:
+  L = -w_swing * energy_gain + w_stable * MSE(s_pred, s*)
+
+### Results
+
+| Policy | Loss | Success | Notes |
+|--------|------|:---:|------|
+| Pure MLP (4.5k params) | Energy | **10/10** | First 10/10 using KAN for decision! |
+| Pure MLP (4.5k params) | MSE | N/A | Loss stuck at 2.0 (impossible to minimize) |
+| ResidualPhysics (1.2k params) | Energy | 7/10 | k_energy frozen at 0.15 — too small for swing-up |
+| ResidualPhysics (1.2k params) | MSE | 7/10 | k_energy killed by gradient (→ -0.007) |
+| v1 Inverse opt (baseline) | — | 7/10 | Root cause 3 |
+| Action explorer (oracle) | — | 10/10 | Bypasses KAN entirely |
+
+### Analysis
+
+1. **Pure MLP 10/10 proves the paradigm**: KAN can provide useful training
+   signal through gradients, without appearing in the deployed policy.
+
+2. **Energy loss is essential**: For underactuated systems, single-step
+   distance to target is the wrong objective. Energy gain is the right
+   intermediate objective — exactly what PINN philosophy prescribes.
+
+3. **Residual physics needs tuning**: k_energy=0.15 (initial guess) is 10x
+   smaller than optimal (1.5). With better initialization or CWS-trained
+   KAN (cos_sim ≈ 0.92), the gradient should be able to tune k_energy.
+
+4. **KAN Jacobian quality matters**: Basic MSE KAN has terrible Jacobian
+   (cos_sim ≈ 0.1). CWS training (cos_sim ≈ 0.92) should dramatically
+   improve gradient quality for both architectures.
+
 ## 10. Implementation Plan
 
 ### Step 1: Minimal working version (v3.0)

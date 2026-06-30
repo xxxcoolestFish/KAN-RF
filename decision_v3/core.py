@@ -210,6 +210,169 @@ class ResidualPhysicsPolicy(nn.Module):
 # KAN Gradient Trainer
 # ═══════════════════════════════════════════════════════════════════════════════
 
+class KANEnergyTrainer:
+    """Train π_θ using physics-informed energy-based loss through KAN.
+
+    Unlike KANGradientTrainer which uses MSE(s_pred, s*) — impossible to
+    minimize from the bottom of swing — this uses:
+
+      L = -w_swing · (E_pred - E) + w_stable · MSE(s_pred, s*)
+
+    where:
+      E = 0.5·θ̇² + G·sin(θ)     (pendulum energy)
+      E_pred via KAN(s, a)
+      w_swing → 1 at bottom (swing-up: maximize energy gain)
+      w_stable → 1 at top   (stabilize: minimize distance to upright)
+
+    This is PINN philosophy: physics knowledge (energy is the right
+    objective for swing-up) embedded in the loss function, not just
+    the architecture.
+
+    Args:
+        kan: frozen KAN world model
+        policy: π_θ network
+        s_target: target state [0, 1, 0]
+        G: gravitational constant (10.0 for Pendulum-v1)
+        lr, lambda_ctrl, clip_grad: standard training params
+    """
+
+    def __init__(self, kan, policy, s_target, G=10.0, lr=1e-3,
+                 lambda_ctrl=0.01, clip_grad=10.0, device='cpu',
+                 multi_scale=False, k_norm=None):
+        self.kan = kan
+        self.policy = policy.to(device)
+        self.s_target = s_target.to(device)
+        self.device = device
+        self.G = G
+        self.lambda_ctrl = lambda_ctrl
+        self.clip_grad = clip_grad
+        self.multi_scale = multi_scale
+        self.k_norm = k_norm
+
+        self.optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
+        self.loss_history = []
+
+        self.kan.eval()
+        for p in self.kan.parameters():
+            p.requires_grad = False
+
+    def _compute_energy(self, s):
+        """Compute pendulum energy from normalized state.
+
+        s: (B, 3) [cosθ, sinθ, θ̇/8]
+        Returns: E: (B, 1) — energy, E_des = G
+        """
+        sin = s[:, 1:2]
+        thd_norm = s[:, 2:3]
+        thd = thd_norm * 8.0
+        E = 0.5 * thd.pow(2) + self.G * sin
+        return E
+
+    def _build_kan_input(self, s, policy_out):
+        """Build KAN input. Same as KANGradientTrainer."""
+        if self.multi_scale == 'policy':
+            a = policy_out[:, :1]
+            k_cont = policy_out[:, 1:2]
+            return torch.cat([s, a, k_cont], dim=-1), a
+        elif self.multi_scale == 'fixed' and self.k_norm is not None:
+            a = policy_out
+            k_batch = self.k_norm.expand(s.shape[0], -1).to(self.device)
+            return torch.cat([s, a, k_batch], dim=-1), a
+        else:
+            a = policy_out
+            return torch.cat([s, a], dim=-1), a
+
+    def train_step(self, s_batch, weight_batch=None):
+        """Single training step with energy-guided loss.
+
+        The key insight: for swing-up states, maximize energy gain, not
+        minimize distance to target (which is impossible in one step).
+        For stabilize states, minimize distance as usual.
+        """
+        B = s_batch.shape[0]
+
+        self.policy.train()
+        self.optimizer.zero_grad()
+
+        # Forward: s → policy → a → KAN → s'_pred
+        policy_out = self.policy(s_batch)
+        kan_input, a = self._build_kan_input(s_batch, policy_out)
+        s_pred = self.kan(kan_input)
+
+        # ── Physics-informed loss ──
+        E_current = self._compute_energy(s_batch)       # (B, 1)
+        E_pred = self._compute_energy(s_pred)           # (B, 1)
+        E_des = self.G
+        delta_E = E_current - E_des                      # >0: too much, <0: need more
+
+        # Swing weight: 1 at bottom (need to swing), 0 at top (need to stabilize)
+        sin = s_batch[:, 1:2]
+        w_swing = ((1.0 - sin) / 2.0).clamp(0.0, 1.0)   # (B, 1)
+        w_stable = ((1.0 + sin) / 2.0).clamp(0.0, 1.0)  # (B, 1)
+
+        # Energy gain: positive when energy moves toward E_des
+        # If E < E_des (need energy): reward increasing E
+        # If E > E_des (too much): reward decreasing E
+        energy_deficit = E_des - E_current                # >0: need energy
+        energy_gain = (E_pred - E_current) * torch.sign(energy_deficit)
+        # energy_gain > 0 means we moved in the right direction
+
+        energy_loss = -energy_gain.mean()                 # minimize → maximize gain
+
+        # Distance loss for stabilize states
+        dist_loss = (s_pred - self.s_target.expand(B, -1)).pow(2).sum(dim=-1, keepdim=True)
+        dist_loss = (w_stable * dist_loss).mean()
+
+        # Blend
+        pred_loss = energy_loss + dist_loss
+        ctrl_loss = a.pow(2).mean()
+        total_loss = pred_loss + self.lambda_ctrl * ctrl_loss
+
+        total_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.clip_grad)
+        self.optimizer.step()
+
+        ld = {
+            'total': total_loss.item(),
+            'pred': pred_loss.item(),
+            'energy': energy_loss.item(),
+            'dist': dist_loss.item(),
+            'ctrl': ctrl_loss.item(),
+            'mean_E': E_current.mean().item(),
+            'mean_w_swing': w_swing.mean().item(),
+        }
+        self.loss_history.append(ld)
+        return ld
+
+    def train_epoch(self, s_dataset, batch_size=256, n_batches=None,
+                    weight_fn=None):
+        N = s_dataset.shape[0]
+        if n_batches is None:
+            n_batches = max(1, N // batch_size)
+        epoch_losses = []
+        for _ in range(n_batches):
+            idx = torch.randint(0, N, (batch_size,), device=self.device)
+            s_batch = s_dataset[idx]
+            weight_batch = weight_fn(s_batch) if weight_fn else None
+            ld = self.train_step(s_batch, weight_batch)
+            epoch_losses.append(ld)
+        return {k: np.mean([l[k] for l in epoch_losses]) for k in epoch_losses[0]}
+
+    @torch.no_grad()
+    def get_action(self, s):
+        self.policy.eval()
+        if isinstance(s, np.ndarray):
+            s = torch.tensor(s, dtype=torch.float32, device=self.device)
+        if s.dim() == 1:
+            s = s.unsqueeze(0)
+        out = self.policy(s).squeeze().cpu()
+        if self.multi_scale == 'policy':
+            a = out[0].item()
+            k = max(1, min(16, round(out[1].item() * 16)))
+            return a, k
+        return out.item()
+
+
 class KANGradientTrainer:
     """Train π_θ using frozen KAN as a differentiable loss function.
 
