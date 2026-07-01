@@ -186,31 +186,45 @@ Energy-guided loss succeeds:
 
 ### Results
 
+**Phase 1: Basic MSE-trained KAN (Jacobian cos_sim ≈ 0.10)**
+
 | Policy | Loss | Success | Notes |
 |--------|------|:---:|------|
 | Pure MLP (4.5k params) | Energy | **10/10** | First 10/10 using KAN for decision! |
 | Pure MLP (4.5k params) | MSE | N/A | Loss stuck at 2.0 (impossible to minimize) |
-| ResidualPhysics (1.2k params) | Energy | 7/10 | k_energy frozen at 0.15 — too small for swing-up |
-| ResidualPhysics (1.2k params) | MSE | 7/10 | k_energy killed by gradient (→ -0.007) |
+| ResidualPhysics (k_e=0.15 frozen) | Energy | 7/10 | k_energy too small for swing-up |
+| ResidualPhysics (k_e=1.5 frozen) | Energy | 7/10 | k_damp pushed to +1.31 (anti-damping) by wrong gradient |
+| ResidualPhysics (all frozen) | Energy | 7/10 | Residual interferes with correct prior |
 | v1 Inverse opt (baseline) | — | 7/10 | Root cause 3 |
 | Action explorer (oracle) | — | 10/10 | Bypasses KAN entirely |
+
+**Phase 2: CWS-trained KAN (Jacobian cos_sim ≈ 0.70)**
+
+KAN training: Hybrid MOPS(λ=0.1) + CWS(ν=0.1), 1200 epochs, Val MSE=0.000749.
+Jacobian cos_sim improved from 0.10 → 0.70 (7x).
+
+| Policy | Loss | Success | Notes |
+|--------|------|:---:|------|
+| Pure MLP (4.5k params) | Energy | **10/10** | Consistent with Phase 1 — robust result |
+| ResidualPhysics (trainable) | Energy | ? | Pending |
 
 ### Analysis
 
 1. **Pure MLP 10/10 proves the paradigm**: KAN can provide useful training
    signal through gradients, without appearing in the deployed policy.
+   Result is robust across KAN quality levels (both basic and CWS KAN).
 
 2. **Energy loss is essential**: For underactuated systems, single-step
    distance to target is the wrong objective. Energy gain is the right
    intermediate objective — exactly what PINN philosophy prescribes.
 
-3. **Residual physics needs tuning**: k_energy=0.15 (initial guess) is 10x
-   smaller than optimal (1.5). With better initialization or CWS-trained
-   KAN (cos_sim ≈ 0.92), the gradient should be able to tune k_energy.
+3. **Residual physics with basic KAN fails**: k_energy=0.15 is 10x smaller
+   than optimal (1.5). With poor Jacobian, trainable physics params are
+   pushed in wrong directions (k_damp → anti-damping).
 
-4. **KAN Jacobian quality matters**: Basic MSE KAN has terrible Jacobian
-   (cos_sim ≈ 0.1). CWS training (cos_sim ≈ 0.92) should dramatically
-   improve gradient quality for both architectures.
+4. **CWS KAN dramatically improves model quality**: Val MSE from 0.0064 →
+   0.00075 (8.5x), Jacobian cos_sim from 0.10 → 0.70 (7x). Pending test:
+   does this enable successful residual physics training?
 
 ## 10. Implementation Plan
 
