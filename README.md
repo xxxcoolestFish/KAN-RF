@@ -296,10 +296,14 @@ KAN-RF/
 ├── wm_v/                     # 世界模型 + 价值网络
 ├── cks/                      # 可认证 k-选择理论
 ├── acrobot/ mountaincar/     # 子环境
-├── docs/                     # 理论文档
-│   ├── FORWARD_INVERSE_GAP.md       # 前向-逆向差距三根因
-│   ├── FITTING_DEPTH.md             # 拟合深度 + MOPS/CWS
-│   └── CERTIFIED_K_SELECTION.md    # CKS 6-定理框架
+├── docs/                     # 理论文档 + 历史归档
+│   ├── theory/
+│   │   ├── FORWARD_INVERSE_GAP.md       # 前向-逆向差距三根因
+│   │   ├── FITTING_DEPTH.md             # 拟合深度 + MOPS/CWS
+│   │   ├── CONTINUOUS_LEARNING.md       # B-样条持续学习理论
+│   │   └── CERTIFIED_K_SELECTION.md    # CKS 6-定理框架
+│   ├── archive/               # 历史/过程文档
+│   └── handovers/             # 交接文档
 └── pyproject.toml
 ```
 
