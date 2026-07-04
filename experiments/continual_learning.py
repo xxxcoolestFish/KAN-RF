@@ -170,13 +170,8 @@ class EnergyController:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def train_kan(x_train, y_train, x_val, y_val, epochs=2400, lr=1e-2):
-    """Train KAN world model — pure MSE for best accuracy, no MOPS.
-
-    Using pure MSE to get the best possible forward prediction accuracy,
-    matching MLP's training objective.  MOPS would trade accuracy for
-    smoothness, which would obscure the continual-learning comparison.
-    """
+def train_kan_mse(x_train, y_train, x_val, y_val, epochs=2400, lr=1e-2):
+    """Train KAN with pure MSE baseline (for ablation comparison)."""
     model = KAN([4, 12, 3], grid_size=5, spline_order=3)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=600, gamma=0.5)
@@ -201,11 +196,81 @@ def train_kan(x_train, y_train, x_val, y_val, epochs=2400, lr=1e-2):
             if val_mse < best_val:
                 best_val = val_mse
                 best_state = {k: v.clone() for k, v in model.state_dict().items()}
-            print(f"  KAN  epoch {epoch:4d}  val_mse={val_mse:.6f}  best={best_val:.6f}")
+            print(f"  KAN-MSE epoch {epoch:4d}  val_mse={val_mse:.6f}  best={best_val:.6f}")
 
     model.load_state_dict(best_state)
     model.eval()
-    print(f"  KAN  final val_mse={best_val:.8f}  params={sum(p.numel() for p in model.parameters())}")
+    print(f"  KAN-MSE final val_mse={best_val:.8f}  params={sum(p.numel() for p in model.parameters())}")
+    return model
+
+
+def train_kan_cws(x_train, y_train, x_val, y_val, epochs=2400, lr=1e-2,
+                   nu_cws=1.0):
+    """Train KAN with CWS only — Jacobian matching, NO smoothness constraint.
+
+    CWS: Controllability-Weighted Sobolev — matches ∂f/∂a to true Jacobian.
+
+    Key design choice: we deliberately OMIT MOPS (P-spline penalty).
+    MOPS enforces smoothness across adjacent control points, which:
+      - Helps offline accuracy (when combined with CWS)
+      - But IMPAIRS online adaptation (smoothness = control point coupling)
+
+    CWS-only preserves:
+      - High Jacobian accuracy (cos_sim ≈ 0.98)
+      - Free control points (no cross-coupling → local adaptation works)
+
+    From FITTING_DEPTH.md: CWS ν=1.0 achieves val_mse ≈ 0.00034,
+    Jacobian cos_sim ≈ 0.98.
+
+    Uses mini-batches (per-sample autograd Jacobian is memory-heavy).
+    """
+    from kanrf import jacobian_loss
+
+    model = KAN([4, 12, 3], grid_size=5, spline_order=3)
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=600, gamma=0.5)
+    mse_fn = nn.MSELoss()
+
+    # CWS weights: θ̇_dot is directly actuated → higher weight
+    w_cws = torch.tensor([1.0, 1.0, 3.0])
+
+    n_train = len(x_train)
+    batch_size = 2048
+
+    best_val = float('inf')
+    best_state = None
+
+    for epoch in range(1, epochs + 1):
+        model.train()
+
+        idx = torch.randperm(n_train)[:batch_size]
+        x_batch = x_train[idx]
+        y_batch = y_train[idx]
+        s_batch = x_batch[:, :3]
+        a_batch = x_batch[:, 3:4]
+
+        opt.zero_grad()
+        pred = model(x_batch)
+        loss_mse = mse_fn(pred, y_batch)
+        loss_cws = nu_cws * jacobian_loss(model, s_batch, a_batch, y_batch, w_cws)
+        loss = loss_mse + loss_cws
+        loss.backward()
+        opt.step()
+        scheduler.step()
+
+        if epoch % 400 == 0:
+            model.eval()
+            with torch.no_grad():
+                val_mse = mse_fn(model(x_val), y_val).item()
+            if val_mse < best_val:
+                best_val = val_mse
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            print(f"  KAN-CWS epoch {epoch:4d}  val_mse={val_mse:.6f}  best={best_val:.6f}  "
+                  f"mse={loss_mse.item():.6f} cws={loss_cws.item():.6f}")
+
+    model.load_state_dict(best_state)
+    model.eval()
+    print(f"  KAN-CWS final val_mse={best_val:.8f}  params={sum(p.numel() for p in model.parameters())}")
     return model
 
 
@@ -517,8 +582,8 @@ def plot_results(results_dict, save_path=None):
 
     n_models = len(results_dict)
     colors = {
-        'KAN (three-factor)': '#2196F3',
-        'KAN (constant LR)': '#90CAF9',
+        'KAN-CWS (constant LR)': '#1565C0',
+        'KAN-MSE (constant LR)': '#90CAF9',
         'MLP (SGD+replay)': '#FF9800',
     }
 
@@ -699,7 +764,8 @@ def main():
 
     os.makedirs(args.cache_dir, exist_ok=True)
     data_path = os.path.join(args.cache_dir, 'pendulum_data_cl.pt')
-    kan_path = os.path.join(args.cache_dir, 'kan_wm_cl.pt')
+    kan_cws_path = os.path.join(args.cache_dir, 'kan_cws_cl.pt')
+    kan_mse_path = os.path.join(args.cache_dir, 'kan_mse_cl.pt')
     mlp_path = os.path.join(args.cache_dir, 'mlp_wm_cl.pt')
 
     # ══════════════════════════════════════════════════════════════════
@@ -731,13 +797,22 @@ def main():
     # ══════════════════════════════════════════════════════════════════
     # Phase 2: Train world models
     # ══════════════════════════════════════════════════════════════════
-    if args.no_train and os.path.exists(kan_path) and os.path.exists(mlp_path):
+    if args.no_train and os.path.exists(kan_cws_path) and os.path.exists(mlp_path):
         print("\nLoading cached models...")
-        kan_model = KAN([4, 12, 3], grid_size=5, spline_order=3)
-        kan_model.load_state_dict(torch.load(kan_path, weights_only=True))
-        kan_model.to(device)
-        kan_model.eval()
-        print(f"  KAN loaded: {sum(p.numel() for p in kan_model.parameters())} params")
+        kan_cws_model = KAN([4, 12, 3], grid_size=5, spline_order=3)
+        kan_cws_model.load_state_dict(torch.load(kan_cws_path, weights_only=True))
+        kan_cws_model.to(device)
+        kan_cws_model.eval()
+        print(f"  KAN-CWS loaded: {sum(p.numel() for p in kan_cws_model.parameters())} params")
+
+        kan_mse_model = KAN([4, 12, 3], grid_size=5, spline_order=3)
+        if os.path.exists(kan_mse_path):
+            kan_mse_model.load_state_dict(torch.load(kan_mse_path, weights_only=True))
+            kan_mse_model.to(device)
+            kan_mse_model.eval()
+            print(f"  KAN-MSE loaded: {sum(p.numel() for p in kan_mse_model.parameters())} params")
+        else:
+            kan_mse_model = None
 
         mlp_model = MLPWorldModel()
         mlp_model.load_state_dict(torch.load(mlp_path, weights_only=True))
@@ -749,10 +824,15 @@ def main():
         print("Phase 2: Training world models")
         print("=" * 60)
 
-        print("\n[KAN] Training...")
-        kan_model = train_kan(x_train, y_train, x_val, y_val, epochs=args.epochs)
-        kan_model.to(device)
-        torch.save(kan_model.state_dict(), kan_path)
+        print("\n[KAN-CWS] Training (Jacobian matching, no smoothness constraint)...")
+        kan_cws_model = train_kan_cws(x_train, y_train, x_val, y_val, epochs=args.epochs)
+        kan_cws_model.to(device)
+        torch.save(kan_cws_model.state_dict(), kan_cws_path)
+
+        print("\n[KAN-MSE] Training (pure MSE, for ablation)...")
+        kan_mse_model = train_kan_mse(x_train, y_train, x_val, y_val, epochs=args.epochs)
+        kan_mse_model.to(device)
+        torch.save(kan_mse_model.state_dict(), kan_mse_path)
 
         print("\n[MLP] Training...")
         mlp_model = train_mlp(x_train, y_train, x_val, y_val, epochs=args.epochs)
@@ -776,57 +856,53 @@ def main():
 
     results = {}
 
-    # ── Experiment 1: KAN with three-factor learning ──
-    print("\n── Experiment 1: KAN (three-factor online learning) ──")
-    env_kan = ConfigurablePendulum(g=10.0, seed=args.seed)
-    controller_kan = EnergyController()
+    # ── Experiment 1: KAN-CWS (Jacobian matching, no MOPS) + constant LR ──
+    print("\n── Experiment 1: KAN-CWS (Jacobian only, no smoothness) + constant LR ──")
+    env_kc = ConfigurablePendulum(g=10.0, seed=args.seed)
+    ctrl = EnergyController()
 
-    kan_exp = KAN([4, 12, 3], grid_size=5, spline_order=3)
-    kan_exp.load_state_dict(kan_model.state_dict())
-    kan_exp.to(device)
-    kan_exp.train()
+    kan_cws = KAN([4, 12, 3], grid_size=5, spline_order=3)
+    kan_cws.load_state_dict(kan_cws_model.state_dict())
+    kan_cws.to(device)
+    kan_cws.eval()
+    kc_updater = KANConstantLRUpdater(kan_cws, buffer_size=500, lr=1e-3, momentum=0.9)
 
-    kan_updater = KANOnlineUpdater(kan_exp, x_train.cpu(), y_train.cpu(), eta0=1e-3)
+    result_kc = run_experiment(kan_cws, kc_updater, env_kc, ctrl,
+                               device, n_steps=args.steps,
+                               gravity_schedule=gravity_schedule)
+    env_kc.env.close()
+    result_kc['model_name'] = 'KAN-CWS (constant LR)'
+    results['KAN-CWS (constant LR)'] = result_kc
 
-    result_kan = run_experiment(kan_exp, kan_updater, env_kan, controller_kan,
-                                device, n_steps=args.steps,
-                                gravity_schedule=gravity_schedule)
-    env_kan.env.close()
-    result_kan['model_name'] = 'KAN (three-factor)'
-    results['KAN (three-factor)'] = result_kan
+    # ── Experiment 2: KAN-MSE (pure MSE) + constant LR (ablation) ──
+    if kan_mse_model is not None:
+        print("\n── Experiment 2: KAN-MSE (pure MSE) + constant LR ──")
+        env_km = ConfigurablePendulum(g=10.0, seed=args.seed)
 
-    # ── Experiment 2: KAN with CONSTANT learning rate (ablation) ──
-    print("\n── Experiment 2: KAN (constant LR + replay, ablation) ──")
-    env_kan_clr = ConfigurablePendulum(g=10.0, seed=args.seed)
-    controller_kan_clr = EnergyController()
+        kan_mse = KAN([4, 12, 3], grid_size=5, spline_order=3)
+        kan_mse.load_state_dict(kan_mse_model.state_dict())
+        kan_mse.to(device)
+        kan_mse.eval()
+        km_updater = KANConstantLRUpdater(kan_mse, buffer_size=500, lr=1e-3, momentum=0.9)
 
-    kan_clr = KAN([4, 12, 3], grid_size=5, spline_order=3)
-    kan_clr.load_state_dict(kan_model.state_dict())
-    kan_clr.to(device)
-    kan_clr.eval()
+        result_km = run_experiment(kan_mse, km_updater, env_km, ctrl,
+                                   device, n_steps=args.steps,
+                                   gravity_schedule=gravity_schedule)
+        env_km.env.close()
+        result_km['model_name'] = 'KAN-MSE (constant LR)'
+        results['KAN-MSE (constant LR)'] = result_km
 
-    kan_clr_updater = KANConstantLRUpdater(kan_clr, buffer_size=500, lr=1e-3, momentum=0.9)
-
-    result_kan_clr = run_experiment(kan_clr, kan_clr_updater, env_kan_clr,
-                                    controller_kan_clr, device, n_steps=args.steps,
-                                    gravity_schedule=gravity_schedule)
-    env_kan_clr.env.close()
-    result_kan_clr['model_name'] = 'KAN (constant LR)'
-    results['KAN (constant LR)'] = result_kan_clr
-
-    # ── Experiment 3: MLP with SGD + replay buffer ──
-    print("\n── Experiment 3: MLP (SGD + replay buffer) ──")
+    # ── Experiment 3: MLP + SGD + replay ──
+    print(f"\n── Experiment {len(results)+1}: MLP (SGD + replay buffer) ──")
     env_mlp = ConfigurablePendulum(g=10.0, seed=args.seed)
-    controller_mlp = EnergyController()
 
     mlp_exp = MLPWorldModel()
     mlp_exp.load_state_dict(mlp_model.state_dict())
     mlp_exp.to(device)
     mlp_exp.eval()
-
     mlp_updater = MLPOnlineUpdater(mlp_exp, buffer_size=500, lr=1e-3, momentum=0.9)
 
-    result_mlp = run_experiment(mlp_exp, mlp_updater, env_mlp, controller_mlp,
+    result_mlp = run_experiment(mlp_exp, mlp_updater, env_mlp, ctrl,
                                 device, n_steps=args.steps,
                                 gravity_schedule=gravity_schedule)
     env_mlp.env.close()
@@ -889,8 +965,8 @@ def main():
 
     # Also save raw data for later analysis
     np.savez(os.path.join(args.cache_dir, 'results.npz'),
-             kan_3f_errors=results['KAN (three-factor)']['errors'],
-             kan_clr_errors=results['KAN (constant LR)']['errors'],
+             kan_cws_errors=results['KAN-CWS (constant LR)']['errors'],
+             kan_mse_errors=results.get('KAN-MSE (constant LR)', {}).get('errors', []),
              mlp_errors=results['MLP (SGD+replay)']['errors'])
     print(f"Raw data saved: {os.path.join(args.cache_dir, 'results.npz')}")
 
