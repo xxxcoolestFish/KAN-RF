@@ -232,21 +232,73 @@ def main():
     print(f"  Pred error: {pe2:.4f} → {pe3:.4f}  "
           f"({(1-pe3/pe2)*100:.0f}% improvement)\n")
 
-    # ══════════════════════════════════════════════════════════════
-    # Phase 4: Fine-tune KAN policy using updated WM gradient
-    # ══════════════════════════════════════════════════════════════
+    # ═══ Phase 3.5: Generate successful trajectories via MPC in fine-tuned WM ═══
     print("=" * 60)
-    print(f"Phase 4: Fine-tune KAN policy ({args.epochs_policy} epochs)")
+    print("Phase 3.5: MPC in fine-tuned WM generates successful trajectories")
     print("=" * 60)
-    # Build training states from actual g=18 trajectories
-    s_list = []; s_target_list = []
-    for s_norm, a_norm, s_true in tr2:
-        s_list.append(s_norm)
+
+    def mental_mpc(wm_model, s_norm, horizon=3, n_candidates=50):
+        s_target = np.array([0.0, 1.0, 0.0])
+        s_t = torch.tensor(s_norm, dtype=torch.float32, device=device).unsqueeze(0)
+        # Jacobian via finite difference (avoids autograd issues)
+        eps = 0.01
+        x0 = torch.cat([s_t, torch.zeros(1, 1, device=device)], dim=-1)
+        x1 = torch.cat([s_t, torch.ones(1, 1, device=device)*eps], dim=-1)
+        with torch.no_grad():
+            J = (wm_model(x1) - wm_model(x0)).squeeze().cpu().numpy() / eps
+        state_err = s_target - s_norm
+        base_a = np.clip(float(np.dot(J, state_err))/(float(np.dot(J, J))+1e-4), -1, 1)
+
+        best_cost = float('inf'); best_seq = np.full(horizon, base_a)
+        for _ in range(n_candidates):
+            seq = best_seq + np.random.randn(horizon) * 0.3
+            seq = np.clip(seq, -1, 1)
+            s = s_norm.copy(); cost = 0
+            for h in range(horizon):
+                x = torch.cat([torch.tensor(s, dtype=torch.float32, device=device).unsqueeze(0),
+                              torch.tensor([[seq[h]]], dtype=torch.float32, device=device)], dim=-1)
+                with torch.no_grad():
+                    s = wm_model(x).cpu().squeeze().numpy()
+                cost += np.sum((s[:2]-s_target[:2])**2) + 0.01*seq[h]**2
+            if cost < best_cost:
+                best_cost = cost; best_seq = seq.copy()
+        return best_seq[0]
+
+    np.random.seed(42)
+    n_success = 0; mental_transitions = []
+    n_total = 200; report_every = 50
+    for i in range(n_total):
+        angle = np.random.uniform(-np.pi, np.pi)
+        s_raw = np.array([np.cos(angle), np.sin(angle), np.random.uniform(-8, 8)])
+        s_norm = s_raw.copy(); s_norm[2] /= 8.0
+        for _ in range(150):
+            a = mental_mpc(wm, s_norm)
+            x = torch.cat([torch.tensor(s_norm, dtype=torch.float32, device=device).unsqueeze(0),
+                          torch.tensor([[a]], dtype=torch.float32, device=device)], dim=-1)
+            with torch.no_grad():
+                s_next = wm(x).cpu().squeeze().numpy()
+            mental_transitions.append((s_norm.copy(), a, s_next.copy()))
+            s_next_raw = s_next.copy(); s_next_raw[2] *= 8.0
+            err = min(abs(np.arctan2(s_next_raw[1], s_next_raw[0])-PI_2),
+                     2*np.pi-abs(np.arctan2(s_next_raw[1], s_next_raw[0])-PI_2))
+            if err < 0.3: n_success += 1; break
+            s_norm = s_next
+        if i % report_every == 0:
+            print(f"    {i}/{n_total} trajectories, {n_success} reached upright")
+    print(f"    {n_success}/{n_total} ({n_success/n_total*100:.0f}%) reached upright, "
+          f"{len(mental_transitions)} transitions\n")
+
+    # ═══ Phase 4: Fine-tune KAN policy using mental trajectories ═══
+    print("=" * 60)
+    print(f"Phase 4: Fine-tune KAN policy on mental trajectories")
+    print("=" * 60)
+    # Use mental trajectory data — these are "successful" trajectories from MPC
+    s_list = []; a_list = []
+    for s_norm, a, s_next in mental_transitions:
+        s_list.append(s_norm); a_list.append([a])
     s_dataset = torch.tensor(np.array(s_list), dtype=torch.float32)
-    # Augment with noise for robustness
-    s_dataset = torch.cat([s_dataset, s_dataset + 0.1*torch.randn_like(s_dataset)], dim=0)
-    print(f"  Training states from g=18 trajectories: {s_dataset.shape[0]}")
-    # Update trainer with fine-tuned world model
+    a_targets = torch.tensor(np.array(a_list), dtype=torch.float32)
+    print(f"  Data: {s_dataset.shape[0]} (s,a) pairs from mental MPC")
     trainer = KANPolicyTrainer(wm, policy, S_TARGET.to(device),
                                lr=5e-4, device=device)
     for ep in range(1, args.epochs_policy + 1):
