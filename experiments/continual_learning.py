@@ -379,6 +379,109 @@ class KANConstantLRUpdater:
         return error, self.lr
 
 
+class KANDiffusionUpdater(KANConstantLRUpdater):
+    """KAN updater with control-point gradient diffusion along k-axis.
+
+    For each edge (i,j), applies anisotropic diffusion to the raw gradient
+    before momentum accumulation.  The diffusion preserves sharp features
+    (large |c_{k+1}-c_k| → weak diffusion) while smoothing updates in flat
+    regions (small |c_{k+1}-c_k| → strong diffusion).
+
+    Args:
+        model: KAN world model
+        lam: diffusion strength (0 = no diffusion, same as KANConstantLRUpdater)
+        beta: trend sensitivity (0=uniform, 1=linear, 2=strong protection)
+        alpha: noise floor for weight computation
+        T: number of diffusion iterations per update
+        buffer_size, lr, momentum: same as KANConstantLRUpdater
+    """
+
+    def __init__(self, model, lam=0.5, beta=1, alpha=0.01, T=2,
+                 buffer_size=500, lr=1e-3, momentum=0.9):
+        super().__init__(model, buffer_size=buffer_size, lr=lr, momentum=momentum)
+        self.lam = lam
+        self.beta = beta
+        self.alpha = alpha
+        self.T = T
+
+    def _diffuse_spline_grad(self):
+        """Apply gradient diffusion to all spline_weight parameters in-place."""
+        if self.lam <= 0:
+            return
+
+        eps = self.lam * self.lr / (1.0 + self.lam * self.lr)  # ∈ (0, 1)
+
+        for layer in self.model.layers:
+            c = layer.spline_weight.data  # (out_dim, in_dim, n_basis)
+            g = layer.spline_weight.grad  # same shape
+            if g is None:
+                continue
+
+            out_dim, in_dim, n = c.shape
+            if n < 3:
+                continue
+
+            # --- Per-edge diffusion ---
+            for i in range(out_dim):
+                for j in range(in_dim):
+                    c_ij = c[i, j, :]  # (n,)
+                    g_ij = g[i, j, :]  # (n,)
+
+                    # Step 1: trend-sensitive weights w_k for k=1..n-2
+                    # w_k connects position k and k+1
+                    dc = c_ij[1:] - c_ij[:-1]  # (n-1,), dc[k] = c[k+1] - c[k]
+                    w = 1.0 / (self.alpha + dc.abs().pow(self.beta))  # (n-1,)
+                    # w[k] controls diffusion between k and k+1
+
+                    # Step 2: start from raw update
+                    # (the actual update = -lr * g, we diffuse g directly)
+                    dc_tilde = g_ij.clone()  # (n,), proxy for the update direction
+
+                    # Step 3: T rounds of diffusion
+                    for _ in range(self.T):
+                        diff = dc_tilde[1:] - dc_tilde[:-1]  # (n-1,)
+                        flux = w * diff                     # (n-1,)
+                        dc_tilde[:-1] += eps * flux
+                        dc_tilde[1:]  -= eps * flux
+
+                    g[i, j, :] = dc_tilde
+
+    def update(self, s_norm, a_norm, s_true_norm):
+        """Same as KANConstantLRUpdater but with gradient diffusion."""
+        x = torch.cat([s_norm, a_norm], dim=-1)
+        self.buffer_x.append(x.detach().clone())
+        self.buffer_y.append(s_true_norm.detach().clone())
+        if len(self.buffer_x) > self.buffer_size:
+            self.buffer_x.pop(0)
+            self.buffer_y.pop(0)
+
+        batch_size = min(32, len(self.buffer_x))
+        idx = np.random.choice(len(self.buffer_x), batch_size, replace=False)
+        x_batch = torch.cat([self.buffer_x[i] for i in idx], dim=0)
+        y_batch = torch.cat([self.buffer_y[i] for i in idx], dim=0)
+
+        self.model.train()
+        pred = self.model(x_batch)
+        loss = nn.functional.mse_loss(pred, y_batch)
+        loss.backward()
+
+        # ── Apply gradient diffusion BEFORE momentum/update ──
+        self._diffuse_spline_grad()
+
+        with torch.no_grad():
+            for name, p in self.model.named_parameters():
+                if p.grad is not None:
+                    v = self.velocities[name]
+                    v.mul_(self.momentum).add_(p.grad, alpha=self.lr)
+                    p.sub_(v)
+                    p.grad.zero_()
+
+        self.model.eval()
+        with torch.no_grad():
+            error = (self.model(x) - s_true_norm).norm().item()
+        return error, self.lr
+
+
 class MLPOnlineUpdater:
     """Standard SGD with momentum for MLP online learning.
 
@@ -582,8 +685,9 @@ def plot_results(results_dict, save_path=None):
 
     n_models = len(results_dict)
     colors = {
-        'KAN-CWS (constant LR)': '#1565C0',
-        'KAN-MSE (constant LR)': '#90CAF9',
+        'KAN-CWS (no diffusion)': '#1565C0',
+        'KAN-CWS (uniform diff β=0)': '#4CAF50',
+        'KAN-CWS (trend diff β=1)': '#E91E63',
         'MLP (SGD+replay)': '#FF9800',
     }
 
@@ -855,53 +959,58 @@ def main():
     ]
 
     results = {}
-
-    # ── Experiment 1: KAN-CWS (Jacobian matching, no MOPS) + constant LR ──
-    print("\n── Experiment 1: KAN-CWS (Jacobian only, no smoothness) + constant LR ──")
-    env_kc = ConfigurablePendulum(g=10.0, seed=args.seed)
     ctrl = EnergyController()
 
-    kan_cws = KAN([4, 12, 3], grid_size=5, spline_order=3)
-    kan_cws.load_state_dict(kan_cws_model.state_dict())
-    kan_cws.to(device)
-    kan_cws.eval()
-    kc_updater = KANConstantLRUpdater(kan_cws, buffer_size=500, lr=1e-3, momentum=0.9)
+    def make_kan_cws():
+        m = KAN([4, 12, 3], grid_size=5, spline_order=3)
+        m.load_state_dict(kan_cws_model.state_dict())
+        m.to(device)
+        m.eval()
+        return m
 
-    result_kc = run_experiment(kan_cws, kc_updater, env_kc, ctrl,
-                               device, n_steps=args.steps,
-                               gravity_schedule=gravity_schedule)
-    env_kc.env.close()
-    result_kc['model_name'] = 'KAN-CWS (constant LR)'
-    results['KAN-CWS (constant LR)'] = result_kc
+    # ── Experiment 1: Baseline (no diffusion) ──
+    print("\n── Experiment 1: KAN-CWS + constant LR (baseline, no diffusion) ──")
+    env1 = ConfigurablePendulum(g=10.0, seed=args.seed)
+    m1 = make_kan_cws()
+    up1 = KANConstantLRUpdater(m1, buffer_size=500, lr=1e-3, momentum=0.9)
+    r1 = run_experiment(m1, up1, env1, ctrl, device, n_steps=args.steps,
+                        gravity_schedule=gravity_schedule)
+    env1.env.close()
+    r1['model_name'] = 'KAN-CWS (no diffusion)'
+    results['KAN-CWS (no diffusion)'] = r1
 
-    # ── Experiment 2: KAN-MSE (pure MSE) + constant LR (ablation) ──
-    if kan_mse_model is not None:
-        print("\n── Experiment 2: KAN-MSE (pure MSE) + constant LR ──")
-        env_km = ConfigurablePendulum(g=10.0, seed=args.seed)
+    # ── Experiment 2: Uniform diffusion (β=0) ──
+    print("\n── Experiment 2: KAN-CWS + uniform diffusion (β=0, λ=0.5) ──")
+    env2 = ConfigurablePendulum(g=10.0, seed=args.seed)
+    m2 = make_kan_cws()
+    up2 = KANDiffusionUpdater(m2, lam=0.5, beta=0, alpha=0.01, T=2,
+                              buffer_size=500, lr=1e-3, momentum=0.9)
+    r2 = run_experiment(m2, up2, env2, ctrl, device, n_steps=args.steps,
+                        gravity_schedule=gravity_schedule)
+    env2.env.close()
+    r2['model_name'] = 'KAN-CWS (uniform diff β=0)'
+    results['KAN-CWS (uniform diff β=0)'] = r2
 
-        kan_mse = KAN([4, 12, 3], grid_size=5, spline_order=3)
-        kan_mse.load_state_dict(kan_mse_model.state_dict())
-        kan_mse.to(device)
-        kan_mse.eval()
-        km_updater = KANConstantLRUpdater(kan_mse, buffer_size=500, lr=1e-3, momentum=0.9)
+    # ── Experiment 3: Trend-guided diffusion (β=1) ──
+    print("\n── Experiment 3: KAN-CWS + trend diffusion (β=1, λ=0.5) ──")
+    env3 = ConfigurablePendulum(g=10.0, seed=args.seed)
+    m3 = make_kan_cws()
+    up3 = KANDiffusionUpdater(m3, lam=0.5, beta=1, alpha=0.01, T=2,
+                              buffer_size=500, lr=1e-3, momentum=0.9)
+    r3 = run_experiment(m3, up3, env3, ctrl, device, n_steps=args.steps,
+                        gravity_schedule=gravity_schedule)
+    env3.env.close()
+    r3['model_name'] = 'KAN-CWS (trend diff β=1)'
+    results['KAN-CWS (trend diff β=1)'] = r3
 
-        result_km = run_experiment(kan_mse, km_updater, env_km, ctrl,
-                                   device, n_steps=args.steps,
-                                   gravity_schedule=gravity_schedule)
-        env_km.env.close()
-        result_km['model_name'] = 'KAN-MSE (constant LR)'
-        results['KAN-MSE (constant LR)'] = result_km
-
-    # ── Experiment 3: MLP + SGD + replay ──
-    print(f"\n── Experiment {len(results)+1}: MLP (SGD + replay buffer) ──")
+    # ── Experiment 4: MLP + SGD + replay (reference) ──
+    print("\n── Experiment 4: MLP (SGD + replay buffer) ──")
     env_mlp = ConfigurablePendulum(g=10.0, seed=args.seed)
-
     mlp_exp = MLPWorldModel()
     mlp_exp.load_state_dict(mlp_model.state_dict())
     mlp_exp.to(device)
     mlp_exp.eval()
     mlp_updater = MLPOnlineUpdater(mlp_exp, buffer_size=500, lr=1e-3, momentum=0.9)
-
     result_mlp = run_experiment(mlp_exp, mlp_updater, env_mlp, ctrl,
                                 device, n_steps=args.steps,
                                 gravity_schedule=gravity_schedule)
@@ -964,10 +1073,9 @@ def main():
     plot_results(results, save_path=args.output)
 
     # Also save raw data for later analysis
+    keys = list(results.keys())
     np.savez(os.path.join(args.cache_dir, 'results.npz'),
-             kan_cws_errors=results['KAN-CWS (constant LR)']['errors'],
-             kan_mse_errors=results.get('KAN-MSE (constant LR)', {}).get('errors', []),
-             mlp_errors=results['MLP (SGD+replay)']['errors'])
+             **{f'err_{k}': results[k]['errors'] for k in keys})
     print(f"Raw data saved: {os.path.join(args.cache_dir, 'results.npz')}")
 
     print("\nDone!")
