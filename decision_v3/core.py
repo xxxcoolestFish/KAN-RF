@@ -686,3 +686,148 @@ class KANMultiStepTrainer(KANGradientTrainer):
         }
         self.loss_history.append(ld)
         return ld
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Sequence Rollout Trainer (v3.1 proper)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class KANSequenceTrainer(KANEnergyTrainer):
+    """Train π_θ with full H-step KAN rollout — policy queried at EVERY step.
+
+    Core idea: π_θ learns to plan action SEQUENCES, not just single-step
+    reactions.  At each rollout step t, the policy observes the model-predicted
+    state s_t and outputs a new action a_t = π_θ(s_t).  This is backprop-through-
+    time through the frozen KAN world model.
+
+      s_0 → π_θ → a_0 → KAN → s_1 → π_θ → a_1 → KAN → s_2 → ...
+
+    Three KAN-specific mechanisms exploited:
+      1. Full B-spline parameters used at every rollout step (uses KAN knowledge)
+      2. Multi-step Jacobian ∂s_H/∂a_0 ≈ Σ ∂s_t/∂a_0 accumulates signal → avoids
+         root cause 3 (single-step amplification factor ~25×)
+      3. Activation density ρ(s_t) downweights steps where rollout drifts OOD
+
+    Args:
+        horizon: rollout length (5–8 for pendulum)
+        gamma: discount for future-step losses
+        use_density_weight: if True, weight each step by KAN activation density
+    """
+
+    def __init__(self, kan, policy, s_target, G=10.0, horizon=5,
+                 gamma=0.85, lr=1e-3, lambda_ctrl=0.01, clip_grad=10.0,
+                 device='cpu', use_density_weight=True, multi_scale=False,
+                 k_norm=None):
+        super().__init__(kan, policy, s_target, G=G, lr=lr,
+                         lambda_ctrl=lambda_ctrl, clip_grad=clip_grad,
+                         device=device, multi_scale=multi_scale, k_norm=k_norm)
+        self.horizon = horizon
+        self.gamma = gamma
+        self.use_density_weight = use_density_weight
+
+    def _compute_step_density(self, s):
+        """Compute activation density ρ(s) for a batch of states going through KAN.
+
+        Returns ρ ∈ [0, 1] where 1 = well-covered training region.
+        """
+        # Need to pass through KAN to get activations.  Use a dummy action.
+        B = s.shape[0]
+        a_dummy = torch.zeros(B, 1, device=self.device)
+        if self.multi_scale and self.multi_scale != 'policy':
+            k_batch = self.k_norm.expand(B, -1).to(self.device)
+            x = torch.cat([s, a_dummy, k_batch], dim=-1)
+        else:
+            x = torch.cat([s, a_dummy], dim=-1)
+
+        with torch.no_grad():
+            try:
+                _, B_list, E_list = self.kan(x, return_activations=True)
+                # ρ = fraction of active basis functions (averaged over layers)
+                densities = []
+                for B_mat in B_list:
+                    active = (B_mat > 1e-6).float().mean(dim=-1)  # (B, in_dim)
+                    densities.append(active.mean(dim=-1))          # (B,)
+                rho = torch.stack(densities, dim=1).mean(dim=1)    # (B,)
+            except Exception:
+                rho = torch.ones(B, device=self.device)
+        return rho
+
+    def train_step(self, s_batch, weight_batch=None):
+        """H-step rollout: policy queried at every step through KAN."""
+        B = s_batch.shape[0]
+
+        self.policy.train()
+        self.optimizer.zero_grad()
+
+        s = s_batch
+        total_pred_loss = torch.tensor(0.0, device=self.device)
+        total_ctrl_loss = torch.tensor(0.0, device=self.device)
+        total_density = torch.tensor(0.0, device=self.device)
+
+        E_current = self._compute_energy(s_batch)
+        E_des = self.G
+
+        for t in range(self.horizon):
+            # ── Step density (OOD detection) ──
+            if self.use_density_weight:
+                rho_t = self._compute_step_density(s).clamp(0.1, 1.0)  # (B,)
+            else:
+                rho_t = torch.ones(B, device=self.device)
+
+            # ── Policy forward: s_t → a_t ──
+            policy_out = self.policy(s)
+            kan_input, a = self._build_kan_input(s, policy_out)
+
+            # ── KAN forward: (s_t, a_t) → s_{t+1} ──
+            s_next = self.kan(kan_input)
+
+            # ── Energy-guided loss for this step ──
+            E_pred = self._compute_energy(s_next)
+            energy_deficit = E_des - E_current
+            energy_gain = (E_pred - E_current) * torch.sign(energy_deficit)
+
+            sin = s[:, 1:2]
+            w_swing = ((1.0 - sin) / 2.0).clamp(0.0, 1.0)
+            w_stable = ((1.0 + sin) / 2.0).clamp(0.0, 1.0)
+
+            energy_loss = -energy_gain.mean()
+            dist_loss = (w_stable * (s_next - self.s_target.expand(B, -1)).pow(2).sum(dim=-1, keepdim=True)).mean()
+            step_pred = energy_loss + dist_loss
+
+            # Weight by density and discount
+            step_weight = (self.gamma ** t) * rho_t.mean()
+            total_pred_loss = total_pred_loss + step_pred * rho_t.mean()
+            total_ctrl_loss = total_ctrl_loss + a.pow(2).mean() * (self.gamma ** t)
+            total_density = total_density + rho_t.mean()
+
+            # ── Advance state ──
+            E_current = E_pred
+            s = s_next
+
+            # Early stop if all states near target
+            if s_next.norm(dim=-1).max() < 0.1:
+                break
+
+        # Normalize by effective horizon (avoid bias toward shorter rollouts)
+        pred_loss = total_pred_loss / max(total_density.item(), 0.01)
+        ctrl_loss = total_ctrl_loss / self.horizon
+        total_loss = pred_loss + self.lambda_ctrl * ctrl_loss * self.horizon
+
+        total_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.clip_grad)
+        self.optimizer.step()
+
+        ld = {
+            'total': total_loss.item(),
+            'pred': pred_loss.item(),
+            'ctrl': ctrl_loss.item(),
+            'horizon_eff': min(self.horizon, int(total_density.item() / max(B, 1))),
+        }
+        self.loss_history.append(ld)
+        return ld
+
+    def train_epoch(self, s_dataset, batch_size=256, n_batches=None,
+                    weight_fn=None):
+        return KANEnergyTrainer.train_epoch(
+            self, s_dataset, batch_size=batch_size, n_batches=n_batches,
+            weight_fn=weight_fn)

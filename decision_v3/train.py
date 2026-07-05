@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from kanrf import KAN
 from decision_v3.core import (KANPolicy, ResidualPhysicsPolicy,
                                KANGradientTrainer, KANEnergyTrainer,
-                               KANDensityWeight, KANMultiStepTrainer)
+                               KANDensityWeight, KANMultiStepTrainer,
+                               KANSequenceTrainer)
 
 PI_2 = np.pi / 2
 S_TARGET = torch.tensor([[0.0, 1.0, 0.0]])  # upright, at rest
@@ -167,13 +168,21 @@ def train(args):
         if ms_mode == 'fixed':
             trainer_kwargs['k_norm'] = k_norm
 
-    if loss_type == 'energy':
+    if loss_type == 'sequence':
+        trainer_kwargs['horizon'] = args.multi_step if args.multi_step > 1 else 5
+        trainer_kwargs['gamma'] = args.gamma
+        trainer_kwargs['use_density_weight'] = args.use_density_weight
+        trainer = KANSequenceTrainer(**trainer_kwargs)
+        print(f"  Trainer: SequenceRollout (H={trainer_kwargs['horizon']}, γ={args.gamma})")
+        print(f"    Policy queried at EVERY step — true sequence planning")
+        print(f"    Density weighting: {'ON' if args.use_density_weight else 'OFF'}")
+    elif loss_type == 'energy':
         trainer = KANEnergyTrainer(**trainer_kwargs)
         print(f"  Trainer: Energy-based (swing: maximize energy gain, stabilize: minimize distance)")
     elif args.multi_step > 1:
         trainer_kwargs['horizon'] = args.multi_step
         trainer = KANMultiStepTrainer(**trainer_kwargs)
-        print(f"  Trainer: MultiStep (H={args.multi_step})")
+        print(f"  Trainer: MultiStep (H={args.multi_step}, a=0 after first step)")
     else:
         trainer = KANGradientTrainer(**trainer_kwargs)
         print(f"  Trainer: SingleStep MSE(s_pred, s*)")
@@ -216,10 +225,13 @@ def train(args):
         'state_dim': state_dim,
         'hidden': args.hidden,
         'n_layers': args.n_layers,
+        'loss_type': args.loss_type,
         'multi_step': args.multi_step,
         'multi_scale': ms_mode,
         'output_k': output_k,
         'k_fixed': args.k_fixed if ms_mode == 'fixed' else None,
+        'gamma': args.gamma if args.loss_type == 'sequence' else None,
+        'use_density_weight': args.use_density_weight,
         'loss_history': trainer.loss_history,
     }
     if policy_type == 'residual':
@@ -263,19 +275,22 @@ def main():
     parser.add_argument('--multi-step', type=int, default=1,
                         help='Multi-step rollout horizon (1 = single-step)')
     parser.add_argument('--loss-type', type=str, default='energy',
-                        choices=['mse', 'energy'],
-                        help="'energy': physics-informed energy gain + distance blend. 'mse': pure MSE(s_pred, s*)")
+                        choices=['mse', 'energy', 'sequence'],
+                        help="'sequence': full H-step rollout, policy at every step. 'energy': single-step energy gain. 'mse': pure MSE(s_pred, s*)")
+    parser.add_argument('--gamma', type=float, default=0.85,
+                        help='Discount factor for sequence rollout')
     parser.add_argument('--multi-scale', type=str, default='off',
                         choices=['off', 'fixed', 'policy'],
                         help="'fixed': fixed k for all states. 'policy': policy outputs (a,k)")
     parser.add_argument('--k-fixed', type=int, default=4,
                         help='Fixed k value when --multi-scale=fixed')
-    parser.add_argument('--use-density-weight', action='store_true',
-                        help='Weight samples by KAN activation density')
+    parser.add_argument('--no-density-weight', action='store_true',
+                        help='Disable KAN activation density weighting in rollout')
     parser.add_argument('--report-every', type=int, default=20)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--device', type=str, default='cpu')
     args = parser.parse_args()
+    args.use_density_weight = not args.no_density_weight  # enabled by default
 
     train(args)
 
