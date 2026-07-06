@@ -10,12 +10,15 @@ Core library providing:
 from kanrf._bspline import bspline_basis, bspline_derivative, extend_grid
 from kanrf._layer import KANLayer
 from kanrf._network import KAN
+from kanrf._protokan import ProtoKAN, ProtoKANLayer
 from kanrf._uncertainty import compute_uncertainty, compute_per_step_uncertainty
 from kanrf._regularization import p_spline_penalty, true_jacobian, jacobian_loss
 
 __all__ = [
     'KAN',
     'KANLayer',
+    'ProtoKAN',
+    'ProtoKANLayer',
     'bspline_basis',
     'bspline_derivative',
     'extend_grid',
