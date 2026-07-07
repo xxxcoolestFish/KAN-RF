@@ -113,15 +113,16 @@ B-样条 KAN 的四个结构性问题：
 
 ## 三、当前性能基线
 
-### 3.1 Pendulum 决策成功率
+### 3.1 Pendulum 决策成功率（10-seed 可复现验证）
 
-| 方法 | 可复现成功率 | 说明 |
-|------|:-----------:|------|
-| ProtoKAN WM + Shooting MPC (H=8, N=500) | **9/10** | 当前最强，待多种子验证 |
-| CWS-KAN WM + KAN Policy（重训） | 7/10 | 标准复现 |
-| ProtoKAN WM + KAN Policy（重训） | 待测试 | 替换 WM 重训 |
-| CWS-KAN WM + KAN Policy（存档 checkpoint） | 10/10 | 不可复现（幸运 seed） |
-| Oracle（完美物理模拟器）+ 1-step MPC | 11/20 (g=15) | 1-step 天花板 |
+| 方法 | 成功率 | Seeds | 说明 |
+|------|:------:|:-----:|------|
+| **ProtoKAN WM + KAN Policy** | **100% ± 0%** | 10/10 | ✅ 稳定可复现，论文主结果 |
+| ProtoKAN WM + Shooting MPC (H=8, N=500) | 76% ± 19% | 5 | 采样随机性导致波动 |
+| CWS-KAN WM + KAN Policy（重训） | 70% | 1 | Jacobian 不够准 (cos-sim 0.85) |
+| CWS-KAN WM + KAN Policy（存档 checkpoint） | 100% | 1 | 不可复现（幸运 seed） |
+
+**关键发现**：ProtoKAN WM 的精确 Jacobian（cos-sim 0.96，无 CWS 训练）是 Policy 训练稳定达到 100% 的关键。CWS-KAN WM 的 Jacobian（cos-sim 0.85）不足以支撑稳定训练。
 
 ### 3.2 1-step 近视天花板
 
