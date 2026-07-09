@@ -31,21 +31,24 @@ class VNet(nn.Module):
 
 
 def generate_vstar_data(wm, state_dim, s_target, n_states=500,
-                          horizon=12, n_shoot=200, device='cpu'):
-    """Use long-horizon batch MPC to estimate V*(s) for random states.
+                          horizon=12, n_shoot=200, use_grad=True, device='cpu'):
+    """Estimate V*(s) for random states via WM optimization.
 
-    For each state, we need to know: "if we act optimally for H=12 steps,
-    how close can we get to the target?" This is the label for V_θ.
+    Two modes:
+    - use_grad=True: FD gradient (higher quality, slower)
+    - use_grad=False: random shooting (faster, lower quality)
 
     Returns:
         s_data: (n_states, state_dim) training states
         v_labels: (n_states,) V*(s) labels
     """
-    print(f"  Generating V* data ({n_states} states, H={horizon})...")
+    from control.gradient_mpc import GradientMPC
 
-    # Sample random states
+    print(f"  Generating V* data ({n_states} states, H={horizon}, "
+          f"{'grad' if use_grad else 'shoot'})...")
+
     s_data = torch.randn(n_states, state_dim, device=device) * 0.5
-    if state_dim >= 3:  # pendulum: cos, sin in [-1,1]
+    if state_dim >= 3:
         s_data[:, :2].clamp_(-1, 1)
 
     v_labels = torch.zeros(n_states, device=device)
@@ -55,37 +58,40 @@ def generate_vstar_data(wm, state_dim, s_target, n_states=500,
             print(f"    {i}/{n_states}...")
 
         s = s_data[i]
-        # Batch MPC: find best trajectory of length H
-        B = n_shoot
-        H = horizon
-        seq = torch.FloatTensor(B, H).uniform_(-1, 1)
-        s_cur = s.unsqueeze(0).expand(B, -1).clone()
-        best_terminal_cost = float('inf')
-
-        for t in range(H):
-            a_t = seq[:, t:t+1]
-            with torch.no_grad():
-                s_cur = wm(torch.cat([s_cur, a_t], dim=-1))
-
-        # Terminal cost: simple L2 distance (no physics needed)
-        err = s_cur - s_target
-        costs = err.pow(2).sum(dim=-1)  # (B,)
-        best_idx = costs.argmin().item()
-        v_labels[i] = costs[best_idx].item()
+        if use_grad:
+            # FD gradient: better trajectories, slower
+            mpc = GradientMPC(wm, state_dim, P=torch.eye(state_dim, device=device),
+                              horizon=min(horizon, 6), n_shoot=0, mode='grad',
+                              opt_steps=15, lr=0.05, device=device)
+            _, cost = mpc.fd_grad(s, s_target)
+            v_labels[i] = cost
+        else:
+            # Random shooting: fast but approximate
+            B = n_shoot
+            H = horizon
+            seq = torch.FloatTensor(B, H).uniform_(-1, 1)
+            s_cur = s.unsqueeze(0).expand(B, -1).clone()
+            for t in range(H):
+                a_t = seq[:, t:t+1]
+                with torch.no_grad():
+                    s_cur = wm(torch.cat([s_cur, a_t], dim=-1))
+            err = s_cur - s_target
+            v_labels[i] = err.pow(2).sum(dim=-1).min().item()
 
     print(f"    Done. V* range: [{v_labels.min().item():.3f}, {v_labels.max().item():.3f}]")
     return s_data, v_labels
 
 
 def train_vnet(wm, state_dim, s_target, n_states=500, horizon=12,
-               epochs=200, lr=1e-3, device='cpu'):
+               epochs=200, lr=1e-3, use_grad=True, device='cpu'):
     """Generate V* data and train V_θ(s).
 
-    Returns trained V_θ model.
+    use_grad=True: FD gradient (higher quality labels, slower generation)
+    use_grad=False: random shooting (faster, lower quality)
     """
     s_data, v_labels = generate_vstar_data(
         wm, state_dim, s_target, n_states=n_states,
-        horizon=horizon, n_shoot=200, device=device)
+        horizon=horizon, n_shoot=200, use_grad=use_grad, device=device)
 
     # Normalize labels for stable training
     v_mean = v_labels.mean()

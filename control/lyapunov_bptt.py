@@ -45,17 +45,7 @@ def synthesize_lyapunov(wm, s_dataset, s_target, state_dim,
                          q_goal=10.0, q_means=1.0, device='cpu'):
     """Auto-synthesize Lyapunov function from WM via Riccati.
 
-    Q matrix is derived from causal hierarchy:
-      - Goal dimensions (Tier 1+, NOT directly controllable): high Q
-      - Means dimensions (Tier 0, directly controllable): low Q
-
-    This ensures V(s) prioritizes what we care about, not what we can control.
-
-    Returns:
-        P: (n, n) Lyapunov matrix
-        A: (n, n) averaged dynamics matrix
-        B: (n, 1) averaged control matrix
-        tier_of: (n,) tier assignments
+    Returns P, A, B, tier_of. Same as before.
     """
     wm.eval()
     was_frozen = not next(wm.parameters()).requires_grad
@@ -91,13 +81,11 @@ def synthesize_lyapunov(wm, s_dataset, s_target, state_dim,
     A = (A_sum / N).to(device)
     B = (B_sum / N).to(device)
 
-    # Q from causal hierarchy
     tier_of = discover_tiers_from_wm(wm, state_dim, device=device)
     Q = torch.diag(torch.tensor(
         [q_goal if tier_of[i] > 0 else q_means for i in range(n)],
         dtype=torch.float32, device=device))
 
-    # Riccati
     P = Q.clone()
     R = torch.tensor([[r_weight]], device=device)
     for _ in range(horizon):
@@ -108,6 +96,46 @@ def synthesize_lyapunov(wm, s_dataset, s_target, state_dim,
         P = Q + AtPA - (AtPB @ BtPA) / (BtPB + R)
 
     return P, A, B, tier_of
+
+
+def synthesize_dual_lyapunov(wm, s_dataset, s_target, state_dim,
+                               horizon=10, r_weight=0.1, n_samples=300,
+                               q_goal=10.0, q_means_low=0.1, q_means_high=5.0,
+                               device='cpu'):
+    """Synthesize TWO Lyapunov functions for swing-up tasks.
+
+    P_swing: low Q on Tier 0 (means) → encourages velocity for swing-up
+    P_stable: high Q on Tier 0 → damps velocity for stabilization
+
+    Mode is selected by thresholding V_stable(s):
+      - V_stable(s) > threshold → use P_swing (far, need to swing)
+      - V_stable(s) ≤ threshold → use P_stable (near, need to stabilize)
+
+    Threshold is automatically set as the median V_stable on training data.
+    """
+    P_stable, A, B, tier_of = synthesize_lyapunov(
+        wm, s_dataset, s_target, state_dim,
+        horizon=horizon, r_weight=r_weight, n_samples=n_samples,
+        q_goal=q_goal, q_means=q_means_high, device=device)
+
+    P_swing, _, _, _ = synthesize_lyapunov(
+        wm, s_dataset, s_target, state_dim,
+        horizon=horizon, r_weight=r_weight, n_samples=n_samples,
+        q_goal=q_goal, q_means=q_means_low, device=device)
+
+    # Auto-compute threshold from training data
+    N = min(500, s_dataset.shape[0])
+    idx = torch.randperm(s_dataset.shape[0])[:N]
+    s_sample = s_dataset[idx].to(device)
+    with torch.no_grad():
+        err = s_sample - s_target.to(device)
+        v_vals = (err @ P_stable @ err.T).diag()
+        threshold = v_vals.median().item()
+
+    print(f"  Dual Lyapunov: P_swing(Tier0={q_means_low})  "
+          f"P_stable(Tier0={q_means_high})  threshold={threshold:.3f}")
+
+    return P_stable, P_swing, threshold, A, B, tier_of
 
 
 class LyapunovBPTTTrainer:

@@ -15,13 +15,16 @@ class GradientMPC:
 
     Cost function: V(s) = (s - s*)^T P (s - s*)
     P is auto-synthesized from WM dynamics via Riccati (Lyapunov function).
-    No hand-crafted weights needed — works for ANY system.
 
-    If P is not provided, uses a simple identity cost (||s - s*||^2).
+    Supports dual-mode for swing-up tasks:
+      - P_swing: low cost on Tier 0 (encourages velocity)
+      - P_stable: high cost on Tier 0 (damps velocity)
+      Mode switches based on V_stable(s) vs threshold.
     """
 
-    def __init__(self, wm, state_dim, P=None, horizon=4, n_shoot=500,
-                 mode='shoot', opt_steps=15, lr=0.05, device='cpu'):
+    def __init__(self, wm, state_dim, P=None, P_swing=None, threshold=None,
+                 horizon=4, n_shoot=500, mode='shoot', opt_steps=15, lr=0.05,
+                 device='cpu'):
         self.wm = wm
         self.state_dim = state_dim
         self.horizon = horizon
@@ -31,18 +34,33 @@ class GradientMPC:
         self.mode = mode
         self.device = device
         self.P = P if P is not None else torch.eye(state_dim, device=device)
-        self._warm_start = None  # for fd_grad mode
+        self.P_swing = P_swing  # optional dual-mode
+        self.threshold = threshold
+        self._warm_start = None
 
-    def _cost(self, err):
+    def _cost(self, err, device=None):
         """V(s) = (s - s*)^T P (s - s*), batched."""
-        # err: (B, n), P: (n, n)
-        # Returns: (B,) per-sample costs
         return (err @ self.P @ err.T).diag()
+
+    def _cost_dual(self, err, s_target, s_cur):
+        """Dual-mode cost: select P based on V_stable(s)."""
+        v_stable = self._cost(s_cur - s_target)
+        threshold = float(self.threshold)
+        cost = torch.zeros(err.shape[0])
+        for i in range(err.shape[0]):
+            P_i = self.P_swing if v_stable[i].item() > threshold else self.P
+            e = err[i:i+1]
+            cost[i] = (e @ P_i @ e.T).squeeze()
+        return cost
+
+    def _get_cost_fn(self, use_dual=False):
+        return self._cost_dual if use_dual else self._cost
 
     def _optimize_shoot(self, s, s_target):
         """Batched random shooting: N trajectories in parallel, H forward passes."""
         B = self.n_shoot
         H = self.horizon
+        use_dual = self.P_swing is not None and self.threshold is not None
 
         seq = torch.FloatTensor(B, H).uniform_(-1, 1)
         s_cur = s.unsqueeze(0).expand(B, -1).clone()
@@ -52,7 +70,11 @@ class GradientMPC:
             a_t = seq[:, t:t+1]
             with torch.no_grad():
                 s_cur = self.wm(torch.cat([s_cur, a_t], dim=-1))
-            total_cost += (0.9 ** t) * self._cost(s_cur - s_target)
+            err = s_cur - s_target
+            if use_dual and t == H - 1:  # terminal cost uses dual mode
+                total_cost += self._cost_dual(err, s_target, s_cur)
+            else:
+                total_cost += (0.9 ** t) * self._cost(err)
 
         best_idx = total_cost.argmin().item()
         return seq[best_idx, 0].item(), total_cost[best_idx].item()
