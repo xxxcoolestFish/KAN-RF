@@ -11,52 +11,46 @@ import torch, torch.nn as nn, numpy as np
 
 
 class GradientMPC:
-    """Gradient-based + Batch-shooting MPC via ProtoKAN WM.
+    """Batch-shooting MPC via ProtoKAN WM.
 
-    Two modes:
-    - 'shoot': batched random shooting (N trajectories, H forward passes total)
-    - 'grad': gradient descent on action sequence (opt_steps iterations)
+    Cost function: V(s) = (s - s*)^T P (s - s*)
+    P is auto-synthesized from WM dynamics via Riccati (Lyapunov function).
+    No hand-crafted weights needed — works for ANY system.
 
-    Shoot mode is preferred: H forward passes regardless of N (200x faster).
+    If P is not provided, uses a simple identity cost (||s - s*||^2).
     """
 
-    def __init__(self, wm, state_dim, horizon=4, n_shoot=500, opt_steps=25,
-                 lr=0.1, mode='shoot', device='cpu'):
+    def __init__(self, wm, state_dim, P=None, horizon=4, n_shoot=500,
+                 mode='shoot', device='cpu'):
         self.wm = wm
         self.state_dim = state_dim
         self.horizon = horizon
         self.n_shoot = n_shoot
-        self.opt_steps = opt_steps
-        self.lr = lr
         self.mode = mode
         self.device = device
+        # P matrix: if None, use identity (simple ||s-s*||^2)
+        self.P = P if P is not None else torch.eye(state_dim, device=device)
 
-    def optimize(self, s, s_target):
-        if self.mode == 'shoot':
-            return self._optimize_shoot(s, s_target)
-        else:
-            return self._optimize_grad(s, s_target)
+    def _cost(self, err):
+        """V(s) = (s - s*)^T P (s - s*), batched."""
+        # err: (B, n), P: (n, n)
+        # Returns: (B,) per-sample costs
+        return (err @ self.P @ err.T).diag()
 
     def _optimize_shoot(self, s, s_target):
         """Batched random shooting: N trajectories in parallel, H forward passes."""
         B = self.n_shoot
         H = self.horizon
 
-        # Sample all action sequences: (B, H)
         seq = torch.FloatTensor(B, H).uniform_(-1, 1)
-
-        # Batch rollout through WM: all B trajectories in parallel
-        s_cur = s.unsqueeze(0).expand(B, -1).clone()  # (B, n)
+        s_cur = s.unsqueeze(0).expand(B, -1).clone()
         total_cost = torch.zeros(B)
 
         for t in range(H):
-            a_t = seq[:, t:t+1]  # (B, 1)
+            a_t = seq[:, t:t+1]
             with torch.no_grad():
                 s_cur = self.wm(torch.cat([s_cur, a_t], dim=-1))
-            err = s_cur - s_target
-            total_cost += (0.9 ** t) * (
-                err[:, 2].pow(2) + 0.1 * err[:, 0].pow(2) + 0.5 * err[:, 3].pow(2)
-            )
+            total_cost += (0.9 ** t) * self._cost(s_cur - s_target)
 
         best_idx = total_cost.argmin().item()
         return seq[best_idx, 0].item(), total_cost[best_idx].item()
@@ -96,5 +90,5 @@ class GradientMPC:
             s_target = torch.zeros(self.state_dim, device=self.device)
         elif isinstance(s_target, np.ndarray):
             s_target = torch.tensor(s_target, dtype=torch.float32, device=self.device)
-        a, _ = self.optimize(s, s_target)
+        a, _ = self._optimize_shoot(s, s_target)
         return a
