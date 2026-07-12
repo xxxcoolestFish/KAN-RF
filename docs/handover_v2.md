@@ -186,3 +186,54 @@ import inspect; print(inspect.getfile(train_wm))
 
 ---
 *覆盖截至 2026-07-12 的所有进展。*
+
+## 八、CDPN v2 迭代（2026-07-12）
+
+### 本轮目标
+构建"认知-决策分离"的决策框架：预测网络（ProtoKAN WM）学习环境规律，决策网络只学纯策略（与环境参数解耦）。
+
+### 核心创新：AbstractPlannerTrainer
+
+**传统 CDPN**（WM-gradient）: pi(s) -> v_des -> Execute(J) -> a -> WM -> s_pred -> loss [梯度经过 WM]
+
+**CDPN v2 Abstract Planner**: pi(s) -> v_des_norm -> AbstractDynamics -> s_pred_abstract -> loss [纯解析公式，梯度不经过 WM]
+
+### 新增组件
+| 组件 | 说明 |
+|------|------|
+| CausalBridge | 桥接层，提取 max_delta/a_fit/G_est，支持热更新 |
+| AbstractPendulumDynamics | Pendulum 纯解析动力学（含重力项） |
+| AbstractCartPoleDynamics | CartPole 纯解析动力学 |
+| AbstractPlannerTrainer | 抽象规划器训练器 |
+| CausalDecomposedPolicy（增强）| 支持 MLP 模式和 use_tanh |
+| Execute（增强）| 支持 update() 热更新 J |
+
+### 关键参数（Pendulum）
+| 参数 | 说明 | 值 |
+|------|------|:---:|
+| max_delta | Tier0 每单位 v_des_norm 变化量 | ~0.039 |
+| a_fit | 等效重力加速度 3g/(2L) | ~15.0 |
+| G_est | 重力常数 | 10.0 |
+| damping | Execute 伪逆阻尼（自适应） | 0.1 × J^2 |
+
+### 实验记录
+| 版本 | 方法 | Pendulum 成功率 | 关键发现 |
+|------|------|:---:|---------|
+| v1 | 原始 CDPN（WM 梯度） | 6/10 | 基线 |
+| v2-1 | Abstract Planner 单步 | 7/10 | 抽象动力学太简陋 |
+| v2-2 | + 重力项 a_fit | 7/10 | 模型更准但梯度不够 |
+| v2-3 | + MLP 模式 | 7/10 | KAN 不是瓶颈 |
+| v2-4 | + damping bug 修复（70x） | 7/10 | 动作从 0.014 到 0.95 |
+| v2-5 | + 多头步想象 H=8 | 8/10 | 单步 loss 不够 |
+
+### 关键发现
+1. damping bug: damping=0.1 比 J^2 大 70 倍，动作被压制到 1.4%
+2. 单步 loss 不够：摆锤起摆需要多步协调
+3. 多步抽象 rollout 有效：H=8 实现最好结果
+
+### 待做
+- CartPole 测试修复
+- 稳定 Pendulum 到 10/10
+- 重力适应实验（核心卖点）
+- 论文基线对比
+

@@ -59,40 +59,56 @@ def discover_tier0(wm, state_dim, n_samples=200, device='cpu'):
 # ═══════════════════════════════════════════════════════════
 
 class CausalDecomposedPolicy(nn.Module):
-    """Policy that outputs v_des in Tier 0 space, NOT raw action.
+    """Policy that outputs NORMALIZED v_des_norm in [-1, 1]^m (Tier 0 space).
 
-    Input:  (s, s_goal) ∈ R^{2n}
-    Output: v_des ∈ R^m  where m = |Tier 0|
-            "How much should each directly-controllable dimension change?"
+    Input:  (s, s_goal) in R^{2n}
+    Output: v_des_norm in [-1, 1]^m  where m = |Tier 0|
+
+    Supports KAN (default) and MLP layers.
+    MLP mode avoids KAN gradient vanishing issues.
     """
 
     def __init__(self, state_dim, tier0_size, hidden_dim=24, n_layers=2,
-                 grid_size=5, spline_order=3):
+                 grid_size=5, spline_order=3, use_tanh=True, use_mlp=False):
         super().__init__()
         self.state_dim = state_dim
         self.tier0_size = tier0_size
+        self.use_tanh = use_tanh
+        self.use_mlp = use_mlp
         in_dim = state_dim * 2
 
-        self.layers = nn.ModuleList()
-        for _ in range(n_layers):
-            self.layers.append(KANLayer(in_dim, hidden_dim,
-                                        grid_size=grid_size,
-                                        spline_order=spline_order))
-            in_dim = hidden_dim
-
-        # Output: v_des for each Tier 0 dimension, no tanh (can be any magnitude)
+        if use_mlp:
+            mlp = []
+            for _ in range(n_layers):
+                mlp.extend([nn.Linear(in_dim, hidden_dim), nn.Tanh()])
+                in_dim = hidden_dim
+            self.mlp = nn.Sequential(*mlp)
+        else:
+            self.layers = nn.ModuleList()
+            for _ in range(n_layers):
+                self.layers.append(KANLayer(in_dim, hidden_dim,
+                                            grid_size=grid_size,
+                                            spline_order=spline_order))
+                in_dim = hidden_dim
         self.output_layer = nn.Linear(in_dim, tier0_size)
 
     def forward(self, s, s_goal):
         x = torch.cat([s, s_goal], dim=-1)
-        for layer in self.layers:
-            x = layer(x)
-        return self.output_layer(x)  # (batch, m)
+        if self.use_mlp:
+            x = self.mlp(x)
+        else:
+            for layer in self.layers:
+                x = layer(x)
+        v = self.output_layer(x)
+        if self.use_tanh:
+            v = torch.tanh(v)
+        return v  # (batch, m)
 
-
-# ═══════════════════════════════════════════════════════════
-# Execute Module (deterministic)
-# ═══════════════════════════════════════════════════════════
+    def get_strategy(self, s, s_goal=None):
+        """Alias for forward: emphasizes this is a STRATEGY instruction."""
+        if s_goal is not None:
+            return self.forward(s, s_goal)
+        return self.forward(s, s)
 
 class Execute:
     """Deterministic inverse: maps v_des → a using WM Jacobian.
@@ -105,38 +121,54 @@ class Execute:
     """
 
     def __init__(self, wm, state_dim, tier0_indices, s_dataset,
-                 damping=0.1, n_jac_samples=200, device='cpu'):
+                 damping=0.1, n_jac_samples=200, device='cpu',
+                 bridge=None):
         self.device = device
+        self.state_dim = state_dim
+        self.tier0_indices = tier0_indices
         self.m = len(tier0_indices)
+        self.damping = damping
+        self.bridge = bridge  # CausalBridge instance (optional)
+        self._wm = wm
+        self._s_dataset = s_dataset
+        self.compute_jacobian(wm, s_dataset, n_jac_samples)
 
-        # Pre-compute J on sample states
+    def compute_jacobian(self, wm, s_dataset=None, n_jac_samples=200):
+        if s_dataset is None:
+            s_dataset = self._s_dataset
+        s_dataset = s_dataset.to(self.device)
+        N = min(n_jac_samples, s_dataset.shape[0])
+        idx = torch.randperm(s_dataset.shape[0])[:N]
         wm.eval()
         was_frozen = not next(wm.parameters()).requires_grad
         if was_frozen:
             for p in wm.parameters(): p.requires_grad = True
-
-        N = min(n_jac_samples, s_dataset.shape[0])
-        idx = torch.randperm(s_dataset.shape[0])[:N]
-        J_sum = torch.zeros(self.m, 1, device=device)
+        J_sum = torch.zeros(self.m, 1, device=self.device)
         for i in idx:
             s = s_dataset[i:i+1]
-            a = torch.zeros(1, 1, device=device, requires_grad=True)
+            a = torch.zeros(1, 1, device=self.device, requires_grad=True)
             sp = wm(torch.cat([s, a], dim=-1))
-            for j, dim in enumerate(tier0_indices):
+            for j, dim in enumerate(self.tier0_indices):
                 g = torch.autograd.grad(sp[0, dim], a, retain_graph=True)[0]
                 J_sum[j, 0] += g[0, 0]
-
         if was_frozen:
             for p in wm.parameters(): p.requires_grad = False
-
-        self.J = J_sum / N  # (m, 1)
-        self.damping = damping
+        self.J = J_sum / N
+        self.damping = self.damping
         print(f"  Execute J (Tier0): {self.J.squeeze().cpu().tolist()}")
+
+    def update(self, wm=None, s_dataset=None, n_jac_samples=200):
+        if wm is not None: self._wm = wm
+        if s_dataset is not None: self._s_dataset = s_dataset
+        self.compute_jacobian(self._wm, self._s_dataset, n_jac_samples)
+        if self.bridge is not None:
+            self.bridge.update(self._wm, self._s_dataset)
 
     def __call__(self, v_des, s_batch=None):
         """a = (J^T J + λI)^{-1} J^T v_des  [batch operation]"""
-        J = self.J  # (m, 1)
-        JTJ = (J ** 2).sum() + self.damping  # scalar
+        J = self.J
+        v_des = v_des.to(J.dtype)  # (m, 1)
+        j_sq = (J ** 2).sum(); JTJ = j_sq + self.damping * j_sq + 1e-8  # adaptive
         JTv = J.T @ v_des.T  # (1, B)
         a = JTv / JTJ  # (1, B)
         return a.T.clamp(-2, 2)  # (B, 1)
@@ -264,3 +296,277 @@ class CDPNTrainer:
         # Execute needs gradients for Jacobian — temporarily enable
         a = self.execute(v_des, s)
         return a.squeeze().cpu().item()
+
+
+# ======================================================================
+# CDPN v2 additions
+# ======================================================================
+
+def estimate_gravity_from_wm(wm, s_dataset, n_rollout=1, device='cpu'):
+    """Estimate G from WM a=0 rollout (1 step, robust median filtering)."""
+    wm.eval()
+    with torch.no_grad():
+        s_cur = s_dataset[:min(1000, len(s_dataset))].clone().to(device)
+        sn = wm(torch.cat([s_cur, torch.zeros(s_cur.shape[0], 1, device=device)], dim=-1))[:, :3]
+        n1 = s_cur[:, 2] * 8.0; n2 = sn[:, 2] * 8.0
+        s1 = s_cur[:, 1]; s2 = sn[:, 1]
+        num = n2.pow(2) - n1.pow(2); den = 2.0 * (s1 - s2)
+        mask = den.abs() > 0.01
+        if mask.any():
+            g = num[mask] / den[mask]
+            g_clean = g[(g > 1) & (g < 50)]
+            if len(g_clean) > 0:
+                return float(g_clean.median().item())
+    return 10.0
+
+
+
+def estimate_a_fit_from_wm(wm, s_dataset, dt=0.05, device='cpu'):
+    """Estimate gravity coefficient a_fit from WM a=0 rollout."""
+    wm.eval()
+    with torch.no_grad():
+        s_cur = s_dataset[:min(1000, len(s_dataset))].clone().to(device)
+        sn = wm(torch.cat([s_cur, torch.zeros(s_cur.shape[0], 1, device=device)], dim=-1))[:, :3]
+        dthd = (sn[:, 2] - s_cur[:, 2]) * 8.0
+        sin_th = s_cur[:, 1]
+        den = sin_th * dt
+        mask = den.abs() > 0.001
+        if mask.any():
+            a = dthd[mask] / den[mask]
+            a_clean = a[(a > 1) & (a < 50)]
+            if len(a_clean) > 0:
+                return float(a_clean.median().item())
+    return 15.0
+
+class CausalBridge:
+    """Bridge between cognitive (WM) and decision (Policy) modules.
+    
+    Extracts env-invariant quantities from WM:
+    1. max_delta: for each Tier 0 dim, max state change per unit v_des
+    2. G_est: estimated gravity (Pendulum energy loss)
+    
+    All quantities are HOT-UPDATABLE via update() after WM adaptation.
+    """
+    
+    def __init__(self, wm, state_dim, tier0_indices, s_dataset,
+                 device='cpu', n_samples=500, g_true=None):
+        self.device = device
+        self.state_dim = state_dim
+        self.tier0 = tier0_indices
+        self.m = len(tier0_indices)
+        self._g_true = g_true
+        self.a_fit = estimate_a_fit_from_wm(wm, s_dataset, device=self.device)
+        print(f"  [CausalBridge] a_fit={self.a_fit:.2f}")
+        self.compute(wm, s_dataset, n_samples)
+    
+    def compute(self, wm, s_dataset, n_samples=500):
+        wm.eval()
+        s_dataset = s_dataset.to(self.device)
+        N = min(n_samples, s_dataset.shape[0])
+        idx = torch.randperm(s_dataset.shape[0])[:N]
+        s_samples = s_dataset[idx]
+        
+        was_frozen = not next(wm.parameters()).requires_grad
+        if was_frozen:
+            for p in wm.parameters(): p.requires_grad = True
+        
+        jac_vals = {j: [] for j in range(self.m)}
+        for i in range(N):
+            s = s_samples[i:i+1]
+            a = torch.zeros(1, 1, device=self.device, requires_grad=True)
+            sp = wm(torch.cat([s, a], dim=-1))
+            for j, dim in enumerate(self.tier0):
+                g = torch.autograd.grad(sp[0, dim], a, retain_graph=True)[0]
+                jac_vals[j].append(g[0, 0].abs().item())
+        
+        if was_frozen:
+            for p in wm.parameters(): p.requires_grad = False
+        
+        self.max_delta = torch.tensor(
+            [np.percentile(jac_vals[j], 90) for j in range(self.m)],
+            dtype=torch.float32, device=self.device)
+        self.controllability = self.max_delta / (self.max_delta.sum() + 1e-8)
+        if self._g_true is not None:
+            self.G_est = float(self._g_true)
+        else:
+            self.G_est = estimate_gravity_from_wm(wm, s_dataset, device=self.device)
+        print(f"  [CausalBridge] max_delta={self.max_delta.cpu().tolist()}, G_est={self.G_est:.2f}")
+        return self
+    
+    def update(self, wm, s_dataset=None, n_samples=500):
+        self.compute(wm, s_dataset, n_samples)
+
+
+class AbstractPendulumDynamics:
+    """Smooth analytic Pendulum dynamics for policy training (no WM gradient).
+
+    Loss uses squared energy error + smooth stabilization transition.
+    """
+
+    DT = 0.05
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def predict_next(self, s, v_des_norm):
+        """Physics-aware abstract dynamics with gravity term.
+
+        thd_next = thd + a_fit * sin(th) * dt   (gravity)
+                     + v_des_norm * max_delta * 8   (control)
+
+        Key: a_fit comes from CausalBridge (estimated from WM).
+        Gradient still PURELY analytic, no WM involved.
+        """
+        cos_th, sin_th = s[:, 0], s[:, 1]
+        thd = s[:, 2] * 8.0
+        th = torch.atan2(sin_th, cos_th)
+        if v_des_norm.dim() == 1:
+            v_des_norm = v_des_norm.unsqueeze(1)
+        # Gravity acceleration: a_fit * sin(th) * dt
+        # Control acceleration: v_des_norm * max_delta * 8.0
+        a_fit = self.bridge.a_fit
+        gravity = a_fit * sin_th * self.DT  # sin(th) not sin_th? fix: sin(th) = sin_th ✓
+        control = v_des_norm[:, 0] * self.bridge.max_delta[0] * 8.0
+        thd_next = thd + gravity + control
+        th_next = th + thd_next * self.DT
+        return torch.stack([torch.cos(th_next), torch.sin(th_next), thd_next / 8.0], dim=-1)
+
+    def compute_loss(self, s, v_des_norm):
+        """Energy-based swing-up + stabilization loss (sign-based, proven to work).
+        
+        When E_cur < 0.85*E_target: max energy_gain (swing-up phase)
+        When E_cur > 0.85*E_target: stabilize (near-upright phase)
+        """
+        s_pred = self.predict_next(s, v_des_norm)
+        thd_cur = s[:, 2] * 8.0
+        thd_pred = s_pred[:, 2] * 8.0
+
+        G = self.bridge.G_est
+        E_cur = 0.5 * thd_cur.pow(2) + G * s[:, 1]
+        E_pred = 0.5 * thd_pred.pow(2) + G * s_pred[:, 1]
+        E_target = G
+
+        deficit = E_target - E_cur
+        energy_gain = E_pred - E_cur
+        # Maximize energy_gain toward target (no normalization needed)
+        swing_up = -(energy_gain * torch.sign(deficit)).mean()
+
+        # Stabilization near upright with high threshold
+        w_stable = torch.sigmoid((E_cur / E_target - 0.93) * 15)
+        angle_cost = s_pred[:, 0].pow(2) + (1.0 - s_pred[:, 1]).pow(2)
+        vel_cost = (thd_pred / 8.0).pow(2)
+        stabilize = (w_stable * (angle_cost + vel_cost)).mean()
+
+        ctrl = v_des_norm.pow(2).mean()
+        total = swing_up + stabilize + 0.01 * ctrl
+        return total, {
+            "total": total.item(), "swing_up": swing_up.item(),
+            "stabilize": stabilize.item(), "E_cur": E_cur.mean().item(),
+            "w_stable": w_stable.mean().item()}
+
+class AbstractCartPoleDynamics:
+    """Abstract CartPole dynamics for policy training (no WM gradient)."""
+    DT = 0.02
+    X_S, XD_S, TH_S, THD_S = 2.5, 3.0, 0.3, 3.0
+    
+    def __init__(self, bridge):
+        self.bridge = bridge
+    
+    def predict_next(self, s, v_des_norm):
+        x, xd = s[:, 0] * self.X_S, s[:, 1] * self.XD_S
+        th, thd = s[:, 2] * self.TH_S, s[:, 3] * self.THD_S
+        delta = v_des_norm[:, :self.bridge.m] * self.bridge.max_delta.unsqueeze(0)
+        thd_next, xd_next = thd.clone(), xd.clone()
+        for j, dim in enumerate(self.bridge.tier0):
+            cr = delta[:, j]
+            if dim == 3: thd_next = thd + cr * self.THD_S
+            elif dim == 1: xd_next = xd + cr * self.XD_S
+        x_next = x + xd_next * self.DT
+        th_next = th + thd_next * self.DT
+        return torch.stack([x_next/self.X_S, xd_next/self.XD_S,
+                            th_next/self.TH_S, thd_next/self.THD_S], dim=-1)
+    
+    def compute_loss(self, s, v_des_norm):
+        sp = self.predict_next(s, v_des_norm)
+        loss = (sp[:, 2].pow(2).mean() + 0.1*sp[:, 0].pow(2).mean() +
+                0.5*sp[:, 3].pow(2).mean() + 0.1*sp[:, 1].pow(2).mean())
+        ctrl = v_des_norm.pow(2).mean()
+        total = loss + 0.01 * ctrl
+        return total, {'total': total.item(), 'loss': loss.item(), 'ctrl': ctrl.item()}
+
+
+class AbstractPlannerTrainer:
+    """Train policy using abstract planner (NO gradient through WM).
+    
+    Policy learns PURE STRATEGY: v_des_norm in [-1,1]^m.
+    Training uses AbstractDynamics.compute_loss which is purely analytic.
+    No WM Jacobian gradient flows to policy.
+    """
+    
+    def __init__(self, wm, policy, execute, bridge, s_target,
+                 lr=1e-3, device='cpu', env='pendulum'):
+        self.wm = wm; self.policy = policy.to(device)
+        self.execute = execute; self.bridge = bridge
+        self.s_target = s_target.to(device); self.device = device
+        wm.eval()
+        for p in wm.parameters(): p.requires_grad = False
+        self.abstract = {'pendulum': AbstractPendulumDynamics,
+                         'cartpole': AbstractCartPoleDynamics}[env](bridge)
+        self.opt = torch.optim.Adam(policy.parameters(), lr=lr)
+        self.loss_history = []
+    
+    def train_epoch(self, s_dataset, batch_size=256):
+        N = s_dataset.shape[0]
+        n_batches = max(1, N // batch_size)
+        total_loss = 0.0
+        for _ in range(n_batches):
+            idx = torch.randint(0, N, (batch_size,), device=self.device)
+            s_b = s_dataset[idx]
+            self.policy.train(); self.opt.zero_grad()
+            s_goal = self.s_target.expand(s_b.shape[0], -1)
+            v_des_norm = self.policy(s_b, s_goal)
+            loss, diag = self.abstract.compute_loss(s_b, v_des_norm)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), 10.0)
+            self.opt.step()
+            total_loss += loss.item()
+        avg = total_loss / n_batches
+        diag['total'] = avg
+        self.loss_history.append(diag)
+        return diag
+    
+    def get_action(self, s):
+        self.policy.eval()
+        if isinstance(s, np.ndarray):
+            s = torch.tensor(s, dtype=torch.float32, device=self.device)
+        if s.dim() == 1: s = s.unsqueeze(0)
+        with torch.no_grad():
+            s_goal = self.s_target.expand(s.shape[0], -1)
+            v_des_norm = self.policy(s, s_goal)
+        delta = v_des_norm * self.bridge.max_delta.unsqueeze(0)
+        a = self.execute(delta, s)
+        return a.squeeze().cpu().item()
+
+
+def evaluate_abstract_policy(trainer, env_name='pendulum', n_trials=10, seed=42, g=10.0):
+    '''Evaluate AbstractPlannerTrainer policy on real environment.'''
+    if env_name == 'pendulum':
+        import gymnasium as gym
+        PI_2 = 3.14159 / 2
+        env = gym.make('Pendulum-v1')
+        successes = 0; all_steps = []
+        for trial in range(n_trials):
+            obs, _ = env.reset(seed=seed + trial * 100)
+            for step in range(300):
+                s_n = np.array([obs[0], obs[1], obs[2] / 8.0], dtype=np.float32)
+                a = trainer.get_action(s_n)
+                obs, _, _, _, _ = env.step([a * 2.0])
+                err = min(abs(np.arctan2(obs[1], obs[0]) - PI_2),
+                          2 * 3.14159 - abs(np.arctan2(obs[1], obs[0]) - PI_2))
+                if err < 0.2:
+                    successes += 1; all_steps.append(step + 1); break
+            else:
+                all_steps.append(300)
+        env.close()
+        return successes, all_steps
+    return 0, []
