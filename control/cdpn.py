@@ -639,3 +639,194 @@ def evaluate_abstract_policy(trainer, env_name='pendulum', n_trials=10, seed=42,
         env.close()
         return successes, all_steps
     return 0, []
+
+
+# ======================================================================
+# CDPN v3: Cognitive-Representation Policy with Domain Randomization
+# ======================================================================
+
+def train_cognitive_head(wm, bridge, execute, s_dataset, n_samples=5000, n_epochs=300, device='cpu'):
+    """Train a CognitiveHead: h (12-dim WM hidden) -> s' (3-dim state prediction).
+    
+    The Head learns to decode the WM's hidden representation back to the state space.
+    This gives us a differentiable path from h to s' for policy training.
+    """
+    mse = nn.MSELoss()
+    head = nn.Sequential(nn.Linear(12, 32), nn.SiLU(), nn.Linear(32, 3)).to(device)
+    opt = torch.optim.Adam(head.parameters(), lr=1e-3)
+    
+    wm.eval(); execute.eval = lambda: None
+    S, V = [], []
+    for _ in range(n_samples):
+        idx = torch.randint(0, len(s_dataset), (1,))
+        s = s_dataset[idx].to(device)
+        v = torch.rand(1, bridge.m, device=device) * 2 - 1
+        with torch.no_grad():
+            a = execute(v * bridge.max_delta.unsqueeze(0), s)
+            h = wm.layers[0](torch.cat([s, a], dim=-1))
+            t = wm(torch.cat([s, a], dim=-1))
+        S.append(h.squeeze(0)); V.append(t.squeeze(0))
+    S = torch.stack(S); V = torch.stack(V)
+    
+    for ep in range(1, n_epochs + 1):
+        perm = torch.randperm(n_samples); tl = 0.0
+        for i in range(0, n_samples, 256):
+            idx = perm[i:i+256]
+            head.train(); opt.zero_grad()
+            loss = mse(head(S[idx]), V[idx])
+            loss.backward(); opt.step(); tl += loss.item()
+        if ep % 100 == 0:
+            print(f"  Head epoch {ep:4d}  mse={tl/(n_samples/256):.8f}")
+    head.eval()
+    return head
+
+
+class AdaptivePolicy(nn.Module):
+    """Policy that operates in cognitive h-space with environment parameter injection.
+    
+    Inputs:
+      h:         (B, h_dim) cognitive state encoding from WM.layers[0]
+      env_params:(B, e_dim) environment parameters from CausalBridge
+      h_goal:    (B, h_dim) goal state in h-space
+      
+    Output:
+      v_des_norm: (B, 1) normalized strategy instruction in [-1, 1]
+      
+    Key insight: env_params (a_fit, G_est, max_delta) explicitly encode the
+    current environment. When WM adapts -> Bridge updates env_params ->
+    Policy automatically adapts WITHOUT retraining.
+    """
+    
+    def __init__(self, h_dim=12, e_dim=3, hidden=24, n_layers=2):
+        super().__init__()
+        in_dim = h_dim + e_dim + h_dim  # h + env_params + h_goal
+        layers = []
+        for _ in range(n_layers):
+            layers.extend([nn.Linear(in_dim, hidden), nn.Tanh()])
+            in_dim = hidden
+        layers.append(nn.Linear(in_dim, 1))
+        layers.append(nn.Tanh())  # output in [-1, 1]
+        self.net = nn.Sequential(*layers)
+    
+    def forward(self, h, env_params, h_goal):
+        """h: (B, h_dim), env_params: (B, e_dim), h_goal: (B, h_dim) -> v: (B, 1)"""
+        x = torch.cat([h, env_params, h_goal], dim=-1)
+        return self.net(x)
+
+
+def make_env_params(bridge, batch_size=1, device='cpu'):
+    """Create environment parameter tensor from CausalBridge.
+    
+    Returns (batch_size, 3) tensor: [a_fit, G_est, max_delta]
+    These parameters are automatically updated when bridge.update() is called.
+    """
+    return torch.tensor([[bridge.a_fit, bridge.G_est, bridge.max_delta[0].item()]],
+                        dtype=torch.float32, device=device).expand(batch_size, -1)
+
+
+class CognitiveTrainer:
+    """Train AdaptivePolicy in h-space with Domain Randomization.
+    
+    Training flow:
+      s -> WM.encode -> h -> Policy(h, env_params_rand, h_goal) -> v
+        -> AbstractDynamics(s, v, a_fit=env_params_rand[0]) -> s' -> loss(s', s_goal)
+        
+      env_params_rand has a_fit randomized during training (DR).
+      
+    Deployment flow:
+      s -> WM.encode -> h -> Policy(h, env_params_real, h_goal) -> v -> Execute -> a
+      
+      env_params_real comes from bridge (extracted from adapted WM).
+      Policy adapts automatically WITHOUT retraining!
+    """
+    
+    def __init__(self, wm, bridge, execute, policy, head, h_goal, 
+                 env='pendulum', dr_range=(5.0, 25.0), lr=3e-3, device='cpu'):
+        self.wm = wm.to(device)
+        self.bridge = bridge
+        self.execute = execute
+        self.policy = policy.to(device)
+        self.head = head.to(device) if head is not None else None
+        self.h_goal = h_goal.to(device)
+        self.dr_range = dr_range
+        self.device = device
+        self.env = env
+        
+        for p in wm.parameters(): p.requires_grad = False
+        if head is not None:
+            for p in head.parameters(): p.requires_grad = False
+            head.eval()
+        
+        self.opt = torch.optim.Adam(policy.parameters(), lr=lr)
+        
+        # Abstract dynamics for DR training
+        if env == 'pendulum':
+            from control.cdpn import AbstractPendulumDynamics as APD
+            S_T = torch.tensor([[0., 1., 0.]]).to(device)
+            self.abstract = APD(bridge, S_T)
+            self.S_T = S_T
+        else:
+            raise ValueError(f"Unknown env: {env}")
+    
+    def _encode(self, s):
+        """Encode state into cognitive h-space."""
+        with torch.no_grad():
+            a = self.execute(torch.zeros(s.shape[0], 1, device=self.device), s)
+            h = self.wm.layers[0](torch.cat([s, a], dim=-1))
+        return h
+    
+    def train_epoch(self, s_dataset, H=5, batch_size=128):
+        N = len(s_dataset); nb = max(1, N // batch_size); total = 0.0
+        
+        for _ in range(nb):
+            # Sample random a_fit from DR range
+            a_fit_rand = np.random.uniform(self.dr_range[0], self.dr_range[1], (batch_size, 1))
+            env_rand = torch.tensor(np.concatenate([a_fit_rand, 
+                np.full((batch_size, 2), [self.bridge.G_est, self.bridge.max_delta[0].item()])], axis=1),
+                dtype=torch.float32, device=self.device)
+            
+            idx = torch.randint(0, N, (batch_size,), device=self.device)
+            s_cur = s_dataset[idx]
+            self.policy.train(); self.opt.zero_grad(); loss = 0.0
+            
+            for t in range(H):
+                h_cur = self._encode(s_cur)
+                v = self.policy(h_cur, env_rand, self.h_goal.expand(s_cur.shape[0], -1))
+                
+                # Abstract dynamics with randomized a_fit
+                if self.env == 'pendulum':
+                    sin_cur = s_cur[:, 1:2]; cos_cur = s_cur[:, 0:1]; td_cur = s_cur[:, 2:3] * 8.0
+                    th = torch.atan2(sin_cur, cos_cur)
+                    if v.dim() == 1: v = v.unsqueeze(1)
+
+                    control = v[:, 0:1] * self.bridge.max_delta[0].item() * 8.0
+                    td_next = td_cur + env_rand[:, 0:1] * sin_cur * self.abstract.DT + v[:, 0:1] * self.bridge.max_delta[0].item() * 8.0
+                    th_next = th + td_next * self.abstract.DT
+                    s_cur = torch.cat([torch.cos(th_next), torch.sin(th_next), td_next / 8.0], dim=-1)
+                
+                loss += (0.9 ** t) * (s_cur - self.S_T).pow(2).sum(dim=-1).mean()
+            
+            loss += 0.01 * v.pow(2).mean()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), 10.0)
+            self.opt.step()
+            total += loss.item()
+        
+        return {'total': total / nb}
+    
+    def get_action(self, s):
+        self.policy.eval()
+        if isinstance(s, np.ndarray):
+            s = torch.tensor(s, dtype=torch.float32, device=self.device)
+        if s.dim() == 1:
+            s = s.unsqueeze(0)
+        
+        with torch.no_grad():
+            h = self._encode(s)
+            env_params = make_env_params(self.bridge, s.shape[0], self.device)
+            v = self.policy(h, env_params, self.h_goal.expand(s.shape[0], -1))
+        
+        a = self.execute(v * self.bridge.max_delta.unsqueeze(0), s)
+        return a.squeeze().cpu().item()
+
+
