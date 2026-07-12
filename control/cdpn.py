@@ -409,6 +409,8 @@ class CausalBridge:
         return self
     
     def update(self, wm, s_dataset=None, n_samples=500):
+        self.a_fit = estimate_a_fit_from_wm(wm, s_dataset, device=self.device)
+        print(f"  [CausalBridge] a_fit updated: {self.a_fit:.2f}")
         self.compute(wm, s_dataset, n_samples)
 
 
