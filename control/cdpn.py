@@ -391,6 +391,21 @@ class CausalBridge:
         else:
             self.G_est = estimate_gravity_from_wm(wm, s_dataset, device=self.device)
         print(f"  [CausalBridge] max_delta={self.max_delta.cpu().tolist()}, G_est={self.G_est:.2f}")
+
+        # --- 4. Lyapunov P matrix from WM dynamics ---
+        self.P = None
+        try:
+            from control.lyapunov_bptt import synthesize_lyapunov
+            from experiments.baseline_sweep import S_TARGET as st
+            P, A, B, tiers = synthesize_lyapunov(
+                wm, s_dataset, st, self.state_dim,
+                horizon=10, r_weight=0.1, n_samples=200,
+                q_goal=10.0, q_means=1.0, device=self.device)
+            self.P = P
+            print(f"  [CausalBridge] P matrix computed, tr(P)={P.trace().item():.2f}")
+        except Exception as e:
+            print(f"  [CausalBridge] P computation skipped: {e}")
+
         return self
     
     def update(self, wm, s_dataset=None, n_samples=500):
@@ -405,8 +420,9 @@ class AbstractPendulumDynamics:
 
     DT = 0.05
 
-    def __init__(self, bridge):
+    def __init__(self, bridge, s_target=None):
         self.bridge = bridge
+        self.s_target = s_target
 
     def predict_next(self, s, v_des_norm):
         """Physics-aware abstract dynamics with gravity term.
@@ -432,38 +448,27 @@ class AbstractPendulumDynamics:
         return torch.stack([torch.cos(th_next), torch.sin(th_next), thd_next / 8.0], dim=-1)
 
     def compute_loss(self, s, v_des_norm):
-        """Energy-based swing-up + stabilization loss (sign-based, proven to work).
-        
-        When E_cur < 0.85*E_target: max energy_gain (swing-up phase)
-        When E_cur > 0.85*E_target: stabilize (near-upright phase)
+        """Lyapunov-based loss using P matrix from WM.
+
+        loss = (s_pred - s_target)^T * P * (s_pred - s_target)
+               + lambda * ||v_des_norm||^2
+
+        P is derived from WM Jacobian via Riccati equation.
+        No sign(), no sigmoid, no G_est for loss computation.
         """
         s_pred = self.predict_next(s, v_des_norm)
-        thd_cur = s[:, 2] * 8.0
-        thd_pred = s_pred[:, 2] * 8.0
+        err = s_pred - self.s_target
 
-        G = self.bridge.G_est
-        E_cur = 0.5 * thd_cur.pow(2) + G * s[:, 1]
-        E_pred = 0.5 * thd_pred.pow(2) + G * s_pred[:, 1]
-        E_target = G
-
-        deficit = E_target - E_cur
-        energy_gain = E_pred - E_cur
-        # Maximize energy_gain toward target (no normalization needed)
-        swing_up = -(energy_gain * torch.sign(deficit)).mean()
-
-        # Stabilization near upright with high threshold
-        w_stable = torch.sigmoid((E_cur / E_target - 0.93) * 15)
-        angle_cost = s_pred[:, 0].pow(2) + (1.0 - s_pred[:, 1]).pow(2)
-        vel_cost = (thd_pred / 8.0).pow(2)
-        stabilize = (w_stable * (angle_cost + vel_cost)).mean()
+        if hasattr(self.bridge, 'P') and self.bridge.P is not None:
+            P = self.bridge.P.to(s_pred.device)
+            loss = (err @ P @ err.T).diag().mean()
+        else:
+            loss = err.pow(2).sum(dim=-1).mean()
 
         ctrl = v_des_norm.pow(2).mean()
-        total = swing_up + stabilize + 0.01 * ctrl
-        return total, {
-            "total": total.item(), "swing_up": swing_up.item(),
-            "stabilize": stabilize.item(), "E_cur": E_cur.mean().item(),
-            "w_stable": w_stable.mean().item()}
-
+        total = loss + 0.01 * ctrl
+        return total, {'total': total.item(), 'loss': loss.item(),
+                       'ctrl': ctrl.item()}
 class AbstractCartPoleDynamics:
     """Abstract CartPole dynamics for policy training (no WM gradient)."""
     DT = 0.02
@@ -510,8 +515,12 @@ class AbstractPlannerTrainer:
         self.s_target = s_target.to(device); self.device = device
         wm.eval()
         for p in wm.parameters(): p.requires_grad = False
-        self.abstract = {'pendulum': AbstractPendulumDynamics,
-                         'cartpole': AbstractCartPoleDynamics}[env](bridge)
+        if env == 'pendulum':
+            self.abstract = AbstractPendulumDynamics(bridge, self.s_target)
+        elif env == 'cartpole':
+            self.abstract = AbstractCartPoleDynamics(bridge)
+        else:
+            raise ValueError(f'Unknown env: {env}')
         self.opt = torch.optim.Adam(policy.parameters(), lr=lr)
         self.loss_history = []
     
@@ -547,6 +556,64 @@ class AbstractPlannerTrainer:
         a = self.execute(delta, s)
         return a.squeeze().cpu().item()
 
+
+
+# ======================================================================
+# StudentPlannerTrainer: train policy through distilled Student Dynamics
+# ======================================================================
+
+class StudentPlannerTrainer:
+    """Train policy through distilled StudentDynamics (learned from WM).
+    
+    Phase 1 (distill): Student learns WM(s, Execute(v_des)) via supervised learning.
+    Phase 2 (policy):  Policy trains through frozen Student. Gradient flows
+                       through Student MLP (no vanishing, no hand-crafted loss).
+    
+    Key advantage: Student captures the FULL nonlinear dynamics of WM+Execute
+    (unlike AbstractDynamics which uses a hand-crafted linear formula).
+    """
+    
+    def __init__(self, student, policy, execute, bridge, s_target, lr=3e-3, device="cpu"):
+        self.student = student.to(device)
+        self.policy = policy.to(device)
+        self.execute = execute
+        self.bridge = bridge
+        self.s_target = s_target.to(device)
+        self.device = device
+        student.eval()
+        for p in student.parameters(): p.requires_grad = False
+        self.opt = torch.optim.Adam(policy.parameters(), lr=lr)
+    
+    def train_epoch(self, s_dataset, batch_size=256):
+        N = s_dataset.shape[0]
+        n_batches = max(1, N // batch_size)
+        total = 0.0
+        for _ in range(n_batches):
+            idx = torch.randint(0, N, (batch_size,), device=self.device)
+            s_b = s_dataset[idx]
+            self.policy.train(); self.opt.zero_grad()
+            s_goal = self.s_target.expand(s_b.shape[0], -1)
+            v_des = self.policy(s_b, s_goal)
+            s_pred = self.student(s_b, v_des)  # differentiable!
+            loss = (s_pred - s_goal).pow(2).sum(dim=-1).mean()
+            loss = loss + 0.01 * v_des.pow(2).mean()
+            loss.backward()  # gradient through Student -> Policy
+            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), 10.0)
+            self.opt.step()
+            total += loss.item()
+        return {"total": total / n_batches}
+    
+    def get_action(self, s):
+        self.policy.eval()
+        if isinstance(s, np.ndarray):
+            s = torch.tensor(s, dtype=torch.float32, device=self.device)
+        if s.dim() == 1: s = s.unsqueeze(0)
+        with torch.no_grad():
+            s_goal = self.s_target.expand(s.shape[0], -1)
+            v_des = self.policy(s, s_goal)
+        delta = v_des * self.bridge.max_delta.unsqueeze(0)
+        a = self.execute(delta, s)
+        return a.squeeze().cpu().item()
 
 def evaluate_abstract_policy(trainer, env_name='pendulum', n_trials=10, seed=42, g=10.0):
     '''Evaluate AbstractPlannerTrainer policy on real environment.'''
