@@ -122,12 +122,13 @@ class Execute:
 
     def __init__(self, wm, state_dim, tier0_indices, s_dataset,
                  damping=0.1, n_jac_samples=200, device='cpu',
-                 bridge=None):
+                 bridge=None, max_gain=None):
         self.device = device
         self.state_dim = state_dim
         self.tier0_indices = tier0_indices
         self.m = len(tier0_indices)
         self.damping = damping
+        self.max_gain = max_gain
         self.bridge = bridge  # CausalBridge instance (optional)
         self._wm = wm
         self._s_dataset = s_dataset
@@ -165,18 +166,27 @@ class Execute:
             self.bridge.update(self._wm, self._s_dataset)
 
     def __call__(self, v_des, s_batch=None):
-        """a = (J^T J + λI)^{-1} J^T v_des  [batch operation]"""
+        """a = (J^T J + lambda I)^{-1} J^T v_des  [batch operation]
+
+        Auto-damping: if max_gain is set and gain exceeds it,
+        damping is increased to prevent saturation.
+        """
         J = self.J
-        v_des = v_des.to(J.dtype)  # (m, 1)
-        j_sq = (J ** 2).sum(); JTJ = j_sq + self.damping * j_sq + 1e-8  # adaptive
-        JTv = J.T @ v_des.T  # (1, B)
-        a = JTv / JTJ  # (1, B)
-        return a.T.clamp(-2, 2)  # (B, 1)
+        v_des = v_des.to(J.dtype)
+        j_sq = (J ** 2).sum()
+        j_norm = torch.sqrt(j_sq)
 
+        damping = self.damping
+        if self.max_gain is not None:
+            gain = 1.0 / (j_norm * (1 + damping) + 1e-8)
+            if gain > self.max_gain:
+                required = 1.0 / (j_norm * self.max_gain + 1e-10) - 1.0
+                damping = max(float(required), 0.0)
 
-# ═══════════════════════════════════════════════════════════
-# CDPN Trainer
-# ═══════════════════════════════════════════════════════════
+        JTJ = j_sq + damping * j_sq + 1e-8
+        JTv = J.T @ v_des.T
+        a = JTv / JTJ
+        return a.T.clamp(-2, 2)
 
 class CDPNTrainer:
     """Train CDPN via either 1-step WM gradient or k-step imagination.
