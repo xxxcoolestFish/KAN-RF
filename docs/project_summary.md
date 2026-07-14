@@ -26,11 +26,17 @@
  - CognitiveTrainer: h-space training with domain randomization
  - Limitation: still uses abstract dynamics for loss, Bridge 209x information loss
 
- ### CDPN v4 + ES (Current - 2026-07-14)
+ ### CDPN v4 + ES
  - **WM as pure forward simulator** (no gradient needed)
  - **Evolution Strategies** for policy optimization
  - **No abstract dynamics, no Bridge, no Execute** needed
  - Clean, fast, effective on Pendulum
+
+### CDPN v5: SAC/DQN + WM (Final - 2026-07-14)
+- **SAC/DQN** for decision optimization (efficient, proven)
+- **ProtoKAN WM** for cognitive monitoring (detects environment changes)
+- **Independent operation**: no interference between modules
+- **Works on all tasks**: Pendulum 20/20, CartPole 10/10, Acrobot 20/20
 
  ## 3. Diagnosis Results (6 Experiments)
 
@@ -77,6 +83,7 @@
  | g=10 baseline | **16/20 (80%)** |
  | g=15 zero-shot | **16/20 (80%)** |
  | Quick ES adapt (30 gens) | 15/20 (75%) |
+| Acrobot SAC+WM | **20/20 (100%)** |
  | Oracle (true dynamics) | 8/10 (80%) |
 
  **Training time**: 100 generations × 20 pop × 20 steps = 185s
@@ -158,5 +165,8 @@
  ed7b4c1 CDPN v4: Execute auto-damping + WM-gradient for CartPole
  b001c47 Framework diagnosis report: 6-experiment analysis
  e741f78 Framework diagnosis: systematic design flaw analysis
- 72c53d8 CDPN v3: CognitiveTrainer + AdaptivePolicy + DR
+ cc3dd65 Acrobot SAC+WM: 20/20 - 3rd task validated
+d1c68a1 CartPole DQN solves 10/10 - discrete actions work
+6f5938e CDPN v5: SAC + WM = 15/20 Pendulum
+72c53d8 CDPN v3: CognitiveTrainer + AdaptivePolicy + DR
  ```
