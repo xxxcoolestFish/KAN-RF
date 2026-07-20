@@ -102,16 +102,22 @@ Oracle 检查点之后已经接入单一、未做物理语义分割的 ProtoKAN�
 
 在 5 个独立测试种子、共 320 个扰动初态下，正确走廊的完整任务成功率为 `271/320 = 84.69%`，乱序走廊为 `2/320 = 0.63%`。这证明 Actor 确实利用了走廊中的长时域信息，而非绕过认知输入。但是源环境尚未达到可靠性门槛：第 14、16 个困难阶段的局部完成率只有 `25.00%` 和 `28.75%`。
 
-当前定位是：接口方向成立，解码器仍不稳定。主要机制问题是走廊相位按时钟强制前进；Actor 落后时目标仍继续移动，缺少根据真实状态重新定位可达截面的反馈相位估计。针对困难相位的简单加权继续训练没有改善，并出现全路线遗忘。
+该结果随后被定位为相位机制问题，而不是 Actor 整体失效。针对困难相位的简单加权继续训练没有改善，并出现全路线遗忘。
 
 完整推导、结构与结果见 `docs/DIRECT_CORRIDOR_ACTOR_VALIDATION.md`。
 
+### 真实状态反馈相位
+
+保持同一个 Actor、同一条正确源走廊且完全不重新训练，只把固定时钟相位替换成真实状态反馈相位后，5 个随机种子、320 次完整测试的成功率从 `271/320 = 84.69%` 提升到 `315/320 = 98.44%`。受约束最近点与数值稳定的单调贝叶斯后验得到相同成功数；最近点方法平均首次成功时间还从 `473.05` 提前到 `466.00` 步。
+
+这说明固定时钟造成了约 90% 的原有失败：系统落后时，反馈相位会停留或重新对齐，而不会让目标走廊机械地继续前移。完整推导见 `docs/FEEDBACK_PHASE_VALIDATION.md`。
+
 下一检查点是：
 
-1. 用真实反馈估计或校正当前走廊相位，使偏离后的 Actor 能重新进入可达截面；
-2. 在不遗忘已学阶段的条件下补强困难阶段，使源环境多种子成功率稳定通过门槛；
-3. 再把在线 ProtoKAN 产生的动态走廊接入同一个 Actor，记录物理参数变化后的恢复曲线；
-4. 消融固定相位、反馈相位、事件触发重规划和认知/决策分别更新；
+1. 在 Oracle 动力学下验证“决策协变量 → Cognition Jacobian 拉回 → 动作”的直接 Actor；
+2. 只替换 Oracle 物理参数与 Jacobian，检查认知拉回能否立即改变动作并提升零样本控制；
+3. 再用在线 ProtoKAN 产生动态走廊与动作 Jacobian，记录物理参数变化后的恢复曲线；
+4. 消融直接动作头、认知拉回层、固定相位和反馈相位；
 5. 用探索数据或认证局部边替换当前源状态参考路线。
 
 ## 目录
@@ -127,6 +133,7 @@ cpbn/
   receding_tube.py            # 短时域局部规划与时变反馈
   feedback_corridor.py        # 时间索引状态走廊规划
   corridor_policy.py          # 必须读取状态走廊的直接 Actor/Critic
+  feedback_phase.py           # 真实状态反馈相位后验
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
   validate_oracle_bellman.py
@@ -141,6 +148,7 @@ scripts/
   validate_direct_corridor_actor.py
   refine_direct_corridor_actor.py
   evaluate_direct_corridor_actor_robust.py
+  validate_feedback_phase_actor.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
@@ -149,6 +157,7 @@ docs/
   LEARNED_COGNITIVE_TUBE_VALIDATION.md
   FEEDBACK_CORRIDOR_SOURCE_VALIDATION.md
   DIRECT_CORRIDOR_ACTOR_VALIDATION.md
+  FEEDBACK_PHASE_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -161,6 +170,7 @@ results/
   direct_corridor_actor_strong_seed0.json
   direct_corridor_actor_refined_seed0.json
   direct_corridor_actor_robust_seed0.json
+  feedback_phase_actor_seed0.json
 tests/
 ```
 
