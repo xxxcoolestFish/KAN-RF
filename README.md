@@ -79,21 +79,31 @@ LQR 只用于证明通道具有反馈可执行性和生成构造样本；CEM 动
 
 ## 当前边界与下一检查点
 
-这还不是最终泛化结果：动力学目前仍是 Oracle，只验证了源环境中的三个独立片段和一个训练种子；尚未完成整条路线的串联，也没有验证参数变化后的在线恢复。
+Oracle 检查点之后已经接入单一、未做物理语义分割的 ProtoKAN。它的局部动力学能够支撑反馈通道，但尚未完成整条路线的可靠规划，也没有进入参数变化后的在线恢复。
 
-下一检查点是：
 
-1. 用单一源环境的转移数据预训练 ProtoKAN 认知动力学；
-2. 在目标物理参数下根据真实转移持续更新 ProtoKAN；
-3. 由更新后的认知模型重估通道，并在模型失配超阈值时重新规划；
-4. 保持决策网络结构不变，记录成功率随在线 episode 的恢复曲线；
-5. 对比不更新认知、只更新认知、认知与决策共同更新三种条件。
+### 学得认知模型的最新定位结果
+
+源环境单步训练得到切空间 RMSE `0.01269`、动作 Jacobian 平均余弦 `0.96587`，但 24 步最终 RMSE 为 `0.58256`；模型规划路线在模型内达到高度 `1.9995`，真实重放只有 `-0.8565`。多步预测和局部割线训练把 24 步最终 RMSE 降到 `0.26871`、真实局部通道总体完成率提高到 `63.02%`，但 480 步路线仍然失败。
+
+定位实验固定一条真实连续路线，只让 ProtoKAN 提供局部动力学。此时三条通道在真实环境中的完成率为 `100% / 100% / 92.19%`，最低单边超过 90% 诊断门槛。这说明当前主要障碍是近似模型的超长开环规划误差，而不是 ProtoKAN 完全不能提供通道所需的局部物理信息。
+
+完整记录见 `docs/LEARNED_COGNITIVE_TUBE_VALIDATION.md`。
+
+下一检查点调整为：
+
+1. 用经过局部反馈认证的短通道组成全局粗路线，停止依赖 480 步开环模型滚动；
+2. 每执行少量真实步骤就更新认知、重新定位，并根据预测创新和通道距离触发重规划；
+3. 源环境完整闭环通过后，再切换目标物理参数记录恢复曲线；
+4. 对比不更新认知、只更新认知、认知与决策共同更新三种条件；
+5. 增加多随机种子和不同物理变化幅度。
 
 ## 目录
 
 ```text
 cpbn/
   acrobot.py                  # 可微环境与物理参数接口
+  cognition.py                # 单体 ProtoKAN 状态转移认知模型
   bellman.py                  # 早期 Bellman 拉回基线
   reachability.py             # 粗状态路由基线
   reachability_funnel.py      # 开环终点椭球基线
@@ -104,14 +114,21 @@ scripts/
   validate_coarse_reachability.py
   validate_edge_funnels.py
   validate_start_route_tubes.py
+  validate_learned_cognitive_tubes.py
+  validate_learned_cognitive_tubes_v2.py
+  diagnose_learned_route_vs_local_dynamics.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
   EDGE_FUNNEL_VALIDATION.md
   TIME_VARYING_TUBE_VALIDATION.md
+  LEARNED_COGNITIVE_TUBE_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
+  learned_cognitive_tube_validation_seed0.json
+  learned_cognitive_tube_multistep_seed0.json
+  learned_route_vs_local_dynamics_seed0.json
 tests/
 ```
 

@@ -1,0 +1,176 @@
+{
+  "experiment": "SourceProtoKANCognitiveTubeValidation",
+  "config": {
+    "hidden_dim": 32,
+    "n_prototypes": 8,
+    "cognitive_steps": 1200,
+    "cognitive_batch": 512,
+    "cognitive_lr": 0.002,
+    "repulsion_weight": 1e-05,
+    "log_every": 100,
+    "validation_count": 1024,
+    "validation_horizon": 24,
+    "jacobian_count": 24,
+    "route_segments": 20,
+    "segment_steps": 24,
+    "cem_population": 1024,
+    "cem_elite": 64,
+    "cem_iterations": 10,
+    "construction_samples": 512,
+    "tube_quantile": 0.99,
+    "trials_per_edge": 64,
+    "test_seed": 20260805,
+    "seed": 0,
+    "json_out": "results\\learned_cognitive_tube_validation_seed0.json"
+  },
+  "result": {
+    "training_history": [
+      {
+        "step": 1,
+        "prediction_loss": 0.031057871878147125,
+        "repulsion_loss": 0.001595333800651133
+      },
+      {
+        "step": 100,
+        "prediction_loss": 0.0019370942609384656,
+        "repulsion_loss": 0.008309640921652317
+      },
+      {
+        "step": 200,
+        "prediction_loss": 0.001641519134864211,
+        "repulsion_loss": 0.009158680215477943
+      },
+      {
+        "step": 300,
+        "prediction_loss": 0.0017542446730658412,
+        "repulsion_loss": 0.014196858741343021
+      },
+      {
+        "step": 400,
+        "prediction_loss": 0.0016334346728399396,
+        "repulsion_loss": 0.02585327997803688
+      },
+      {
+        "step": 500,
+        "prediction_loss": 0.0013178971130400896,
+        "repulsion_loss": 0.03876310586929321
+      },
+      {
+        "step": 600,
+        "prediction_loss": 0.00035357032902538776,
+        "repulsion_loss": 0.07255398482084274
+      },
+      {
+        "step": 700,
+        "prediction_loss": 0.00018168214592151344,
+        "repulsion_loss": 0.0788462832570076
+      },
+      {
+        "step": 800,
+        "prediction_loss": 9.767690062290058e-05,
+        "repulsion_loss": 0.0721544697880745
+      },
+      {
+        "step": 900,
+        "prediction_loss": 7.366402132902294e-05,
+        "repulsion_loss": 0.05946088582277298
+      },
+      {
+        "step": 1000,
+        "prediction_loss": 5.128891643835232e-05,
+        "repulsion_loss": 0.04753263667225838
+      },
+      {
+        "step": 1100,
+        "prediction_loss": 5.0344489864073694e-05,
+        "repulsion_loss": 0.03764558956027031
+      },
+      {
+        "step": 1200,
+        "prediction_loss": 3.875367110595107e-05,
+        "repulsion_loss": 0.029491199180483818
+      }
+    ],
+    "prediction": {
+      "one_step_raw_mse": 2.682407466636505e-05,
+      "one_step_tangent_rmse": 0.01268645841628313,
+      "one_step_tangent_p95": 0.02317914366722107,
+      "rollout_horizon": 24,
+      "rollout_mean_tangent_error": 0.18223708868026733,
+      "rollout_final_tangent_rmse": 0.5825644135475159
+    },
+    "jacobian": {
+      "sample_count": 24,
+      "state_jacobian_mean_cosine": 0.9990847706794739,
+      "state_jacobian_mean_relative_error": 0.03561366721987724,
+      "action_jacobian_mean_cosine": 0.965872585773468,
+      "action_jacobian_min_cosine": 0.8914565443992615,
+      "action_jacobian_mean_relative_error": 0.30723702907562256
+    },
+    "learned_route": {
+      "segment_count": 20,
+      "segment_steps": 24,
+      "maximum_height": 1.999471664428711,
+      "success_step": 444,
+      "selected_segments": [
+        0,
+        16,
+        18
+      ],
+      "selected_labels": [
+        "initial_energy",
+        "high_speed",
+        "terminal_swing"
+      ]
+    },
+    "real_replay_of_learned_route": {
+      "maximum_height": -0.856489896774292,
+      "success_step": -1,
+      "mean_state_error": 1.2311736345291138,
+      "maximum_state_error": 3.41774845123291,
+      "route_succeeds": false
+    },
+    "tube_construction": {
+      "edge_count": 3,
+      "horizon": 24,
+      "construction_lqr_completion": [
+        0.98828125,
+        0.98828125,
+        0.98828125
+      ],
+      "construction_lqr_tube_adherence": [
+        0.97265625,
+        0.9765625,
+        0.974609375
+      ],
+      "mean_condition_number": 54.757326736450196
+    },
+    "predicted_dynamics_certifier": {
+      "completion_rate": 1.0,
+      "per_edge_completion": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "full_tube_adherence": 0.9895833134651184
+    },
+    "real_source_certifier": {
+      "completion_rate": 0.3177083432674408,
+      "per_edge_completion": [
+        0.0,
+        0.953125,
+        0.0
+      ],
+      "minimum_edge_completion": 0.0,
+      "full_tube_adherence": 0.3177083432674408
+    },
+    "gates": {
+      "one_step_tangent_rmse_below_0_02": true,
+      "action_jacobian_cosine_above_0_90": true,
+      "learned_route_succeeds_in_real_source": false,
+      "real_tube_minimum_completion_above_0_90": false
+    },
+    "passed": false,
+    "cognitive_parameter_count": 6002
+  }
+}
