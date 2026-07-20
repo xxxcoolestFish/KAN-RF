@@ -1,0 +1,169 @@
+{
+  "architecture": "OrderedCausalActor_OnlineCognitionOnlyTransfer",
+  "source_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "target_factor": [
+    9.8,
+    0.04,
+    1.1,
+    0.9
+  ],
+  "config": {
+    "cognitive_steps": 300,
+    "cognitive_batch": 32,
+    "router_steps": 100,
+    "router_batch": 16,
+    "route_horizon": 8,
+    "temperature": 0.08,
+    "finite_delta": 0.25,
+    "edge_delta": 0.05,
+    "hidden_dim": 64,
+    "num_envs": 32,
+    "rollout_horizon": 128,
+    "source_iterations": 60,
+    "adaptation_iterations": 15,
+    "ppo_epochs": 2,
+    "minibatch": 256,
+    "cognitive_minibatch": 512,
+    "cognitive_update_epochs": 1,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "cognitive_lr": 0.002,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "source_eval_every": 30,
+    "adaptation_eval_every": 5,
+    "eval_steps": 500,
+    "test_count": 32,
+    "test_seed": 20260720,
+    "target_factor": [
+      9.8,
+      0.04,
+      1.1,
+      0.9
+    ],
+    "seed": 0,
+    "checkpoint_out": "results\\stage67_seed0_checkpoint.pt",
+    "json_out": "results\\stage67_online_cognitive_causal_transfer_seed0.json"
+  },
+  "result": {
+    "cognitive_fit": {
+      "first_loss": 0.21170254051685333,
+      "last_loss": 0.004389840643852949,
+      "mean_last_20_loss": 0.004786900617182255
+    },
+    "router_fit": {
+      "first_loss": 3.0460594757641957e-07,
+      "last_loss": 3.614405841290136e-07,
+      "mean_last_20_loss": 6.577839883448178e-07
+    },
+    "source_history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "policy_std": 0.9967694282531738,
+        "actor_loss": -0.016120610758662224,
+        "critic_loss": 0.008710067515494302,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.9436590671539307,
+        "max_height": -1.8211495876312256
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "policy_std": 0.9338147640228271,
+        "actor_loss": -0.015236256862408482,
+        "critic_loss": 0.15495087439194322,
+        "success_count": 3,
+        "success_rate": 0.09375,
+        "mean_max_height": 0.26560595631599426,
+        "max_height": 1.3622490167617798
+      },
+      {
+        "iteration": 60,
+        "collected_successes": 0,
+        "policy_std": 0.8776882886886597,
+        "actor_loss": -0.015184718038653955,
+        "critic_loss": 0.12897080858238041,
+        "success_count": 20,
+        "success_rate": 0.625,
+        "mean_max_height": 1.2180010080337524,
+        "max_height": 1.9877057075500488
+      }
+    ],
+    "source_final": {
+      "success_count": 25,
+      "success_rate": 0.78125,
+      "mean_max_height": 1.3773208856582642,
+      "max_height": 1.9901175498962402
+    },
+    "target_before_online_cognition": {
+      "success_count": 21,
+      "success_rate": 0.65625,
+      "mean_max_height": 1.242661952972412,
+      "max_height": 1.9526925086975098
+    },
+    "adaptation_history": [
+      {
+        "iteration": 1,
+        "real_transition_count": 4096,
+        "collected_successes": 0,
+        "cognitive_update_loss": 0.002081659658870194,
+        "success_count": 14,
+        "success_rate": 0.4375,
+        "mean_max_height": 0.8987629413604736,
+        "max_height": 1.924453616142273
+      },
+      {
+        "iteration": 5,
+        "real_transition_count": 20480,
+        "collected_successes": 0,
+        "cognitive_update_loss": 0.0001112930049202987,
+        "success_count": 15,
+        "success_rate": 0.46875,
+        "mean_max_height": 0.9782097339630127,
+        "max_height": 1.8757872581481934
+      },
+      {
+        "iteration": 10,
+        "real_transition_count": 40960,
+        "collected_successes": 0,
+        "cognitive_update_loss": 5.419998296929407e-05,
+        "success_count": 19,
+        "success_rate": 0.59375,
+        "mean_max_height": 1.1861563920974731,
+        "max_height": 1.9986310005187988
+      },
+      {
+        "iteration": 15,
+        "real_transition_count": 61440,
+        "collected_successes": 0,
+        "cognitive_update_loss": 6.095744220147026e-05,
+        "success_count": 17,
+        "success_rate": 0.53125,
+        "mean_max_height": 1.150814414024353,
+        "max_height": 1.97835373878479
+      }
+    ],
+    "target_after_online_cognition": {
+      "success_count": 16,
+      "success_rate": 0.5,
+      "mean_max_height": 0.9926925897598267,
+      "max_height": 1.998230218887329
+    },
+    "decision_updated_on_target": false,
+    "router_updated_on_target": false,
+    "cognitive_updated_on_target": true,
+    "trainable_decision_parameters": 15306,
+    "cognitive_parameters": 7090
+  }
+}

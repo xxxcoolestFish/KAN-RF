@@ -1,0 +1,192 @@
+{
+  "experiment": "EquivariantCausalActor_OnlineCognitionOnly",
+  "config": {
+    "checkpoint": "results/stage70_source_seed0_checkpoint.pt",
+    "target_factor": [
+      9.8,
+      0.04,
+      1.1,
+      0.9
+    ],
+    "adaptation_rounds": 3,
+    "collection_envs": 32,
+    "collection_steps": 500,
+    "multistep_horizon": 8,
+    "update_steps": 100,
+    "update_batch": 64,
+    "cognitive_lr": 0.0001,
+    "test_count": 64,
+    "eval_steps": 500,
+    "audit_batch": 512,
+    "eval_seed": 20260721,
+    "audit_seed": 20260722,
+    "collection_seed": 20260723,
+    "update_seed": 20260724,
+    "checkpoint_out": "results\\stage71_target_seed0_checkpoint.pt",
+    "json_out": "results\\stage71_equivariant_online_cognition_seed0.json"
+  },
+  "result": {
+    "target_before": {
+      "success_count": 27,
+      "success_rate": 0.421875,
+      "mean_max_height": 0.908535897731781,
+      "max_height": 1.9952442646026611
+    },
+    "adaptation_history": [
+      {
+        "round": 1,
+        "cumulative_real_transitions": 16000,
+        "coverage": {
+          "transition_count": 16000,
+          "height_mean": -1.1654083728790283,
+          "height_max": 1.9971184730529785,
+          "fraction_height_above_zero": 0.10374999791383743,
+          "action_mean": 0.07613697648048401,
+          "action_std": 0.8991734385490417,
+          "action_min": -0.9999999403953552,
+          "action_max": 1.0
+        },
+        "cognitive_multistep_fit": {
+          "first_loss": 0.05089373514056206,
+          "last_loss": 0.02342682145535946,
+          "mean_last_20_loss": 0.03023148011416197
+        },
+        "success_count": 22,
+        "success_rate": 0.34375,
+        "mean_max_height": 0.8323696255683899,
+        "max_height": 1.9341726303100586
+      },
+      {
+        "round": 2,
+        "cumulative_real_transitions": 32000,
+        "coverage": {
+          "transition_count": 16000,
+          "height_mean": -1.1530404090881348,
+          "height_max": 1.9736707210540771,
+          "fraction_height_above_zero": 0.10474999994039536,
+          "action_mean": -0.06386473029851913,
+          "action_std": 0.9104804396629333,
+          "action_min": -0.9999999403953552,
+          "action_max": 1.0
+        },
+        "cognitive_multistep_fit": {
+          "first_loss": 0.024394506588578224,
+          "last_loss": 0.029050378128886223,
+          "mean_last_20_loss": 0.028813720867037772
+        },
+        "success_count": 25,
+        "success_rate": 0.390625,
+        "mean_max_height": 0.9133651256561279,
+        "max_height": 1.9986348152160645
+      },
+      {
+        "round": 3,
+        "cumulative_real_transitions": 48000,
+        "coverage": {
+          "transition_count": 16000,
+          "height_mean": -1.141629934310913,
+          "height_max": 1.9868313074111938,
+          "fraction_height_above_zero": 0.10718750208616257,
+          "action_mean": 0.0064123328775167465,
+          "action_std": 0.9111209511756897,
+          "action_min": -0.9999999403953552,
+          "action_max": 1.0
+        },
+        "cognitive_multistep_fit": {
+          "first_loss": 0.02615535818040371,
+          "last_loss": 0.02417522855103016,
+          "mean_last_20_loss": 0.025488406047225
+        },
+        "success_count": 21,
+        "success_rate": 0.328125,
+        "mean_max_height": 0.8454363346099854,
+        "max_height": 1.994384765625
+      }
+    ],
+    "target_after": {
+      "success_count": 21,
+      "success_rate": 0.328125,
+      "mean_max_height": 0.8454363346099854,
+      "max_height": 1.994384765625
+    },
+    "diagnostics_before": {
+      "one_step": {
+        "smooth_l1": 0.004407176282256842,
+        "mse": 0.008814352564513683
+      },
+      "free_rollout": {
+        "per_horizon_mse": [
+          0.008748369291424751,
+          0.03243238851428032,
+          0.06904818117618561,
+          0.1173228994011879,
+          0.17653970420360565,
+          0.2459850311279297,
+          0.3256843388080597,
+          0.4170047342777252
+        ],
+        "final_mse": 0.4170047342777252,
+        "mean_mse": 0.17409570515155792
+      },
+      "proposal_rollout": {
+        "per_horizon_mse": [
+          0.0008381009683944285,
+          0.0036702563520520926,
+          0.009115883149206638,
+          0.017924143001437187,
+          0.030979590490460396,
+          0.04872235655784607,
+          0.07123930007219315,
+          0.09846597164869308
+        ],
+        "final_mse": 0.09846597164869308,
+        "mean_mse": 0.03511945158243179
+      }
+    },
+    "diagnostics_after": {
+      "one_step": {
+        "smooth_l1": 0.004941503517329693,
+        "mse": 0.009883007034659386
+      },
+      "free_rollout": {
+        "per_horizon_mse": [
+          0.009911172091960907,
+          0.0333196260035038,
+          0.06588425487279892,
+          0.10469817370176315,
+          0.14887724816799164,
+          0.19672763347625732,
+          0.24776341021060944,
+          0.3015053868293762
+        ],
+        "final_mse": 0.3015053868293762,
+        "mean_mse": 0.1385858654975891
+      },
+      "proposal_rollout": {
+        "per_horizon_mse": [
+          0.0001695453975116834,
+          0.0005689033423550427,
+          0.0013745484175160527,
+          0.0026889678556472063,
+          0.004204813856631517,
+          0.00661652022972703,
+          0.009998585097491741,
+          0.013497426174581051
+        ],
+        "final_mse": 0.013497426174581051,
+        "mean_mse": 0.004889913834631443
+      }
+    },
+    "fixed_interface_drift": {
+      "source_first_route_mean": 0.09842640161514282,
+      "adapted_first_route_mean": -0.015969565138220787,
+      "source_first_route_rms": 0.1179635226726532,
+      "adapted_first_route_rms": 0.0793057233095169,
+      "mean_absolute_bounded_action_change": 0.3739427328109741,
+      "maximum_absolute_bounded_action_change": 0.6034470200538635
+    },
+    "decision_updated_on_target": false,
+    "router_updated_on_target": false,
+    "cognitive_updated_on_target": true
+  }
+}

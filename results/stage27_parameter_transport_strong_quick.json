@@ -1,0 +1,246 @@
+{
+  "architecture": "FullParameterTransportLowRankPolicyV2",
+  "training_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "cognitive_parameter_count": 7090,
+  "runtime_action_probes": "none",
+  "cognitive_loss_and_decision_loss_separate": true,
+  "cognitive_fit": {
+    "first_loss": 0.26201489567756653,
+    "last_loss": 0.007817327044904232,
+    "mean_last_20_loss": 0.00851577187422663
+  },
+  "transport_fit": {
+    "first_loss": 0.2617968022823334,
+    "last_loss": 0.004593441262841225,
+    "mean_last_20_loss": 0.008446292718872428
+  },
+  "transported_policy_fit": {
+    "first_loss": 2.4770874977111816,
+    "last_loss": 7.2408623695373535,
+    "mean_last_20_loss": 6.717760682106018,
+    "final_horizon": 4
+  },
+  "plain_policy_fit": {
+    "first_loss": 2.688835382461548,
+    "last_loss": 5.97622013092041,
+    "mean_last_20_loss": 5.998754954338073,
+    "final_horizon": 4
+  },
+  "results": [
+    {
+      "label": "source",
+      "factor": [
+        7.35,
+        0.0,
+        0.8,
+        0.8
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.01736271008849144,
+        "one_step_smooth_l1": 0.00868135504424572
+      },
+      "transport_policy": {
+        "success_count": 15,
+        "success_rate": 0.75,
+        "mean_max_height": 1.42180335521698,
+        "mean_abs_action": 0.9760544300079346
+      },
+      "plain_policy": {
+        "success_count": 15,
+        "success_rate": 0.75,
+        "mean_max_height": 1.422940969467163,
+        "mean_abs_action": 0.9501240253448486
+      }
+    },
+    {
+      "label": "factor_1",
+      "factor": [
+        7.35,
+        0.08,
+        1.2,
+        1.2
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.015581940300762653,
+        "one_step_smooth_l1": 0.007790970150381327
+      },
+      "transport_policy": {
+        "success_count": 15,
+        "success_rate": 0.75,
+        "mean_max_height": 1.4114983081817627,
+        "mean_abs_action": 0.9749191999435425
+      },
+      "plain_policy": {
+        "success_count": 15,
+        "success_rate": 0.75,
+        "mean_max_height": 1.3974649906158447,
+        "mean_abs_action": 0.9481316208839417
+      }
+    },
+    {
+      "label": "factor_2",
+      "factor": [
+        12.25,
+        0.0,
+        1.2,
+        1.2
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.015836969017982483,
+        "one_step_smooth_l1": 0.007918484508991241
+      },
+      "transport_policy": {
+        "success_count": 13,
+        "success_rate": 0.6499999761581421,
+        "mean_max_height": 1.2282861471176147,
+        "mean_abs_action": 0.9772300124168396
+      },
+      "plain_policy": {
+        "success_count": 13,
+        "success_rate": 0.6499999761581421,
+        "mean_max_height": 1.2128771543502808,
+        "mean_abs_action": 0.9499901533126831
+      }
+    },
+    {
+      "label": "factor_3",
+      "factor": [
+        12.25,
+        0.08,
+        0.8,
+        0.8
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.017394350841641426,
+        "one_step_smooth_l1": 0.008697175420820713
+      },
+      "transport_policy": {
+        "success_count": 14,
+        "success_rate": 0.699999988079071,
+        "mean_max_height": 1.2698442935943604,
+        "mean_abs_action": 0.9795500636100769
+      },
+      "plain_policy": {
+        "success_count": 14,
+        "success_rate": 0.699999988079071,
+        "mean_max_height": 1.266220211982727,
+        "mean_abs_action": 0.9571556448936462
+      }
+    },
+    {
+      "label": "factor_4",
+      "factor": [
+        14.7,
+        0.04,
+        1.0,
+        1.0
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.016586052253842354,
+        "one_step_smooth_l1": 0.008293026126921177
+      },
+      "transport_policy": {
+        "success_count": 12,
+        "success_rate": 0.6000000238418579,
+        "mean_max_height": 1.141748070716858,
+        "mean_abs_action": 0.9821011424064636
+      },
+      "plain_policy": {
+        "success_count": 12,
+        "success_rate": 0.6000000238418579,
+        "mean_max_height": 1.1342501640319824,
+        "mean_abs_action": 0.9584322571754456
+      }
+    },
+    {
+      "label": "heldout_1",
+      "factor": [
+        9.8,
+        0.04,
+        1.1,
+        0.9
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.01668780855834484,
+        "one_step_smooth_l1": 0.00834390427917242
+      },
+      "transport_policy": {
+        "success_count": 15,
+        "success_rate": 0.75,
+        "mean_max_height": 1.3510795831680298,
+        "mean_abs_action": 0.9768664240837097
+      },
+      "plain_policy": {
+        "success_count": 15,
+        "success_rate": 0.75,
+        "mean_max_height": 1.3470351696014404,
+        "mean_abs_action": 0.9501126408576965
+      }
+    },
+    {
+      "label": "heldout_2",
+      "factor": [
+        13.475,
+        0.06,
+        0.9,
+        1.1
+      ],
+      "cognitive_prediction": {
+        "one_step_mse": 0.016028279438614845,
+        "one_step_smooth_l1": 0.008014139719307423
+      },
+      "transport_policy": {
+        "success_count": 13,
+        "success_rate": 0.6499999761581421,
+        "mean_max_height": 1.2255059480667114,
+        "mean_abs_action": 0.9807112216949463
+      },
+      "plain_policy": {
+        "success_count": 13,
+        "success_rate": 0.6499999761581421,
+        "mean_max_height": 1.2181516885757446,
+        "mean_abs_action": 0.9574488997459412
+      }
+    }
+  ],
+  "online_parameter_refresh": {
+    "factor": [
+      9.8,
+      0.04,
+      1.1,
+      0.9
+    ],
+    "prediction_before": {
+      "one_step_mse": 0.016707494854927063,
+      "one_step_smooth_l1": 0.008353747427463531
+    },
+    "prediction_after": {
+      "one_step_mse": 0.013475514948368073,
+      "one_step_smooth_l1": 0.006737757474184036
+    },
+    "adaptation_fit": {
+      "first_loss": 0.008338299579918385,
+      "last_loss": 0.007000791374593973,
+      "mean_last_20_loss": 0.007534797582775354
+    },
+    "transport_code_shift_l2": 0.00105156353674829,
+    "decision_before": {
+      "success_count": 15,
+      "success_rate": 0.75,
+      "mean_max_height": 1.3510795831680298,
+      "mean_abs_action": 0.9768664240837097
+    },
+    "decision_after": {
+      "success_count": 15,
+      "success_rate": 0.75,
+      "mean_max_height": 1.3510767221450806,
+      "mean_abs_action": 0.9768460392951965
+    }
+  },
+  "test_seed": 20260718
+}

@@ -1,0 +1,144 @@
+{
+  "architecture": "StandardPPO_ProtoKANEmbeddedActor",
+  "source_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "heldout_factor": [
+    9.8,
+    0.04,
+    1.1,
+    0.9
+  ],
+  "training_protocol": "identical_to_stage43_except_cognitive_pretraining_and_embedded_forward",
+  "config": {
+    "cognitive_steps": 300,
+    "cognitive_batch": 32,
+    "hidden_dim": 64,
+    "num_envs": 64,
+    "rollout_horizon": 256,
+    "iterations": 60,
+    "ppo_epochs": 2,
+    "minibatch": 512,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 10,
+    "eval_steps": 500,
+    "test_count": 64,
+    "test_seed": 20260719,
+    "heldout_factor": [
+      9.8,
+      0.04,
+      1.1,
+      0.9
+    ],
+    "seeds": [
+      0
+    ],
+    "json_out": "results/stage44_ppo_embedded_fixed_seed0_60iter.json"
+  },
+  "results": [
+    {
+      "seed": 0,
+      "cognitive_fit": {
+        "first_loss": 0.21170254051685333,
+        "last_loss": 0.004389840643852949,
+        "mean_last_20_loss": 0.004786900617182255
+      },
+      "history": [
+        {
+          "iteration": 1,
+          "collected_successes": 0,
+          "actor_loss": -0.014352135091030505,
+          "critic_loss": 0.007087253681675065,
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_max_height": -1.9470703601837158,
+          "max_height": -1.775282859802246
+        },
+        {
+          "iteration": 10,
+          "collected_successes": 0,
+          "actor_loss": -0.015079879442055244,
+          "critic_loss": 0.06520496896700934,
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_max_height": -1.419264316558838,
+          "max_height": -0.7006168961524963
+        },
+        {
+          "iteration": 20,
+          "collected_successes": 0,
+          "actor_loss": -0.014948775104130618,
+          "critic_loss": 0.3021377492696047,
+          "success_count": 21,
+          "success_rate": 0.328125,
+          "mean_max_height": 0.8502711653709412,
+          "max_height": 1.9669508934020996
+        },
+        {
+          "iteration": 30,
+          "collected_successes": 0,
+          "actor_loss": -0.012208094849484041,
+          "critic_loss": 0.7881666636094451,
+          "success_count": 45,
+          "success_rate": 0.703125,
+          "mean_max_height": 1.2911977767944336,
+          "max_height": 1.9993922710418701
+        },
+        {
+          "iteration": 40,
+          "collected_successes": 0,
+          "actor_loss": -0.012101717671612278,
+          "critic_loss": 0.42942240089178085,
+          "success_count": 51,
+          "success_rate": 0.796875,
+          "mean_max_height": 1.3574916124343872,
+          "max_height": 1.9993414878845215
+        },
+        {
+          "iteration": 50,
+          "collected_successes": 0,
+          "actor_loss": -0.01210384758451255,
+          "critic_loss": 0.7125373636372387,
+          "success_count": 56,
+          "success_rate": 0.875,
+          "mean_max_height": 1.5332133769989014,
+          "max_height": 1.9960416555404663
+        },
+        {
+          "iteration": 60,
+          "collected_successes": 0,
+          "actor_loss": -0.011542043379449751,
+          "critic_loss": 0.2806329482700676,
+          "success_count": 54,
+          "success_rate": 0.84375,
+          "mean_max_height": 1.5068148374557495,
+          "max_height": 1.998993158340454
+        }
+      ],
+      "source_evaluation": {
+        "success_count": 54,
+        "success_rate": 0.84375,
+        "mean_max_height": 1.5068148374557495,
+        "max_height": 1.998993158340454
+      },
+      "heldout_evaluation": {
+        "success_count": 59,
+        "success_rate": 0.921875,
+        "mean_max_height": 1.5201363563537598,
+        "max_height": 1.9982688426971436
+      },
+      "actor_parameter_count": 10115,
+      "cognitive_parameter_count": 7090
+    }
+  ]
+}

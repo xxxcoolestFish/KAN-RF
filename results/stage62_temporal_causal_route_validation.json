@@ -1,0 +1,98 @@
+{
+  "target_factor": [
+    13.475,
+    0.06,
+    0.9,
+    1.1
+  ],
+  "source_sequence": "results/stage61d_target_cem_feasibility.json",
+  "selected_initial_state": 2,
+  "action_blocks": 32,
+  "action_repeat": 16,
+  "graph_composition_validation": {
+    "explicit_route_score": 0.6853129267692566,
+    "direct_autograd_score": 0.6853129267692566,
+    "gradient_cosine_similarity": 1.0,
+    "maximum_absolute_gradient_error": 2.6226043701171875e-06
+  },
+  "route_refinement": [
+    {
+      "route_step": 0,
+      "smooth_score": 0.6850141882896423,
+      "maximum_height": 0.6818984746932983,
+      "success": false
+    },
+    {
+      "route_step": 1,
+      "smooth_score": 0.1296815425157547,
+      "maximum_height": 0.12310755252838135,
+      "success": false
+    },
+    {
+      "route_step": 2,
+      "smooth_score": 0.6925128102302551,
+      "maximum_height": 0.6901170015335083,
+      "success": false
+    },
+    {
+      "route_step": 3,
+      "smooth_score": 0.3551805317401886,
+      "maximum_height": 0.30304157733917236,
+      "success": false
+    },
+    {
+      "route_step": 4,
+      "smooth_score": 0.7044962644577026,
+      "maximum_height": 0.7017646431922913,
+      "success": false
+    },
+    {
+      "route_step": 5,
+      "smooth_score": 0.4004683494567871,
+      "maximum_height": 0.3999568819999695,
+      "success": false
+    },
+    {
+      "route_step": 6,
+      "smooth_score": 0.7148296236991882,
+      "maximum_height": 0.7117869257926941,
+      "success": false
+    },
+    {
+      "route_step": 7,
+      "smooth_score": 0.4807087182998657,
+      "maximum_height": 0.4806419312953949,
+      "success": false
+    },
+    {
+      "route_step": 8,
+      "smooth_score": 0.723186731338501,
+      "maximum_height": 0.7199500203132629,
+      "success": false
+    },
+    {
+      "route_step": 9,
+      "smooth_score": 0.5252722501754761,
+      "maximum_height": 0.5251121520996094,
+      "success": false
+    },
+    {
+      "route_step": 10,
+      "smooth_score": 0.7290568947792053,
+      "maximum_height": 0.7257603406906128,
+      "success": false
+    },
+    {
+      "route_step": 11,
+      "smooth_score": 0.5467004776000977,
+      "maximum_height": 0.5464052557945251,
+      "success": false
+    },
+    {
+      "route_step": 12,
+      "smooth_score": 0.7331584095954895,
+      "maximum_height": 0.7298322916030884,
+      "success": false
+    }
+  ]
+}

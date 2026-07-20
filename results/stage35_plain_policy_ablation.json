@@ -1,0 +1,219 @@
+{
+  "architecture": "FullCoupling_vs_PlainPolicy",
+  "experiment": "real_transition_parameter_interference_ablation",
+  "config": {
+    "cognitive_steps": 200,
+    "policy_steps": 120,
+    "batch_size": 16,
+    "max_horizon": 4,
+    "rollout_steps": 48,
+    "test_count": 100,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "test_seed": 20260719,
+    "json_out": "results/stage35_plain_policy_ablation.json"
+  },
+  "seeds": [
+    {
+      "seed": 0,
+      "cognitive_fit": {
+        "first_loss": 0.21980132162570953,
+        "last_loss": 0.008388524875044823,
+        "mean_last_20_loss": 0.008312819059938192
+      },
+      "variants": {
+        "full_real__legacy_loss": {
+          "fit": {
+            "first_loss": 3.138366222381592,
+            "last_loss": 11.716992378234863,
+            "mean_last_20_loss": 8.422834348678588
+          },
+          "source": {
+            "success_rate": 0.6499999761581421,
+            "success_count": 65,
+            "mean_max_height": 1.2209316492080688,
+            "mean_final_goal_potential": 1.0809522867202759,
+            "mean_abs_action": 0.393307626247406
+          }
+        },
+        "plain_real__legacy_loss": {
+          "fit": {
+            "first_loss": 3.1377639770507812,
+            "last_loss": 11.71738338470459,
+            "mean_last_20_loss": 8.428886234760284
+          },
+          "source": {
+            "success_rate": 0.6299999952316284,
+            "success_count": 63,
+            "mean_max_height": 1.169155240058899,
+            "mean_final_goal_potential": 1.1031429767608643,
+            "mean_abs_action": 0.43911871314048767
+          }
+        },
+        "full_real__goal_loss": {
+          "fit": {
+            "first_loss": 3.1645870208740234,
+            "last_loss": 11.254594802856445,
+            "mean_last_20_loss": 8.667259240150452
+          },
+          "source": {
+            "success_rate": 0.6600000262260437,
+            "success_count": 66,
+            "mean_max_height": 1.2001838684082031,
+            "mean_final_goal_potential": 1.0549761056900024,
+            "mean_abs_action": 0.30556654930114746
+          }
+        },
+        "plain_real__goal_loss": {
+          "fit": {
+            "first_loss": 3.1638598442077637,
+            "last_loss": 11.251862525939941,
+            "mean_last_20_loss": 8.669240522384644
+          },
+          "source": {
+            "success_rate": 0.6700000166893005,
+            "success_count": 67,
+            "mean_max_height": 1.197585105895996,
+            "mean_final_goal_potential": 1.0765717029571533,
+            "mean_abs_action": 0.24164429306983948
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "cognitive_fit": {
+        "first_loss": 0.2150459736585617,
+        "last_loss": 0.007975024171173573,
+        "mean_last_20_loss": 0.007529515912756324
+      },
+      "variants": {
+        "full_real__legacy_loss": {
+          "fit": {
+            "first_loss": 1.8488816022872925,
+            "last_loss": 10.783585548400879,
+            "mean_last_20_loss": 8.20788869857788
+          },
+          "source": {
+            "success_rate": 0.6399999856948853,
+            "success_count": 64,
+            "mean_max_height": 1.201509714126587,
+            "mean_final_goal_potential": 1.0874518156051636,
+            "mean_abs_action": 0.43517303466796875
+          }
+        },
+        "plain_real__legacy_loss": {
+          "fit": {
+            "first_loss": 1.8487229347229004,
+            "last_loss": 10.795934677124023,
+            "mean_last_20_loss": 8.21387357711792
+          },
+          "source": {
+            "success_rate": 0.6399999856948853,
+            "success_count": 64,
+            "mean_max_height": 1.1953976154327393,
+            "mean_final_goal_potential": 1.0797215700149536,
+            "mean_abs_action": 0.45870137214660645
+          }
+        },
+        "full_real__goal_loss": {
+          "fit": {
+            "first_loss": 2.4456028938293457,
+            "last_loss": 9.83047866821289,
+            "mean_last_20_loss": 8.405057406425476
+          },
+          "source": {
+            "success_rate": 0.6700000166893005,
+            "success_count": 67,
+            "mean_max_height": 1.2032023668289185,
+            "mean_final_goal_potential": 1.0614674091339111,
+            "mean_abs_action": 0.34484681487083435
+          }
+        },
+        "plain_real__goal_loss": {
+          "fit": {
+            "first_loss": 2.445624828338623,
+            "last_loss": 9.834396362304688,
+            "mean_last_20_loss": 8.407263493537902
+          },
+          "source": {
+            "success_rate": 0.6700000166893005,
+            "success_count": 67,
+            "mean_max_height": 1.1943907737731934,
+            "mean_final_goal_potential": 1.065492868423462,
+            "mean_abs_action": 0.3164750039577484
+          }
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "cognitive_fit": {
+        "first_loss": 0.26850011944770813,
+        "last_loss": 0.008715125732123852,
+        "mean_last_20_loss": 0.007486745086498559
+      },
+      "variants": {
+        "full_real__legacy_loss": {
+          "fit": {
+            "first_loss": 3.501525640487671,
+            "last_loss": 9.143247604370117,
+            "mean_last_20_loss": 8.068896460533143
+          },
+          "source": {
+            "success_rate": 0.6499999761581421,
+            "success_count": 65,
+            "mean_max_height": 1.2044600248336792,
+            "mean_final_goal_potential": 1.0589780807495117,
+            "mean_abs_action": 0.3973254859447479
+          }
+        },
+        "plain_real__legacy_loss": {
+          "fit": {
+            "first_loss": 3.501526117324829,
+            "last_loss": 9.150961875915527,
+            "mean_last_20_loss": 8.075087022781371
+          },
+          "source": {
+            "success_rate": 0.6299999952316284,
+            "success_count": 63,
+            "mean_max_height": 1.1737487316131592,
+            "mean_final_goal_potential": 1.0997681617736816,
+            "mean_abs_action": 0.42859339714050293
+          }
+        },
+        "full_real__goal_loss": {
+          "fit": {
+            "first_loss": 3.42643404006958,
+            "last_loss": 8.830780029296875,
+            "mean_last_20_loss": 8.51161606311798
+          },
+          "source": {
+            "success_rate": 0.6700000166893005,
+            "success_count": 67,
+            "mean_max_height": 1.2021582126617432,
+            "mean_final_goal_potential": 1.0698456764221191,
+            "mean_abs_action": 0.32844528555870056
+          }
+        },
+        "plain_real__goal_loss": {
+          "fit": {
+            "first_loss": 3.426298141479492,
+            "last_loss": 8.831597328186035,
+            "mean_last_20_loss": 8.513128900527954
+          },
+          "source": {
+            "success_rate": 0.6700000166893005,
+            "success_count": 67,
+            "mean_max_height": 1.1967402696609497,
+            "mean_final_goal_potential": 1.0775294303894043,
+            "mean_abs_action": 0.26891908049583435
+          }
+        }
+      }
+    }
+  ]
+}

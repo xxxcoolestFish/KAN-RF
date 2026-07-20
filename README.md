@@ -1,329 +1,341 @@
-# KAN-RF: 基于 KAN 可微世界模型的模型预测控制
+# KAN-RF：认知 ProtoKAN 与决策网络的物理泛化控制
 
-用 **Kolmogorov-Arnold Network (KAN)** 构建可微分世界模型，实现"一个网络，两种用途"——训练时预测系统动态，部署时通过冻结模型梯度反推最优控制动作。在 Pendulum-v1、CartPole-v1、MountainCar-v0、Acrobot-v1 四个经典控制环境中验证。
+KAN-RF 研究一个明确的问题：能否只在一种物理条件下训练一个小型控制系统，在质量、阻尼、驱动力或惯量发生变化后，通过持续更新认知网络，把新学到的物理规律传入决策网络并快速恢复控制能力？
 
-## 1. 核心思路
+当前分支 `feature/cognitive-embedded-decision` 是这一思想的实验验证版本。它不是已经完成的强泛化系统：当前最好结构在源 Acrobot 环境达到 **55/64（85.94%）**，在中等参数变化下可以恢复到 **30/32（93.75%）**，但在严重参数变化下在线学习后只有 **0/32–1/32**。仓库保留这些失败结果，因为它们定位了认知—决策接口和长程策略学习中的核心问题。
 
-### 为什么用 KAN 而非 MLP
+## 1. 研究假设
 
-KAN 的每条边是显式的 1D B-样条函数：
+系统由两个职责分离、前向耦合的网络组成：
 
-$$\phi(x) = w \cdot \text{SiLU}(x) + \sum_k c_k \cdot B_k(x)$$
+1. 认知网络只学习环境状态转移；
+2. 决策网络只根据真实任务回报学习动作；
+3. 两套损失不混合；
+4. 认知网络必须参与决策前向传播；
+5. 物理条件改变后，认知网络利用新转移持续学习，决策网络也继续学习；
+6. 理想情况下，认知参数的变化应当成为决策适应的主要物理信息来源。
 
-这带来了三个 MLP 不具备的能力：
+认知模型为
 
-| 性质 | 机制 | 用途 |
-|------|------|------|
-| **局部支撑** | $B_k(x) > 0$ 仅在 $[t_k, t_{k+d+1}]$ 区间 | 在线学习天然抗灾难性遗忘 |
-| **分析导数** | $f'(x) = \frac{1}{h}\sum(\Delta c_i) \cdot B_i^{k-1}(x)$ | 精确梯度用于动作优化 |
-| **可认证界限** | $\|f^{(d)}\|_\infty \le h^{-d} \cdot \max\|\Delta^d c\|$ | 无需 ensemble 即可量化不确定性 |
+$$
+\hat s_{t+1}=F_\theta(s_t,a_t),
+$$
 
-### 两步框架
+决策策略为
 
-```
-训练阶段:                          部署阶段:
-(s, a, s') 数据                    当前状态 s_t
-     │                                  │
-     ▼                                  ▼
-BP 训练 KAN 世界模型              冻结的 KAN f_θ
-f_θ(s, a) → s'                         │
-     │                                  ▼
-     ▼                           min_a ||f_θ(s_t, a) - s*||²
-冻结的 KAN                              │
-     │                                  ▼
-     ▼                              a* → 执行
-```
+$$
+a_t=\pi_\phi(s_t,g;F_\theta),
+$$
 
-## 2. 核心挑战：前向-逆向差距 (Forward-Inverse Gap)
+其中 $\theta$ 负责动力学预测，$\phi$ 负责完成目标 $g$。
 
-**这是整个项目最重要的发现。**
+## 2. 当前最好结构：PSD 时序因果策略
 
-训练时世界模型的前向预测非常准确（RMSE ≈ 0.037，约 0.14 rad 角度误差）。但在部署时，用梯度下降从状态反推动作的误差高达 0.87 N·m（力矩范围 ±2.0 N·m 的 44%）。仅有 36.5% 的恢复落在 0.2 N·m 以内。
+当前主体实现位于 `scripts/stage73_psd_causal_preconditioner_actor.py`。它由五部分组成。
 
-**前向 MSE 好 ≠ 反推动作准。**
+### 2.1 认知 ProtoKAN
 
-### 三个根因
+`SimpleCognitiveKAN` 使用完整 ProtoKAN 学习
 
-**根因一：Jacobian 不匹配（可训练）**
+$$
+(s_t,a_t)\in\mathbb R^7\longmapsto\hat s_{t+1}\in\mathbb R^6.
+$$
 
-MSE 损失 $\mathcal{L} = \|f_\theta(s,a) - s'\|^2$ 的梯度中**不包含** $\partial f_\theta / \partial a$ 的项。一个模型可以在任意低的 MSE 下拥有完全错误的导数。
+当前 Acrobot 状态包含两组角度的正余弦和两维角速度，动作是一维连续力矩。认知网络的默认隐藏宽度为 32，每条 ProtoKAN 边使用 8 个原型。
 
-实测：训练后模型的 Jacobian 与真实 Jacobian 的余弦相似度仅为 **0.099**（约 84° 偏差）。
+源环境预训练只使用状态转移预测，不使用动作教师或任务奖励。在线更新使用不跨 episode reset 的连续真实序列，并以自由滚动的八步预测误差训练。
 
-直观类比：真实函数 $g(a) = 0.5a$，模型学了 $g_\theta(a) = 0.5a + 0.05\sin(15a)$。函数值误差 ≤ 0.05，但导数为 $0.5 + 0.75\cos(15a)$，在 -0.25 到 1.25 之间振荡——**经常指向相反方向**。
+### 2.2 动作序列提议器
 
-**根因二：残差偏移（可减少但不可消除）**
+决策 proposal MLP 接收当前状态和目标状态，输出长度 $H=8$ 的动作序列：
 
-即使 Jacobian 完美匹配，前向残差 $\varepsilon_0 = f_\theta(s, a_{\text{true}}) - f_{\text{true}}(s, a_{\text{true}}) \neq 0$ 也会将逆目标的最小值从 $a_{\text{true}}$ 移开：
+$$
+\mathbf u=P_\phi(s_t,g)=[u_0,\ldots,u_{H-1}].
+$$
 
-$$a^* = a_{\text{true}} - \frac{J^T \varepsilon_0}{\|J\|^2}$$
+这条序列是待修正的动作计划，并非最终动作。
 
-对于有限数据和模型容量，$\varepsilon_0$ 永远不可能精确为零。
+### 2.3 ProtoKAN 原生时序因果路由
 
-**根因三：欠驱动放大效应（结构性、不可消除）**
+候选动作经过认知网络自由滚动：
 
-Pendulum 有 2 个自由度（角度、角速度）但只有 1 个控制输入（力矩）。Jacobian 的范数 $\|J\| \approx 0.04$ 非常小。前向误差被放大：
+$$
+\hat s_{t+h+1}=F_\theta(\hat s_{t+h},\tanh u_h).
+$$
 
-$$\mathbb{E}[|a^* - a_{\text{true}}|] \approx \frac{\|\varepsilon\|}{\|J\|} \approx \frac{0.037}{0.0404} \approx 0.92$$
+代码显式追踪 ProtoKAN 函数边的值、一阶导数、有限正负响应和曲率，形成每一步的状态传播与动作传播关系。随后从长程可达性评分反向传播消息：
 
-放大因子 ≈ 25。即使前向误差为 0.037，逆向动作误差仍约 0.92（归一化单位）。**这是物理系统的结构性约束，不是模型能解决的。**
+$$
+\lambda_h=A_h^\top\lambda_{h+1},\qquad
+r_h=B_h^\top\lambda_{h+1}.
+$$
 
-| 根因 | 性质 | 可修复性 |
-|------|------|:---:|
-| 1. Jacobian 不匹配 | 模型训练不约束导数 | **部分可修**（Sobolev 训练） |
-| 2. 残差偏移 | 有限数据和容量 | **可减少不可消除** |
-| 3. 欠驱动放大 | 物理系统的结构性约束 | **不可消除** |
+$r_h$ 表示第 $h$ 个动作对未来可达性目标的有符号影响。Stage62–64 验证了显式边路由与直接 autograd 多步梯度的一致性。
 
-## 3. 解决方案一：拟合深度训练 (Fitting Depth)
+### 2.4 正半定时序预条件器
 
-### 核心概念
+策略不让自由 MLP 任意解释因果方向，而是构造正半定矩阵
 
-定义**拟合深度 D** 为模型导数匹配真实导数的最高阶数：
+$$
+K_\phi=L_\phi L_\phi^\top+\operatorname{diag}(d_\phi)+\epsilon I\succeq0.
+$$
 
-$$D = \max\left\{d \;\middle|\; \left\|\frac{\partial^k f_\theta}{\partial a^k} - \frac{\partial^k f_{\text{true}}}{\partial a^k}\right\| \le \epsilon_k,\; \forall k \in [0, d]\right\}$$
+$K_\phi$ 根据路由绝对值、预测状态、时间评分、时间权重和目标生成，并对八个时间步之间的作用进行低秩耦合。动作修正为
 
-标准 MSE 训练只能达到 $D=0$。梯度下降优化 $a$ 时跟随的是 $\partial f_\theta/\partial a$，因此 $D \ge 1$ 是关键目标。
+$$
+\Delta\mathbf u=K_\phi\mathbf r,
+\qquad
+\tilde{\mathbf u}=\mathbf u+\eta\Delta\mathbf u.
+$$
 
-### 三级训练框架
+它满足
 
-**Level 1: MOPS (Multi-Order P-Spline)** — 参数空间正则化
+$$
+\mathbf r^\top K_\phi\mathbf r\ge 0,
+$$
 
-直接惩罚 B-样条控制点的二阶差分：
-$$\mathcal{L}_{\text{MOPS}} = \lambda \cdot \sum_{\text{所有边}} \|\Delta^2 c\|^2$$
+因此学习型算子不能把完整因果路由解释成整体相反的方向。系统执行
 
-利用 P-spline 恒等式 $\|\Delta^d c\|^2 \approx h^{2d-1} \int [f^{(d-1)}(x)]^2 dx$，控制二阶差分等价于惩罚一阶导数能量。仅作用于 KAN 的 B-样条控制点，**不需要真实 Jacobian**。
+$$
+a_t=\tanh(\tilde u_0),
+$$
 
-**Level 3: CWS (Controllability-Weighted Sobolev)** — 输出空间 Jacobian 匹配
+然后在下一个真实时间步重新规划。
 
-当真实 Jacobian 可用时（解析动力学），直接惩罚模型 Jacobian 与真实 Jacobian 的偏差：
-$$\mathcal{L}_{\text{CWS}} = \nu \cdot \|w \odot (\partial f_\theta/\partial a - J_{\text{true}})\|^2$$
+### 2.5 PPO 决策学习
 
-可操控性加权：直接受控维度（如 $\dot{\theta}$）获得更高的权重。
+策略是 tanh-squashed Gaussian actor，critic 是读取 $(s_t,g)$ 的 MLP。决策部分通过真实环境奖励和 PPO 更新；认知网络与因果路由器在 PPO 更新期间冻结。
 
-### 实验结果
+当前任务奖励由平滑高度项、终止成功奖励和小幅动作惩罚组成。成功条件是 Acrobot 末端高度达到阈值 1.0，评估最多运行 500 步。
 
-| 方法 | Forward MSE | Jacobian cos_sim | ‖Δ²c‖ | 逆误差均值 |
-|------|:---:|:---:|:---:|:---:|
-| Baseline (MSE only) | 0.001785 | 0.099 | 0.0986 | 0.507 |
-| MOPS λ=0.1 | 0.001907 | 0.237 | 0.0208 | 0.428 |
-| CWS ν=1.0 | 0.000337 | **0.979** | 0.1020 | 0.291 |
-| **Hybrid** | **0.000198** | 0.924 | **0.0007** | **0.228** |
+## 3. 训练和在线适应流程
 
-**关键发现**：MOPS 和 CWS 通过不同机制起作用——MOPS 降低控制点粗糙度（141×）但不改善方向，CWS 改善 Jacobian 方向（0.099→0.979）但不改善光滑度。两者互补，Hybrid 在所有指标上最优。逆误差从 1.01 N·m 降至 0.46 N·m（降 55%），但残余误差验证了根因三的存在。
+### 3.1 源环境训练
 
-## 4. 解决方案二：多时间尺度世界模型
+当前源物理因子为
 
-### 动机
+$$
+(g,\text{damping},\text{actuation},\text{inertia})
+=(7.35,0.0,0.8,0.8).
+$$
 
-根因三指出单步 Jacobian 太小（$\|J\| \approx 0.04$）。**但如果预测的是一段较长时间后的状态，动作对状态的影响会更大。**
+训练顺序为：
 
-### 方法
+1. 用源环境转移预训练认知 ProtoKAN；
+2. 训练 ProtoKAN 非线性边路由器；
+3. 冻结认知网络和路由器；
+4. 用 PPO 训练 proposal、PSD 预条件器、策略标准差和 critic；
+5. 保存完整 actor 与 critic checkpoint。
 
-将世界模型从 $f(s, a) \rightarrow s_{t+dt}$ 扩展为 $f(s, a, k) \rightarrow s_{t+k\cdot dt}$，$k \in \{1, 2, 4, 8, 16\}$。输入多一维 $k/16$ 表示时间尺度。
+认知损失和决策损失始终分开：
 
-### 架构
+$$
+L_{\text{cog}}
+=\frac1H\sum_{h=1}^{H}
+\ell(\hat s_{t+h},s_{t+h}),
+$$
 
-- 世界模型：KAN([5, 16, 3])，1152 参数
-- 训练数据：对每个 (s, a)，用解析动力学生成 5 个时间尺度的 $s_{t+k\cdot dt}$
-- 训练方法：MOPS（λ=0.1）
+$$
+L_{\text{decision}}=L_{\text{PPO}}(r_t,V_\omega).
+$$
 
-### 决策网络（Plan A）
+### 3.2 物理参数变化后的在线阶段
 
-将逆优化的结果蒸馏为一个快速的前馈决策网络：
+每轮执行：
 
-$$(s, s^*) \xrightarrow{\text{KAN([6,12,2])}} (a, k)$$
+1. 当前整体策略在目标环境收集真实转移；
+2. 冻结认知网络，用 PPO 更新决策参数和 critic；
+3. 冻结决策参数，用连续真实转移的八步预测损失更新认知网络；
+4. 下一轮决策立即使用更新后的认知参数。
 
-决策网络同时输出动作和时间尺度。训练标签通过逆优化生成（对每个状态，尝试所有 k，选最佳 (a, k)）。
+这是当前对“认知持续学习驱动决策适应”的直接实现。Stage76 的动作信任域和 Stage77 的真实回报门控是故障诊断，不属于最终核心方法。
 
-**结果：9/10 Pendulum swing-up 成功。** k=16 被选中 75% 的时间，验证了大时间尺度的必要性。
+## 4. 当前实验结果
 
-## 5. 核心难题：k-选择 (k-Selection)
+### 4.1 源环境控制
 
-### k 的困境
+相同低预算配置为 32 个并行环境、每轮 128 步、60 次策略更新。
 
-多尺度世界模型引入了新问题：在每个状态下，应该选哪个 k？
+| 方法 | 独立终测成功率 |
+|---|---:|
+| 同预算普通 MLP PPO | 48/64 = 75.00% |
+| Stage66 自由时序解码 | 46/64 = 71.88% |
+| Stage70 固定标量因果修正 | 15/64 = 23.44% |
+| **Stage73 PSD 时序因果策略** | **55/64 = 85.94%** |
 
-- **k 太小**：Jacobian 太小，前向误差被放大（根因三）
-- **k 太大**：预测误差累积。混沌系统（如 Acrobot）中误差指数增长
-- **需要状态相关的 k**：Pendulum 底部用 k=16（需要大 Jacobian），顶部用 k=1（精细控制）
+Stage73 是目前源环境表现最好的结构，但仍未达到简单任务期望的 100%。ProtoKAN 和普通 MLP 的差距也尚未经过足够随机种子验证。
 
-### 尝试过的方法
+### 4.2 中等参数变化
 
-**方法 1：世界模型自评 → 失败**
+中等目标为
 
-思路：让世界模型评估"哪个 k 的预测结果最好"。
+$$
+(9.8,0.04,1.1,0.9).
+$$
 
-失败原因：**循环推理**。世界模型在大 k 时预测更大的状态变化（更乐观），但预测更不准，导致偏向大 k。Acrobot 因此选了 k=8（0% 成功率），而正确的 k=1 是 92%。
+在固定 32 个评估初态上：
 
-**方法 2：CKS — 可认证 k-选择 → 理论正确，工程失败**
+| 累计目标环境策略转移 | 成功率 |
+|---:|---:|
+| 0 | 30/32 = 93.75% |
+| 4,096 | 24/32 = 75.00% |
+| 12,288 | 27/32 = 84.38% |
+| 36,864 | 29/32 = 90.63% |
+| 61,440 | 30/32 = 93.75% |
 
-思路：利用 B-样条导数上界 $\|f^{(d)}\|_\infty \le h^{-d} \cdot \max|\Delta^d c|$，分析性地计算每个 k 的预测误差上界：
+这一结果只说明系统在中等目标上经历扰动后可以恢复。该目标零样本本身已经较容易，不能单独证明认知持续学习带来了强泛化。
 
-$$k_{\text{cert}}(s) = \max\{k : E_k(s)/G(s,k) \le \varepsilon\}$$
+### 4.3 严重参数变化
 
-建立了完整的 6-定理理论框架，包括 PAC 式保证和四个系统类型的自动适配。
+严重目标为
 
-失败原因：多尺度世界模型在 k=1 的基础预测误差已经太高（L2≈0.38），导致对所有 k 的认证上界都太松，无法区分。
+$$
+(13.475,0.06,0.90,1.10).
+$$
 
-**方法 3：不确定性加权 MPC → 区分力不够**
+Stage73 在 64 个初态上的零样本成功率为 3/64（4.69%）。在 32 个固定在线评估初态上，完整联合更新从 3/32 降到 0/32。随机在线轨迹中曾累计出现约 70 次成功，说明任务可达且探索并未完全失败，但确定性均值策略没有吸收这些成功经验。
 
-思路：用 B-样条激活密度 $\rho(s)$ 作为不确定性代理，加权 MPC 评分。
+后续诊断如下：
 
-问题：训练数据密度均匀，$\rho(s)$ 跨状态变化太小，加上混沌系统的 Jacobian 补偿使惩罚项归零。
+| 诊断 | 目标 | 结果 |
+|---|---|---:|
+| Stage75：仅更新决策、重置 critic，6 轮 | 排除源 critic 和认知漂移 | 4/32 = 12.50% |
+| Stage75：联合更新、重置 critic，6 轮 | 检查直接认知更新 | 0/32 |
+| Stage76：认知延迟到第 7 轮，并限制策略动作 RMSE 约 0.05 | 检查小步认知更新 | 0/32 |
+| Stage76：仅决策更新，15 轮 | 检查决策自身恢复 | 1/32 = 3.13% |
+| Stage77：真实长程回报门控认知更新，15 轮 | 诊断是否存在可安全选择的认知更新 | 0/32 |
 
-## 6. 最终方案：动作探索器 (10/10)
+Stage77 的门控还额外消耗 144,000 条诊断环境转移，因此它不能作为样本高效的最终算法。
 
-### 思路
+## 5. 已确认的问题
 
-不再试图完美解决 k-选择。让系统在卡住时直接在环境中尝试不同动作，将成功经验蒸馏回决策网络。
+### 5.1 预测梯度与决策收益不对齐
 
-### 三个全通用机制
+降低 $L_{\text{cog}}$ 并不保证提高任务回报：
 
-**1. 检测卡住**：角度误差连续 N 步不下降 → 当前动作方向可能错误。
+$$
+-\nabla_\theta L_{\text{cog}}
+\not\Rightarrow
+\nabla_\theta J_{\text{task}}.
+$$
 
-**2. 原地尝试候选动作**：
-- 保存环境状态 `env.unwrapped.state`
-- 在同一状态下尝试多个候选动作（模型建议的、反方向的、随机的）
-- 用真实环境反馈衡量改善程度（不依赖世界模型预测）
-- 恢复状态，选最优候选
+认知预测可以改善，但其参数变化仍会改变预测轨迹、函数边导数和因果路由，使原决策参数失去接口兼容性。
 
-**3. 记录纠正标签**：$(s, a_{\text{wrong}}) \rightarrow (s, a_{\text{correct}})$。用积累的纠正标签微调决策网络。
+### 5.2 “参与计算”不等于“被决策依赖”
 
-### 结果
+当前结构为
 
-**Pendulum-v1: 10/10 全通过。** 之前失败的所有 Trial（2, 3, 6）全部修复。这是 Pendulum 上的最优方案。
+$$
+\tilde{\mathbf u}=P_\phi(s,g)+\eta K_\phi\mathbf r_\theta.
+$$
 
-## 7. 其他尝试
+ProtoKAN 每次都参与前向计算，但 proposal 存在直接动作路径。如果因果修正相对较小，策略仍可能主要依赖 proposal。这是一条软绕过路径，也是当前架构与理想深度融合之间的差距。
 
-### WM+V：世界模型 + 价值网络
+### 5.3 单步状态准确不保证多步控制导数准确
 
-核心思路：不再选 k。世界模型永远只用 k=1（最准），用一个微型 MLP 价值网络 V(s) 估计"从 s 出发的累积未来奖励"。
+控制需要的不只是 $F_\theta$ 的输出，还需要多步复合中的动作导数。八步滚动包含模型误差累积和 Jacobian 连乘；较小的单步状态误差仍可能对应错误或不稳定的长程动作方向。
 
-| 组件 | 职责 | 训练方式 |
-|------|------|------|
-| 世界模型 f(s,a) | 单步预测 s' | 离线 MOPS |
-| 价值网络 V(s) | 估计累积未来奖励 | 在线 TD(0) |
+### 5.4 在线决策学习没有固化成功经验
 
-与 AlphaGo 的 MCTS + value network 同构。世界模型替代 MCTS rollout，V(s) 替代 value network。
+严重目标中，随机策略轨迹能够多次成功，但策略标准差长期约为 0.86，最终确定性策略仍失败。当前 PPO 存在长程信用分配、critic 稳定性以及从探索到策略均值固化不足的问题。因此失败不只来自认知网络。
 
-**结果：22/30 (73%)。** 瓶颈是冷启动鸡-蛋死锁——V(s) 初始化为接近零的随机值，MPC 退化为贪婪策略。
+### 5.5 当前结构是研究原型，不是最终论文方法
 
-### decision_v2：KAN 特征 → MLP 决策
+因果路由、PSD 算子、信任域和回报门控分别回答了不同诊断问题，但继续叠加模块会偏离最初的两网络目标。下一版应围绕一个更明确的参数运输或函数保持机制重新收敛架构，而不是继续增加补丁。
 
-冻结的 KAN 提取物理特征（drift, Jacobian, ctrl, align, trust），喂给微型 MLP 输出动作。
+## 6. 当前结论与论文状态
 
-**结果：7/10 天花板。** 特征质量从 0.03 提到 0.80，但性能不变——瓶颈在"把 48 条边函数压缩成 5 个标量再让 MLP 重新推导"这个范式本身。
+已经得到支持的结论：
 
-### 最新方向（待实现）：KAN 作为可微裁判
+1. ProtoKAN 函数边可以构造数值准确的多步因果图；
+2. 长程决策需要保留因果序列的时间顺序；
+3. 正半定时序算子比自由解码和固定标量修正更好地平衡容量与方向约束；
+4. 认知网络的预测更新会造成决策接口漂移；
+5. 严重参数变化下，当前在线认知—决策系统尚未实现稳定恢复。
 
-KAN 的知识不应该作为输入特征，而应该作为**训练时的可微裁判**：
+因此，PSD 时序因果算子具有方法创新潜力，但当前证据不足以宣称强物理泛化，也还不足以构成完整的 AAAI 实验结果。至少还需要：
 
-```
-训练时:                          部署时:
-s → [π_θ] → a                   s → [π_θ] → a
-      │                               (纯前向，KAN 不参与)
-      ▼
-f_KAN(s, a) → s'_pred
-      │
-      ▼
-loss = ||s' - s*||²
-      │
-      ▼
-θ ← θ - α · ∂loss/∂θ            ← 梯度经过 KAN 的可信导数
-```
+- 严重参数变化下的可靠恢复；
+- 多随机种子；
+- 多种控制环境；
+- 认知冻结、直接更新、运输更新和普通 MLP 的等预算消融；
+- 在线样本效率与计算开销报告。
 
-- KAN 不出现在决策网络的输入中
-- KAN 出现在训练损失的计算中——它评价"这个动作好不好"
-- 梯度通过 KAN 反向传播到 π_θ——KAN 用可信的导数告诉网络"动作应该往哪调"
-- 部署时只有 π_θ 前向传播，KAN 不需要
+## 7. 关键文件
 
-## 8. 四环境完整结果
+| 文件 | 作用 |
+|---|---|
+| `scripts/stage73_psd_causal_preconditioner_actor.py` | 当前最好源策略的完整训练入口 |
+| `scripts/stage74_joint_online_psd_causal_transfer.py` | 认知与决策损失分离的在线联合适应 |
+| `scripts/stage75_severe_transfer_attribution.py` | critic、认知更新和决策更新的失败归因 |
+| `scripts/stage76_delayed_trust_cognition.py` | 延迟与策略动作信任域诊断 |
+| `scripts/stage77_return_gated_cognition.py` | 真实长程回报门控诊断 |
+| `kanrf/protokan_causal_router.py` | ProtoKAN 函数边追踪和非线性路由 |
+| `kanrf/protokan_temporal_route.py` | 八步滚动与时间反向因果传播 |
+| `docs/stage65_74_temporal_causal_policy_report.md` | Stage65–74 的完整推导和结果 |
+| `results/stage73_psd_causal_preconditioner_actor_seed0_60iter.json` | 当前最好源环境结果 |
+| `results/stage74_joint_online_psd_causal_transfer_severe_seed0.json` | 严重迁移联合更新结果 |
+| `results/stage75_severe_transfer_attribution_seed0.json` | 失败归因结果 |
+| `results/stage76_delayed_trust_cognition_seed0.json` | 信任域诊断结果 |
+| `results/stage77_return_gated_cognition_seed0.json` | 回报门控诊断结果 |
 
-| 环境 | 世界模型 | 控制方法 | 成功率 | 关键洞察 |
-|------|------|------|:---:|------|
-| Pendulum-v1 | [5,16,3] 多尺度 | 决策网络 + 动作探索器 | **100%** | 原地尝试真实环境反馈是关键 |
-| Pendulum-v1 | [4,12,3] 单尺度 | WM+V (k=4 预训练) | 77% | 预训练改善早期，天花板受限于贪婪 MPC |
-| CartPole-v1 | [7,20,4] 多尺度 | MPC k=2 + 能量评分 | **99%** | 失败是小车漂移，非杆子倒下 |
-| MountainCar-v0 | [6,16,2] 多尺度 | MPC k=4 + 能量评分 | **100%** | 评分函数从"最大化位置"改为"最大化能量"是关键 |
-| Acrobot-v1 | [10,24,6] 多尺度 | MPC k=1 | **92%** | 混沌系统，k=8 时误差爆炸 |
+历史实验保留在 `scripts/stage27_*.py` 到 `scripts/stage72_*.py`、相应 `docs/` 报告和 JSON 结果中。它们记录了参数直接迁移、强制耦合、因果图、公式算子、DeepONet、Oracle 动力学和时序路由等被验证或否定的路径。
 
-## 9. 已确认的死路
+## 8. 环境与复现
 
-| 方法 | 死因 |
-|------|------|
-| 世界模型自评选 k | 循环推理，模型高估长 horizon 预测能力 |
-| CKS 认证 k-选择 | 理论正确，基础误差太高导致上界太松 |
-| 单点逆优化 | 根因三是结构性约束，提高模型精度无法解决 |
-| KAN 知识硬压缩成标量特征 | 信息丢失，性能天花板 7/10 |
-| 在线逐样本 SGD | 高方差单样本梯度破坏 B-样条连续性，模型爆炸 |
+项目要求 Python 3.10 或更高版本，依赖 PyTorch、NumPy 和 Gymnasium。本地实验统一在 conda 环境 `dl_env` 中运行：
 
-## 10. 关键洞察总结
-
-1. **前向 MSE 好 ≠ 反推动作准。** 根因三（欠驱动放大）是结构性的物理约束，即使模型完美也存在。
-2. **多尺度世界模型部分解决根因三。** k=16 的 Jacobian 比 k=1 大 16 倍，但代价是引入了 k-选择问题。
-3. **动作探索器是最强的方案。** 直接在真实环境中尝试候选动作，不依赖模型预测未来——没有模型误差放大问题。
-4. **B-样条局部支撑是 KAN 的核心优势。** 这是本项目与其他 MBRL 工作的本质区别。
-5. **Hybrid 模型的"反直觉"表现。** 越精确的模型 → $\|J\|$ 越准确越小 → 放大因子越大 → 求逆越不稳定。
-6. **动作探索器 (10/10) 是绕过问题，不是解决问题。** 它证明了一个控制器可以达到 10/10，但没有证明 KAN 在决策中的价值。本项目的学术贡献在于展示 KAN 如何帮助决策，而不只是帮助预测。
-
-## 11. 项目结构
-
-```
-KAN-RF/
-├── kanrf/                    # 核心库 (pip install -e .)
-│   ├── _bspline.py           # B-样条 Cox-de Boor 递归
-│   ├── _layer.py             # KAN 层 (φ = w·SiLU + Σc·B)
-│   ├── _network.py           # 多层 KAN
-│   ├── _uncertainty.py       # B-样条激活密度 → 认知不确定性
-│   └── _regularization.py    # MOPS P-spline + CWS Jacobian 对齐
-│
-├── control/                  # 控制算法库
-│   ├── shoot.py              # 多步 shooting 规划器
-│   ├── strategy_v2.py        # 策略层 (能量场引导)
-│   ├── execute_v2.py         # 执行层 (Gauss-Newton + 可控性加权)
-│   ├── action_explorer.py    # 动作探索器 (10/10 关键)
-│   ├── online_learning_v2.py # 三因子动态学习率在线更新
-│   └── ...
-│
-├── scripts/
-│   ├── train/                # 训练脚本 (15个)
-│   ├── eval/                 # 评估脚本 (10个)
-│   ├── run/                  # 运行入口 (4个)
-│   └── data/                 # 数据生成 (7个)
-│
-├── experiments/              # 历史实验 exp_A → exp_G
-├── decision_v2/              # KAN 特征 → MLP 决策
-├── wm_v/                     # 世界模型 + 价值网络
-├── cks/                      # 可认证 k-选择理论
-├── acrobot/ mountaincar/     # 子环境
-├── docs/                     # 理论文档 + 历史归档
-│   ├── theory/
-│   │   ├── FORWARD_INVERSE_GAP.md       # 前向-逆向差距三根因
-│   │   ├── FITTING_DEPTH.md             # 拟合深度 + MOPS/CWS
-│   │   ├── CONTINUOUS_LEARNING.md       # B-样条持续学习理论
-│   │   └── CERTIFIED_K_SELECTION.md    # CKS 6-定理框架
-│   ├── archive/               # 历史/过程文档
-│   └── handovers/             # 交接文档
-└── pyproject.toml
-```
-
-## 12. 快速开始
-
-```bash
-conda activate pyt
-cd KAN-RF
+```powershell
+conda activate dl_env
+cd C:\Users\32510\Desktop\RF\KAN-RF
 pip install -e .
-
-# 训练 Pendulum 世界模型 (MOPS)
-python scripts/train/train_mops.py --lam 0.1
-
-# 评估决策网络
-python scripts/eval/eval_ms.py
-
-# 动作探索器 (10/10)
-python scripts/eval/eval_action_explore.py --episodes 10
 ```
+
+训练 Stage73 源策略：
+
+```powershell
+python -m scripts.stage73_psd_causal_preconditioner_actor `
+  --checkpoint-out results/stage73_source_seed0_checkpoint.pt `
+  --json-out results/stage73_psd_causal_preconditioner_actor_seed0_60iter.json
+```
+
+模型权重由 `.gitignore` 排除，需要先运行上面的源训练。随后执行严重目标联合在线适应：
+
+```powershell
+python -m scripts.stage74_joint_online_psd_causal_transfer `
+  --checkpoint results/stage73_source_seed0_checkpoint.pt `
+  --target-factor 13.475 0.06 0.90 1.10 `
+  --json-out results/stage74_joint_online_psd_causal_transfer_severe_seed0.json
+```
+
+运行最近的失败归因与安全更新诊断：
+
+```powershell
+python -m scripts.stage75_severe_transfer_attribution `
+  --json-out results/stage75_severe_transfer_attribution_seed0.json
+
+python -m scripts.stage76_delayed_trust_cognition `
+  --json-out results/stage76_delayed_trust_cognition_seed0.json
+
+python -m scripts.stage77_return_gated_cognition `
+  --json-out results/stage77_return_gated_cognition_seed0.json
+```
+
+这些正式实验在 CPU 上运行时间较长。JSON 中保存了完整超参数、训练历史、交互预算和评估结果。
+
+## 9. 下一研究问题
+
+当前最需要解决的不是继续增加门控，而是设计一个认知到决策的兼容运输机制。设认知参数发生预测更新 $\Delta\theta$，下一版候选方向是同步求解决策参数补偿：
+
+$$
+\Delta\phi^*
+=\arg\min_{\Delta\phi}
+\left\|J_\theta\Delta\theta+J_\phi\Delta\phi\right\|^2
++\lambda\|\Delta\phi\|^2.
+$$
+
+目标是在认知网络学习新物理规律时保持策略函数连续，再让决策网络利用新认知继续学习。它比简单缩小、接受或拒绝认知更新更接近项目最初的“认知参数被决策网络自然承接”目标。
 
 ---
 
-*项目基于 [KAN (Kolmogorov-Arnold Networks)](https://github.com/KindXiaoming/pykan) 架构。*
+本仓库当前是研究代码与实验记录，不是稳定控制库。引用结果时请同时报告随机种子、物理因子、评估初态、交互预算和是否使用额外诊断轨迹。

@@ -1,0 +1,112 @@
+{
+  "experiment": "OnlineCognitionDistributionAndInterfaceDriftAudit",
+  "config": {
+    "checkpoint": "results/stage67_seed0_checkpoint.pt",
+    "audit_batch": 512,
+    "rollout_audit_horizon": 8,
+    "test_count": 64,
+    "eval_steps": 500,
+    "eval_seed": 20260721,
+    "audit_seed": 20260722,
+    "json_out": "results\\stage68_online_cognition_drift_audit_seed0.json"
+  },
+  "result": {
+    "source_cognitive_reconstruction_fit": {
+      "first_loss": 0.21170254051685333,
+      "last_loss": 0.004389840643852949,
+      "mean_last_20_loss": 0.004786900617182255
+    },
+    "target_evaluation_same_starts": {
+      "before_online_update": {
+        "success_count": 41,
+        "success_rate": 0.640625,
+        "mean_max_height": 1.2695749998092651,
+        "max_height": 1.999557375907898
+      },
+      "after_online_update": {
+        "success_count": 39,
+        "success_rate": 0.609375,
+        "mean_max_height": 1.1206858158111572,
+        "max_height": 1.9998722076416016
+      }
+    },
+    "broad_random_target_one_step": {
+      "before_online_update": {
+        "smooth_l1": 0.004407176282256842,
+        "mse": 0.008814352564513683
+      },
+      "after_online_update": {
+        "smooth_l1": 0.0074866414070129395,
+        "mse": 0.014973282814025879
+      }
+    },
+    "broad_random_target_free_rollout": {
+      "before_online_update": {
+        "per_horizon_mse": [
+          0.008748369291424751,
+          0.03243238851428032,
+          0.06904818117618561,
+          0.1173228994011879,
+          0.17653970420360565,
+          0.2459850311279297,
+          0.3256843388080597,
+          0.4170047342777252
+        ],
+        "final_mse": 0.4170047342777252,
+        "mean_mse": 0.17409570515155792
+      },
+      "after_online_update": {
+        "per_horizon_mse": [
+          0.015292495489120483,
+          0.060274045914411545,
+          0.1369505673646927,
+          0.24753409624099731,
+          0.3947373628616333,
+          0.5806086659431458,
+          0.8090924620628357,
+          1.0917521715164185
+        ],
+        "final_mse": 1.0917521715164185,
+        "mean_mse": 0.4170302152633667
+      }
+    },
+    "policy_proposal_target_rollout": {
+      "before_online_update": {
+        "per_horizon_mse": [
+          0.0008060199324972928,
+          0.003526439191773534,
+          0.008666982874274254,
+          0.01683911681175232,
+          0.028919341042637825,
+          0.044979896396398544,
+          0.06652059406042099,
+          0.09278347343206406
+        ],
+        "final_mse": 0.09278347343206406,
+        "mean_mse": 0.032880235463380814
+      },
+      "after_online_update": {
+        "per_horizon_mse": [
+          4.628185706678778e-05,
+          0.0002256587758893147,
+          0.0006751120672561228,
+          0.001627807505428791,
+          0.0032869260758161545,
+          0.005431526806205511,
+          0.009335133247077465,
+          0.01548602432012558
+        ],
+        "final_mse": 0.01548602432012558,
+        "mean_mse": 0.004514308646321297
+      }
+    },
+    "interface_drift_on_down_states": {
+      "feature_rmse": 0.5624908208847046,
+      "feature_relative_rmse": 0.7233162522315979,
+      "feature_cosine_mean": 0.7378091812133789,
+      "feature_cosine_min": 0.7084590792655945,
+      "mean_absolute_action_change": 0.9323546886444092,
+      "maximum_absolute_action_change": 1.661527156829834
+    }
+  }
+}

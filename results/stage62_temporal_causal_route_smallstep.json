@@ -1,0 +1,146 @@
+{
+  "target_factor": [
+    13.475,
+    0.06,
+    0.9,
+    1.1
+  ],
+  "source_sequence": "results/stage61d_target_cem_feasibility.json",
+  "selected_initial_state": 2,
+  "action_blocks": 32,
+  "action_repeat": 16,
+  "graph_composition_validation": {
+    "explicit_route_score": 0.6853129267692566,
+    "direct_autograd_score": 0.6853129267692566,
+    "gradient_cosine_similarity": 1.0,
+    "maximum_absolute_gradient_error": 2.6226043701171875e-06
+  },
+  "route_refinement": [
+    {
+      "route_step": 0,
+      "smooth_score": 0.6850141882896423,
+      "maximum_height": 0.6818984746932983,
+      "success": false
+    },
+    {
+      "route_step": 1,
+      "smooth_score": 0.6626636981964111,
+      "maximum_height": 0.6461571455001831,
+      "success": false
+    },
+    {
+      "route_step": 2,
+      "smooth_score": 0.689470112323761,
+      "maximum_height": 0.6866708397865295,
+      "success": false
+    },
+    {
+      "route_step": 3,
+      "smooth_score": 0.675603449344635,
+      "maximum_height": 0.6619256734848022,
+      "success": false
+    },
+    {
+      "route_step": 4,
+      "smooth_score": 0.6931732296943665,
+      "maximum_height": 0.6904700994491577,
+      "success": false
+    },
+    {
+      "route_step": 5,
+      "smooth_score": 0.6849914193153381,
+      "maximum_height": 0.672884464263916,
+      "success": false
+    },
+    {
+      "route_step": 6,
+      "smooth_score": 0.696442186832428,
+      "maximum_height": 0.6937863230705261,
+      "success": false
+    },
+    {
+      "route_step": 7,
+      "smooth_score": 0.6923883557319641,
+      "maximum_height": 0.6812896132469177,
+      "success": false
+    },
+    {
+      "route_step": 8,
+      "smooth_score": 0.6993997693061829,
+      "maximum_height": 0.6967676877975464,
+      "success": false
+    },
+    {
+      "route_step": 9,
+      "smooth_score": 0.6984671354293823,
+      "maximum_height": 0.6880674362182617,
+      "success": false
+    },
+    {
+      "route_step": 10,
+      "smooth_score": 0.7021018266677856,
+      "maximum_height": 0.6994799375534058,
+      "success": false
+    },
+    {
+      "route_step": 11,
+      "smooth_score": 0.7036020755767822,
+      "maximum_height": 0.6937110424041748,
+      "success": false
+    },
+    {
+      "route_step": 12,
+      "smooth_score": 0.704579770565033,
+      "maximum_height": 0.7019599676132202,
+      "success": false
+    },
+    {
+      "route_step": 13,
+      "smooth_score": 0.7080195546150208,
+      "maximum_height": 0.6985132694244385,
+      "success": false
+    },
+    {
+      "route_step": 14,
+      "smooth_score": 0.7068669199943542,
+      "maximum_height": 0.7042436003684998,
+      "success": false
+    },
+    {
+      "route_step": 15,
+      "smooth_score": 0.7118710279464722,
+      "maximum_height": 0.7026621699333191,
+      "success": false
+    },
+    {
+      "route_step": 16,
+      "smooth_score": 0.708980143070221,
+      "maximum_height": 0.7063496112823486,
+      "success": false
+    },
+    {
+      "route_step": 17,
+      "smooth_score": 0.7152686715126038,
+      "maximum_height": 0.7062950134277344,
+      "success": false
+    },
+    {
+      "route_step": 18,
+      "smooth_score": 0.7109350562095642,
+      "maximum_height": 0.7082949280738831,
+      "success": false
+    },
+    {
+      "route_step": 19,
+      "smooth_score": 0.7182934284210205,
+      "maximum_height": 0.7095108032226562,
+      "success": false
+    },
+    {
+      "route_step": 20,
+      "smooth_score": 0.7127538919448853,
+      "maximum_height": 0.7101022005081177,
+      "success": false
+    }
+  ]
+}

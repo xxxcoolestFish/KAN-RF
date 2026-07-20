@@ -1,0 +1,471 @@
+{
+  "architecture": "FullParameterCoupling",
+  "experiment": "real_transition_vs_cognitive_rollout_and_goal_directed_loss",
+  "source_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "config": {
+    "cognitive_steps": 200,
+    "policy_steps": 120,
+    "batch_size": 16,
+    "max_horizon": 4,
+    "rollout_steps": 48,
+    "test_count": 100,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "test_seed": 20260719,
+    "json_out": "results/stage34_real_transition_goal_loss.json"
+  },
+  "seeds": [
+    {
+      "seed": 0,
+      "cognitive_fit": {
+        "first_loss": 0.21980132162570953,
+        "last_loss": 0.008388524875044823,
+        "mean_last_20_loss": 0.008312819059938192
+      },
+      "cognitive_prediction": {
+        "source": {
+          "one_step_mse": 0.017004478722810745,
+          "one_step_smooth_l1": 0.008502239361405373
+        },
+        "heldout_1": {
+          "one_step_mse": 0.016446428373456,
+          "one_step_smooth_l1": 0.008223214186728
+        },
+        "heldout_2": {
+          "one_step_mse": 0.01749122515320778,
+          "one_step_smooth_l1": 0.00874561257660389
+        }
+      },
+      "variants": {
+        "model_transition__legacy_loss": {
+          "fit": {
+            "first_loss": 1.347017765045166,
+            "last_loss": 3.1848299503326416,
+            "mean_last_20_loss": 7.464473903179169,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 62,
+              "success_rate": 0.6200000047683716,
+              "mean_max_height": 1.167873740196228,
+              "mean_final_goal_potential": 1.0812666416168213,
+              "mean_abs_action": 0.779941737651825
+            },
+            "heldout_1": {
+              "success_count": 57,
+              "success_rate": 0.5699999928474426,
+              "mean_max_height": 1.0746262073516846,
+              "mean_final_goal_potential": 1.1385573148727417,
+              "mean_abs_action": 0.7895009517669678
+            },
+            "heldout_2": {
+              "success_count": 53,
+              "success_rate": 0.5299999713897705,
+              "mean_max_height": 0.9240869879722595,
+              "mean_final_goal_potential": 1.1378670930862427,
+              "mean_abs_action": 0.7978992462158203
+            }
+          }
+        },
+        "model_transition__goal_loss": {
+          "fit": {
+            "first_loss": 2.130937099456787,
+            "last_loss": 5.654992580413818,
+            "mean_last_20_loss": 8.408615684509277,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 64,
+              "success_rate": 0.6399999856948853,
+              "mean_max_height": 1.152614951133728,
+              "mean_final_goal_potential": 1.063342809677124,
+              "mean_abs_action": 0.7848955988883972
+            },
+            "heldout_1": {
+              "success_count": 61,
+              "success_rate": 0.6100000143051147,
+              "mean_max_height": 1.1041582822799683,
+              "mean_final_goal_potential": 1.0388238430023193,
+              "mean_abs_action": 0.7848846912384033
+            },
+            "heldout_2": {
+              "success_count": 54,
+              "success_rate": 0.5400000214576721,
+              "mean_max_height": 0.9246703386306763,
+              "mean_final_goal_potential": 1.1726435422897339,
+              "mean_abs_action": 0.7738498449325562
+            }
+          }
+        },
+        "real_transition__legacy_loss": {
+          "fit": {
+            "first_loss": 1.2825343608856201,
+            "last_loss": 3.547405958175659,
+            "mean_last_20_loss": 7.960285723209381,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 65,
+              "success_rate": 0.6499999761581421,
+              "mean_max_height": 1.2111252546310425,
+              "mean_final_goal_potential": 1.0739693641662598,
+              "mean_abs_action": 0.3711766302585602
+            },
+            "heldout_1": {
+              "success_count": 61,
+              "success_rate": 0.6100000143051147,
+              "mean_max_height": 1.1203590631484985,
+              "mean_final_goal_potential": 1.1517153978347778,
+              "mean_abs_action": 0.3843832015991211
+            },
+            "heldout_2": {
+              "success_count": 57,
+              "success_rate": 0.5699999928474426,
+              "mean_max_height": 0.9540347456932068,
+              "mean_final_goal_potential": 1.1291512250900269,
+              "mean_abs_action": 0.39511585235595703
+            }
+          }
+        },
+        "real_transition__goal_loss": {
+          "fit": {
+            "first_loss": 1.9943885803222656,
+            "last_loss": 5.451086521148682,
+            "mean_last_20_loss": 8.35062596797943,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 66,
+              "success_rate": 0.6600000262260437,
+              "mean_max_height": 1.1975172758102417,
+              "mean_final_goal_potential": 1.0561550855636597,
+              "mean_abs_action": 0.3285300135612488
+            },
+            "heldout_1": {
+              "success_count": 62,
+              "success_rate": 0.6200000047683716,
+              "mean_max_height": 1.1168122291564941,
+              "mean_final_goal_potential": 1.0330791473388672,
+              "mean_abs_action": 0.32753562927246094
+            },
+            "heldout_2": {
+              "success_count": 55,
+              "success_rate": 0.550000011920929,
+              "mean_max_height": 0.9344395995140076,
+              "mean_final_goal_potential": 1.1823203563690186,
+              "mean_abs_action": 0.31832340359687805
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "cognitive_fit": {
+        "first_loss": 0.2150459736585617,
+        "last_loss": 0.007975024171173573,
+        "mean_last_20_loss": 0.007529515912756324
+      },
+      "cognitive_prediction": {
+        "source": {
+          "one_step_mse": 0.015089171938598156,
+          "one_step_smooth_l1": 0.007544585969299078
+        },
+        "heldout_1": {
+          "one_step_mse": 0.015220045112073421,
+          "one_step_smooth_l1": 0.007610022556036711
+        },
+        "heldout_2": {
+          "one_step_mse": 0.014726127497851849,
+          "one_step_smooth_l1": 0.007363063748925924
+        }
+      },
+      "variants": {
+        "model_transition__legacy_loss": {
+          "fit": {
+            "first_loss": 1.5561991930007935,
+            "last_loss": 7.833110332489014,
+            "mean_last_20_loss": 6.0367954015731815,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 67,
+              "success_rate": 0.6700000166893005,
+              "mean_max_height": 1.199122428894043,
+              "mean_final_goal_potential": 1.036973237991333,
+              "mean_abs_action": 0.8759992718696594
+            },
+            "heldout_1": {
+              "success_count": 61,
+              "success_rate": 0.6100000143051147,
+              "mean_max_height": 1.0930465459823608,
+              "mean_final_goal_potential": 1.092044711112976,
+              "mean_abs_action": 0.8763997554779053
+            },
+            "heldout_2": {
+              "success_count": 54,
+              "success_rate": 0.5400000214576721,
+              "mean_max_height": 0.9498034715652466,
+              "mean_final_goal_potential": 1.1448032855987549,
+              "mean_abs_action": 0.8781048655509949
+            }
+          }
+        },
+        "model_transition__goal_loss": {
+          "fit": {
+            "first_loss": 2.4355392456054688,
+            "last_loss": 8.096290588378906,
+            "mean_last_20_loss": 7.532571244239807,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 67,
+              "success_rate": 0.6700000166893005,
+              "mean_max_height": 1.2117390632629395,
+              "mean_final_goal_potential": 1.102311134338379,
+              "mean_abs_action": 0.899134635925293
+            },
+            "heldout_1": {
+              "success_count": 64,
+              "success_rate": 0.6399999856948853,
+              "mean_max_height": 1.1197530031204224,
+              "mean_final_goal_potential": 1.1210461854934692,
+              "mean_abs_action": 0.8991366624832153
+            },
+            "heldout_2": {
+              "success_count": 52,
+              "success_rate": 0.5199999809265137,
+              "mean_max_height": 0.9602325558662415,
+              "mean_final_goal_potential": 1.1962556838989258,
+              "mean_abs_action": 0.8991367816925049
+            }
+          }
+        },
+        "real_transition__legacy_loss": {
+          "fit": {
+            "first_loss": 1.7239351272583008,
+            "last_loss": 9.86436939239502,
+            "mean_last_20_loss": 7.524292778968811,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 66,
+              "success_rate": 0.6600000262260437,
+              "mean_max_height": 1.2078357934951782,
+              "mean_final_goal_potential": 1.0929532051086426,
+              "mean_abs_action": 0.3575105667114258
+            },
+            "heldout_1": {
+              "success_count": 63,
+              "success_rate": 0.6299999952316284,
+              "mean_max_height": 1.1280633211135864,
+              "mean_final_goal_potential": 1.1348764896392822,
+              "mean_abs_action": 0.36703261733055115
+            },
+            "heldout_2": {
+              "success_count": 56,
+              "success_rate": 0.5600000023841858,
+              "mean_max_height": 0.9442054033279419,
+              "mean_final_goal_potential": 1.1382862329483032,
+              "mean_abs_action": 0.3801189363002777
+            }
+          }
+        },
+        "real_transition__goal_loss": {
+          "fit": {
+            "first_loss": 2.5101187229156494,
+            "last_loss": 9.640212059020996,
+            "mean_last_20_loss": 8.485494494438171,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 67,
+              "success_rate": 0.6700000166893005,
+              "mean_max_height": 1.2117924690246582,
+              "mean_final_goal_potential": 1.0522531270980835,
+              "mean_abs_action": 0.3670524060726166
+            },
+            "heldout_1": {
+              "success_count": 65,
+              "success_rate": 0.6499999761581421,
+              "mean_max_height": 1.1282294988632202,
+              "mean_final_goal_potential": 1.02677583694458,
+              "mean_abs_action": 0.35926535725593567
+            },
+            "heldout_2": {
+              "success_count": 54,
+              "success_rate": 0.5400000214576721,
+              "mean_max_height": 0.9389891028404236,
+              "mean_final_goal_potential": 1.1771937608718872,
+              "mean_abs_action": 0.34698304533958435
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "cognitive_fit": {
+        "first_loss": 0.26850011944770813,
+        "last_loss": 0.008715125732123852,
+        "mean_last_20_loss": 0.007486745086498559
+      },
+      "cognitive_prediction": {
+        "source": {
+          "one_step_mse": 0.01492670550942421,
+          "one_step_smooth_l1": 0.007463352754712105
+        },
+        "heldout_1": {
+          "one_step_mse": 0.015444256365299225,
+          "one_step_smooth_l1": 0.007722128182649612
+        },
+        "heldout_2": {
+          "one_step_mse": 0.01552168931812048,
+          "one_step_smooth_l1": 0.00776084465906024
+        }
+      },
+      "variants": {
+        "model_transition__legacy_loss": {
+          "fit": {
+            "first_loss": 1.122424602508545,
+            "last_loss": 9.5402193069458,
+            "mean_last_20_loss": 6.752002012729645,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 64,
+              "success_rate": 0.6399999856948853,
+              "mean_max_height": 1.1994293928146362,
+              "mean_final_goal_potential": 1.0682542324066162,
+              "mean_abs_action": 0.8244113922119141
+            },
+            "heldout_1": {
+              "success_count": 62,
+              "success_rate": 0.6200000047683716,
+              "mean_max_height": 1.0852689743041992,
+              "mean_final_goal_potential": 1.1002748012542725,
+              "mean_abs_action": 0.825590968132019
+            },
+            "heldout_2": {
+              "success_count": 52,
+              "success_rate": 0.5199999809265137,
+              "mean_max_height": 0.9328160285949707,
+              "mean_final_goal_potential": 1.2264388799667358,
+              "mean_abs_action": 0.8260059356689453
+            }
+          }
+        },
+        "model_transition__goal_loss": {
+          "fit": {
+            "first_loss": 2.12130069732666,
+            "last_loss": 9.04495620727539,
+            "mean_last_20_loss": 7.357095766067505,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 65,
+              "success_rate": 0.6499999761581421,
+              "mean_max_height": 1.2095979452133179,
+              "mean_final_goal_potential": 1.0726910829544067,
+              "mean_abs_action": 0.8782474994659424
+            },
+            "heldout_1": {
+              "success_count": 61,
+              "success_rate": 0.6100000143051147,
+              "mean_max_height": 1.0599722862243652,
+              "mean_final_goal_potential": 1.1214362382888794,
+              "mean_abs_action": 0.8770370483398438
+            },
+            "heldout_2": {
+              "success_count": 51,
+              "success_rate": 0.5099999904632568,
+              "mean_max_height": 0.933957040309906,
+              "mean_final_goal_potential": 1.2240623235702515,
+              "mean_abs_action": 0.8754207491874695
+            }
+          }
+        },
+        "real_transition__legacy_loss": {
+          "fit": {
+            "first_loss": 1.1978636980056763,
+            "last_loss": 11.722309112548828,
+            "mean_last_20_loss": 8.101768624782562,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 67,
+              "success_rate": 0.6700000166893005,
+              "mean_max_height": 1.2247053384780884,
+              "mean_final_goal_potential": 1.0903277397155762,
+              "mean_abs_action": 0.4043036997318268
+            },
+            "heldout_1": {
+              "success_count": 62,
+              "success_rate": 0.6200000047683716,
+              "mean_max_height": 1.1190379858016968,
+              "mean_final_goal_potential": 1.1751450300216675,
+              "mean_abs_action": 0.41435667872428894
+            },
+            "heldout_2": {
+              "success_count": 56,
+              "success_rate": 0.5600000023841858,
+              "mean_max_height": 0.9533107280731201,
+              "mean_final_goal_potential": 1.1311343908309937,
+              "mean_abs_action": 0.4297933578491211
+            }
+          }
+        },
+        "real_transition__goal_loss": {
+          "fit": {
+            "first_loss": 2.182656764984131,
+            "last_loss": 11.074877738952637,
+            "mean_last_20_loss": 8.564923667907715,
+            "final_horizon": 4
+          },
+          "evaluation": {
+            "source": {
+              "success_count": 68,
+              "success_rate": 0.6800000071525574,
+              "mean_max_height": 1.2054214477539062,
+              "mean_final_goal_potential": 1.0685925483703613,
+              "mean_abs_action": 0.3268699049949646
+            },
+            "heldout_1": {
+              "success_count": 61,
+              "success_rate": 0.6100000143051147,
+              "mean_max_height": 1.1160593032836914,
+              "mean_final_goal_potential": 1.0565640926361084,
+              "mean_abs_action": 0.3234369158744812
+            },
+            "heldout_2": {
+              "success_count": 55,
+              "success_rate": 0.550000011920929,
+              "mean_max_height": 0.9388607144355774,
+              "mean_final_goal_potential": 1.1548618078231812,
+              "mean_abs_action": 0.315216600894928
+            }
+          }
+        }
+      }
+    }
+  ]
+}

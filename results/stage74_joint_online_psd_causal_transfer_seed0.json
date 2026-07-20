@@ -1,0 +1,182 @@
+{
+  "experiment": "FullJointOnlineEquivariantCausalTransfer",
+  "config": {
+    "checkpoint": "results\\stage73_source_seed0_checkpoint.pt",
+    "target_factor": [
+      9.8,
+      0.04,
+      1.1,
+      0.9
+    ],
+    "num_envs": 32,
+    "rollout_horizon": 128,
+    "adaptation_iterations": 15,
+    "ppo_epochs": 2,
+    "minibatch": 256,
+    "cognitive_horizon": 8,
+    "cognitive_update_steps": 25,
+    "cognitive_batch": 64,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "cognitive_lr": 0.0001,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 3,
+    "test_count": 32,
+    "eval_steps": 500,
+    "eval_seed": 20260721,
+    "collection_seed": 20260723,
+    "update_seed": 20260724,
+    "cognitive_seed": 20260725,
+    "checkpoint_out": "results\\stage74_joint_target_seed0_checkpoint.pt",
+    "json_out": "results\\stage74_joint_online_psd_causal_transfer_seed0.json"
+  },
+  "result": {
+    "target_before": {
+      "success_count": 30,
+      "success_rate": 0.9375,
+      "mean_max_height": 1.6116119623184204,
+      "max_height": 1.9970134496688843
+    },
+    "adaptation_history": [
+      {
+        "iteration": 1,
+        "cumulative_real_transitions": 4096,
+        "chunk_successes": 0,
+        "cumulative_collected_successes": 0,
+        "policy_std": 0.8635832667350769,
+        "decision_update": {
+          "actor_loss": -0.012839439528761432,
+          "critic_loss": 0.10129583207890391
+        },
+        "cognitive_update": {
+          "first_loss": 0.02899511158466339,
+          "last_loss": 0.010383370332419872,
+          "mean_last_20_loss": 0.014369373628869652,
+          "valid_sequence_starts": 3872
+        },
+        "success_count": 24,
+        "success_rate": 0.75,
+        "mean_max_height": 1.4244279861450195,
+        "max_height": 1.9929778575897217
+      },
+      {
+        "iteration": 3,
+        "cumulative_real_transitions": 12288,
+        "chunk_successes": 14,
+        "cumulative_collected_successes": 14,
+        "policy_std": 0.8633975386619568,
+        "decision_update": {
+          "actor_loss": -0.011948076164117083,
+          "critic_loss": 10.237249031662941
+        },
+        "cognitive_update": {
+          "first_loss": 0.03227407857775688,
+          "last_loss": 0.030436821281909943,
+          "mean_last_20_loss": 0.03308612145483494,
+          "valid_sequence_starts": 11524
+        },
+        "success_count": 27,
+        "success_rate": 0.84375,
+        "mean_max_height": 1.5115458965301514,
+        "max_height": 1.9965550899505615
+      },
+      {
+        "iteration": 6,
+        "cumulative_real_transitions": 24576,
+        "chunk_successes": 6,
+        "cumulative_collected_successes": 38,
+        "policy_std": 0.8650936484336853,
+        "decision_update": {
+          "actor_loss": -0.012173989729490131,
+          "critic_loss": 4.693252004683018
+        },
+        "cognitive_update": {
+          "first_loss": 0.03331707790493965,
+          "last_loss": 0.03640906140208244,
+          "mean_last_20_loss": 0.03016392719000578,
+          "valid_sequence_starts": 22973
+        },
+        "success_count": 24,
+        "success_rate": 0.75,
+        "mean_max_height": 1.419876217842102,
+        "max_height": 1.9969768524169922
+      },
+      {
+        "iteration": 9,
+        "cumulative_real_transitions": 36864,
+        "chunk_successes": 7,
+        "cumulative_collected_successes": 68,
+        "policy_std": 0.8632684350013733,
+        "decision_update": {
+          "actor_loss": -0.014680830849101767,
+          "critic_loss": 5.04257033765316
+        },
+        "cognitive_update": {
+          "first_loss": 0.03151964768767357,
+          "last_loss": 0.026633303612470627,
+          "mean_last_20_loss": 0.029661129415035247,
+          "valid_sequence_starts": 34385
+        },
+        "success_count": 29,
+        "success_rate": 0.90625,
+        "mean_max_height": 1.5279825925827026,
+        "max_height": 1.9962421655654907
+      },
+      {
+        "iteration": 12,
+        "cumulative_real_transitions": 49152,
+        "chunk_successes": 9,
+        "cumulative_collected_successes": 96,
+        "policy_std": 0.864414632320404,
+        "decision_update": {
+          "actor_loss": -0.01178294068085961,
+          "critic_loss": 6.215330317616463
+        },
+        "cognitive_update": {
+          "first_loss": 0.025045791640877724,
+          "last_loss": 0.03459523618221283,
+          "mean_last_20_loss": 0.0284397535957396,
+          "valid_sequence_starts": 45820
+        },
+        "success_count": 26,
+        "success_rate": 0.8125,
+        "mean_max_height": 1.3604466915130615,
+        "max_height": 1.9962009191513062
+      },
+      {
+        "iteration": 15,
+        "cumulative_real_transitions": 61440,
+        "chunk_successes": 4,
+        "cumulative_collected_successes": 121,
+        "policy_std": 0.8668527007102966,
+        "decision_update": {
+          "actor_loss": -0.01022492494666949,
+          "critic_loss": 4.467932213097811
+        },
+        "cognitive_update": {
+          "first_loss": 0.024581484496593475,
+          "last_loss": 0.027381252497434616,
+          "mean_last_20_loss": 0.02513538198545575,
+          "valid_sequence_starts": 57286
+        },
+        "success_count": 30,
+        "success_rate": 0.9375,
+        "mean_max_height": 1.6091340780258179,
+        "max_height": 1.9997897148132324
+      }
+    ],
+    "target_after": {
+      "success_count": 30,
+      "success_rate": 0.9375,
+      "mean_max_height": 1.6091340780258179,
+      "max_height": 1.9997897148132324
+    },
+    "cognition_loss": "multistep_real_transition_prediction_only",
+    "decision_loss": "ppo_task_reward_only",
+    "shared_forward": "fixed_semantic_ProtoKAN_causal_route_update"
+  }
+}

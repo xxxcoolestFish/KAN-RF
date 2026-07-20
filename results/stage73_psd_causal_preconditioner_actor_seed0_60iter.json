@@ -1,0 +1,132 @@
+{
+  "architecture": "PSDTemporalCausalPreconditionerActor",
+  "source_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "config": {
+    "cognitive_steps": 300,
+    "cognitive_batch": 32,
+    "router_steps": 100,
+    "router_batch": 16,
+    "route_horizon": 8,
+    "temperature": 0.08,
+    "finite_delta": 0.25,
+    "edge_delta": 0.05,
+    "route_scale": 0.04,
+    "step_size": 0.2,
+    "metric_rank": 2,
+    "min_diagonal": 0.1,
+    "max_diagonal": 2.0,
+    "hidden_dim": 64,
+    "num_envs": 32,
+    "rollout_horizon": 128,
+    "policy_iterations": 60,
+    "ppo_epochs": 2,
+    "minibatch": 256,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 15,
+    "eval_steps": 500,
+    "test_count": 64,
+    "audit_count": 64,
+    "test_seed": 20260720,
+    "seed": 0,
+    "checkpoint_out": "results\\stage73_source_seed0_checkpoint.pt",
+    "json_out": "results\\stage73_psd_causal_preconditioner_actor_seed0_60iter.json"
+  },
+  "result": {
+    "cognitive_fit": {
+      "first_loss": 0.21170254051685333,
+      "last_loss": 0.004389840643852949,
+      "mean_last_20_loss": 0.004786900617182255
+    },
+    "router_fit": {
+      "first_loss": 3.0460594757641957e-07,
+      "last_loss": 3.614405841290136e-07,
+      "mean_last_20_loss": 6.577839883448178e-07
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "policy_std": 0.9978911280632019,
+        "minimum_causal_alignment": 12.232534408569336,
+        "mean_causal_alignment": 15.927352905273438,
+        "actor_loss": -0.015092115150764585,
+        "critic_loss": 0.008270202422863804,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.924156665802002,
+        "max_height": -1.7000550031661987
+      },
+      {
+        "iteration": 15,
+        "collected_successes": 0,
+        "policy_std": 0.9686722755432129,
+        "minimum_causal_alignment": 8.313020706176758,
+        "mean_causal_alignment": 13.899604797363281,
+        "actor_loss": -0.013350028079003096,
+        "critic_loss": 0.02638487482909113,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.4867719411849976,
+        "max_height": -1.050355315208435
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "policy_std": 0.9407141804695129,
+        "minimum_causal_alignment": 2.6565468311309814,
+        "mean_causal_alignment": 7.310078144073486,
+        "actor_loss": -0.013334696093806997,
+        "critic_loss": 0.053622685954906046,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.3665276765823364,
+        "max_height": 0.5945578813552856
+      },
+      {
+        "iteration": 45,
+        "collected_successes": 0,
+        "policy_std": 0.9099672436714172,
+        "minimum_causal_alignment": 0.6290290355682373,
+        "mean_causal_alignment": 4.916938781738281,
+        "actor_loss": -0.014689559204271063,
+        "critic_loss": 0.05945907300338149,
+        "success_count": 24,
+        "success_rate": 0.375,
+        "mean_max_height": 0.8892856240272522,
+        "max_height": 1.7000691890716553
+      },
+      {
+        "iteration": 60,
+        "collected_successes": 0,
+        "policy_std": 0.8642589449882507,
+        "minimum_causal_alignment": 0.888081431388855,
+        "mean_causal_alignment": 3.8884060382843018,
+        "actor_loss": -0.014322137809358537,
+        "critic_loss": 0.1092311111278832,
+        "success_count": 55,
+        "success_rate": 0.859375,
+        "mean_max_height": 1.3985517024993896,
+        "max_height": 1.994880199432373
+      }
+    ],
+    "final_evaluation": {
+      "success_count": 55,
+      "success_rate": 0.859375,
+      "mean_max_height": 1.467994213104248,
+      "max_height": 1.9984710216522217
+    },
+    "trainable_decision_parameters": 16289
+  }
+}

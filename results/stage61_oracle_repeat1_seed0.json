@@ -1,0 +1,171 @@
+{
+  "architecture": "ExactTargetDynamics_PersistentAction_ContextFiLM_PPO",
+  "config": {
+    "target_factor": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "hidden_dim": 64,
+    "num_envs": 64,
+    "rollout_horizon": 256,
+    "action_repeat": 1,
+    "iterations": 100,
+    "ppo_epochs": 2,
+    "minibatch": 512,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "start_std": 0.8,
+    "end_std": 0.08,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.0,
+    "eval_every": 10,
+    "eval_steps": 500,
+    "test_count": 64,
+    "test_seed": 20260720,
+    "seed": 0,
+    "json_out": "results/stage61_oracle_repeat1_seed0.json"
+  },
+  "result": {
+    "target_factor": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "action_repeat": 1,
+    "history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "policy_std": 0.8,
+        "actor_loss": 1.322527532465756e-05,
+        "critic_loss": 0.002227965609563398,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.974109172821045,
+        "max_height": -1.8650000095367432
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 0,
+        "policy_std": 0.6489046646317497,
+        "actor_loss": -0.00025013370031956583,
+        "critic_loss": 0.011161309157614596,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.8147324323654175,
+        "max_height": -1.4278067350387573
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 0,
+        "policy_std": 0.5142458493827456,
+        "actor_loss": -0.00041779652383411303,
+        "critic_loss": 0.040670179965673015,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.9491522908210754,
+        "max_height": -0.06849467754364014
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "policy_std": 0.4075310411853103,
+        "actor_loss": -0.00010210500477114692,
+        "critic_loss": 0.10230680543463677,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.5750937461853027,
+        "max_height": 0.07054543495178223
+      },
+      {
+        "iteration": 40,
+        "collected_successes": 0,
+        "policy_std": 0.3229613806877244,
+        "actor_loss": 0.002995653012476396,
+        "critic_loss": 0.03831111200270243,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.42823728919029236,
+        "max_height": 0.24124360084533691
+      },
+      {
+        "iteration": 50,
+        "collected_successes": 0,
+        "policy_std": 0.2559413710237906,
+        "actor_loss": 0.0013422481642919593,
+        "critic_loss": 0.07919647049857304,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.26455366611480713,
+        "max_height": 0.3794482946395874
+      },
+      {
+        "iteration": 60,
+        "collected_successes": 0,
+        "policy_std": 0.20282915951760894,
+        "actor_loss": 0.00634598259057384,
+        "critic_loss": 0.04309018066851422,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.20622244477272034,
+        "max_height": 0.7435278296470642
+      },
+      {
+        "iteration": 70,
+        "collected_successes": 0,
+        "policy_std": 0.16073864020520373,
+        "actor_loss": 0.0023815917447791435,
+        "critic_loss": 0.029003704199567437,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.1069091185927391,
+        "max_height": 0.8048171401023865
+      },
+      {
+        "iteration": 80,
+        "collected_successes": 0,
+        "policy_std": 0.12738262346728738,
+        "actor_loss": 0.003554926544893533,
+        "critic_loss": 0.03465805316227488,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.12300853431224823,
+        "max_height": 0.9687725901603699
+      },
+      {
+        "iteration": 90,
+        "collected_successes": 0,
+        "policy_std": 0.10094855064528162,
+        "actor_loss": 0.006394762636773521,
+        "critic_loss": 0.03571223671315238,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.10623311251401901,
+        "max_height": 0.7668764591217041
+      },
+      {
+        "iteration": 100,
+        "collected_successes": 0,
+        "policy_std": 0.07999999999999999,
+        "actor_loss": 0.005700032030290458,
+        "critic_loss": 0.018463267566403374,
+        "success_count": 1,
+        "success_rate": 0.015625,
+        "mean_max_height": -0.14696010947227478,
+        "max_height": 1.0166599750518799
+      }
+    ],
+    "final_evaluation": {
+      "success_count": 0,
+      "success_rate": 0.0,
+      "mean_max_height": -0.1829715073108673,
+      "max_height": 0.8468953371047974
+    }
+  }
+}

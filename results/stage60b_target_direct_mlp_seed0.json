@@ -1,0 +1,162 @@
+{
+  "architecture": "DirectMLP_TargetOnly_MatchedPPO",
+  "diagnostic": "ppo_and_reward_capacity_without_cognition",
+  "config": {
+    "target_factor": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "hidden_dim": 64,
+    "num_envs": 64,
+    "rollout_horizon": 256,
+    "iterations": 100,
+    "ppo_epochs": 2,
+    "minibatch": 512,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 10,
+    "eval_steps": 500,
+    "test_count": 64,
+    "test_seed": 20260720,
+    "seed": 0,
+    "json_out": "results/stage60b_target_direct_mlp_seed0.json"
+  },
+  "result": {
+    "environment": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "start_state": "hanging_down_with_small_noise",
+    "evaluation_steps": 500,
+    "history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "actor_loss": -0.014802292556851171,
+        "critic_loss": 0.002353027437493438,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.9721673727035522,
+        "max_height": -1.865691065788269
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 0,
+        "actor_loss": -0.014447778288740665,
+        "critic_loss": 0.007050442574836779,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.897965669631958,
+        "max_height": -1.6423540115356445
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 0,
+        "actor_loss": -0.014527516461384948,
+        "critic_loss": 0.033819250675151125,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.6780257225036621,
+        "max_height": -0.040005385875701904
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "actor_loss": -0.013117536960635334,
+        "critic_loss": 0.11458129272796214,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.23774190247058868,
+        "max_height": 0.8397699594497681
+      },
+      {
+        "iteration": 40,
+        "collected_successes": 0,
+        "actor_loss": -0.012125607659982052,
+        "critic_loss": 0.06420716823777184,
+        "success_count": 6,
+        "success_rate": 0.09375,
+        "mean_max_height": 0.11107940971851349,
+        "max_height": 1.6092031002044678
+      },
+      {
+        "iteration": 50,
+        "collected_successes": 0,
+        "actor_loss": -0.011088798724813387,
+        "critic_loss": 0.11177471186965704,
+        "success_count": 8,
+        "success_rate": 0.125,
+        "mean_max_height": 0.3096366822719574,
+        "max_height": 1.753745675086975
+      },
+      {
+        "iteration": 60,
+        "collected_successes": 0,
+        "actor_loss": -0.01104284290340729,
+        "critic_loss": 0.05553656455595046,
+        "success_count": 17,
+        "success_rate": 0.265625,
+        "mean_max_height": 0.5399553179740906,
+        "max_height": 1.9661295413970947
+      },
+      {
+        "iteration": 70,
+        "collected_successes": 0,
+        "actor_loss": -0.010845904500456527,
+        "critic_loss": 0.04964096884941682,
+        "success_count": 17,
+        "success_rate": 0.265625,
+        "mean_max_height": 0.6001442670822144,
+        "max_height": 1.8014206886291504
+      },
+      {
+        "iteration": 80,
+        "collected_successes": 0,
+        "actor_loss": -0.010301440190232825,
+        "critic_loss": 0.06709519412834197,
+        "success_count": 21,
+        "success_rate": 0.328125,
+        "mean_max_height": 0.7329277992248535,
+        "max_height": 1.8340744972229004
+      },
+      {
+        "iteration": 90,
+        "collected_successes": 0,
+        "actor_loss": -0.010251143728964962,
+        "critic_loss": 0.07825747824972495,
+        "success_count": 16,
+        "success_rate": 0.25,
+        "mean_max_height": 0.7244850397109985,
+        "max_height": 1.626978874206543
+      },
+      {
+        "iteration": 100,
+        "collected_successes": 0,
+        "actor_loss": -0.009817341328016482,
+        "critic_loss": 0.04047198474290781,
+        "success_count": 11,
+        "success_rate": 0.171875,
+        "mean_max_height": 0.6287842988967896,
+        "max_height": 1.5613553524017334
+      }
+    ],
+    "final_evaluation": {
+      "success_count": 22,
+      "success_rate": 0.34375,
+      "mean_max_height": 0.786555290222168,
+      "max_height": 1.7237095832824707
+    },
+    "actor_parameter_count": 5058,
+    "critic_parameter_count": 5057
+  }
+}

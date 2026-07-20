@@ -1,0 +1,159 @@
+{
+  "architecture": "DirectPolicyWithTrainingOnlyTDValue",
+  "experiment": "exact_source_dynamics_actor_critic",
+  "config": {
+    "cognitive_steps": 200,
+    "train_steps": 800,
+    "batch_size": 64,
+    "rollout_horizon": 8,
+    "rollout_steps": 48,
+    "test_count": 100,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "test_seed": 20260719,
+    "json_out": "results/stage37_td_value_policy.json"
+  },
+  "seeds": [
+    {
+      "seed": 0,
+      "cognitive_fit": {
+        "first_loss": 0.2128317505121231,
+        "last_loss": 0.006896162871271372,
+        "mean_last_20_loss": 0.006863841344602406
+      },
+      "variants": {
+        "full": {
+          "fit": {
+            "critic_first_loss": 0.234546959400177,
+            "critic_last_loss": 0.09777016192674637,
+            "critic_mean_last_50_loss": 0.06887330800294876,
+            "actor_first_loss": 0.04038320854306221,
+            "actor_last_loss": -1.685903787612915,
+            "mean_last_50_reward": 0.8821091789007187,
+            "buffer_size": 20000
+          },
+          "source": {
+            "success_count": 65,
+            "success_rate": 0.6499999761581421,
+            "mean_max_height": 1.2011815309524536,
+            "mean_final_goal_potential": 1.0804790258407593,
+            "mean_abs_action": 0.8608417510986328
+          }
+        },
+        "plain": {
+          "fit": {
+            "critic_first_loss": 0.2347736656665802,
+            "critic_last_loss": 0.09897036105394363,
+            "critic_mean_last_50_loss": 0.07390901155769825,
+            "actor_first_loss": 0.1768161803483963,
+            "actor_last_loss": -1.483086109161377,
+            "mean_last_50_reward": 0.8785473650693894,
+            "buffer_size": 20000
+          },
+          "source": {
+            "success_count": 63,
+            "success_rate": 0.6299999952316284,
+            "mean_max_height": 1.1634600162506104,
+            "mean_final_goal_potential": 1.1121022701263428,
+            "mean_abs_action": 0.8999266624450684
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "cognitive_fit": {
+        "first_loss": 0.23767854273319244,
+        "last_loss": 0.005937604699283838,
+        "mean_last_20_loss": 0.005802650027908385
+      },
+      "variants": {
+        "full": {
+          "fit": {
+            "critic_first_loss": 1.0805003643035889,
+            "critic_last_loss": 0.0405796580016613,
+            "critic_mean_last_50_loss": 0.06775189697742462,
+            "actor_first_loss": -0.1804116815328598,
+            "actor_last_loss": -1.1937404870986938,
+            "mean_last_50_reward": 0.8892220467329025,
+            "buffer_size": 20000
+          },
+          "source": {
+            "success_count": 67,
+            "success_rate": 0.6700000166893005,
+            "mean_max_height": 1.2117167711257935,
+            "mean_final_goal_potential": 1.1022536754608154,
+            "mean_abs_action": 0.8984271287918091
+          }
+        },
+        "plain": {
+          "fit": {
+            "critic_first_loss": 1.039488673210144,
+            "critic_last_loss": 0.04406382888555527,
+            "critic_mean_last_50_loss": 0.06780424792319537,
+            "actor_first_loss": -0.06467525660991669,
+            "actor_last_loss": -1.1842659711837769,
+            "mean_last_50_reward": 0.8892010748386383,
+            "buffer_size": 20000
+          },
+          "source": {
+            "success_count": 67,
+            "success_rate": 0.6700000166893005,
+            "mean_max_height": 1.2117531299591064,
+            "mean_final_goal_potential": 1.102369785308838,
+            "mean_abs_action": 0.8995453119277954
+          }
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "cognitive_fit": {
+        "first_loss": 0.2525564730167389,
+        "last_loss": 0.006932437885552645,
+        "mean_last_20_loss": 0.0064119977876544
+      },
+      "variants": {
+        "full": {
+          "fit": {
+            "critic_first_loss": 1.1414848566055298,
+            "critic_last_loss": 0.06477096676826477,
+            "critic_mean_last_50_loss": 0.08893391951918601,
+            "actor_first_loss": 0.04257754236459732,
+            "actor_last_loss": -1.1958394050598145,
+            "mean_last_50_reward": 0.8668119555711746,
+            "buffer_size": 20000
+          },
+          "source": {
+            "success_count": 63,
+            "success_rate": 0.6299999952316284,
+            "mean_max_height": 1.1633868217468262,
+            "mean_final_goal_potential": 1.1131751537322998,
+            "mean_abs_action": 0.8966447710990906
+          }
+        },
+        "plain": {
+          "fit": {
+            "critic_first_loss": 1.0801440477371216,
+            "critic_last_loss": 0.060515329241752625,
+            "critic_mean_last_50_loss": 0.07302046876400708,
+            "actor_first_loss": -0.22760163247585297,
+            "actor_last_loss": -1.537962794303894,
+            "mean_last_50_reward": 0.8628165686130523,
+            "buffer_size": 20000
+          },
+          "source": {
+            "success_count": 67,
+            "success_rate": 0.6700000166893005,
+            "mean_max_height": 1.1951004266738892,
+            "mean_final_goal_potential": 1.063521385192871,
+            "mean_abs_action": 0.8252488374710083
+          }
+        }
+      }
+    }
+  ]
+}

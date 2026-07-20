@@ -1,0 +1,334 @@
+{
+  "architecture": "TemporalCausalRouteOracle",
+  "experiment": "oracle_vs_cognitive_route_direction_and_control",
+  "source_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "config": {
+    "cognitive_steps": 200,
+    "batch_size": 16,
+    "probe_count": 100,
+    "test_seed": 20260719,
+    "epsilon": 0.01,
+    "gamma": 0.95,
+    "horizons": [
+      1,
+      4,
+      8
+    ],
+    "rollout_steps": 48,
+    "action_limit": 0.9,
+    "score_scale": 0.005,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "json_out": "results/stage39_causal_route_oracle.json"
+  },
+  "seeds": [
+    {
+      "seed": 0,
+      "cognitive_fit": {
+        "first_loss": 0.21980132162570953,
+        "last_loss": 0.008388524875044823,
+        "mean_last_20_loss": 0.008312819059938192
+      },
+      "horizons": {
+        "H1": {
+          "oracle_direction": {
+            "route_score_mean": -8.535906999895815e-06,
+            "actual_score_mean": -9.026378393173218e-06,
+            "route_actual_cosine": 0.9999638216534025,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.0007990265730768442,
+            "actual_score_mean": -9.026378393173218e-06,
+            "route_actual_cosine": 0.5945173363152789,
+            "sign_agreement": 0.7799999713897705,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 66,
+            "success_rate": 0.6600000262260437,
+            "mean_max_height": 1.1880511045455933,
+            "mean_final_goal_potential": 1.0794780254364014,
+            "mean_abs_action": 0.24338769912719727
+          },
+          "cognitive_controller": {
+            "success_count": 67,
+            "success_rate": 0.6700000166893005,
+            "mean_max_height": 1.1708171367645264,
+            "mean_final_goal_potential": 1.016405701637268,
+            "mean_abs_action": 0.6756990551948547
+          }
+        },
+        "H4": {
+          "oracle_direction": {
+            "route_score_mean": -0.0005283329519443214,
+            "actual_score_mean": -0.0005280673503875732,
+            "route_actual_cosine": 0.9999981759667859,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.0038354687858372927,
+            "actual_score_mean": -0.0005280673503875732,
+            "route_actual_cosine": 0.4223125052320547,
+            "sign_agreement": 0.6600000262260437,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 67,
+            "success_rate": 0.6700000166893005,
+            "mean_max_height": 1.1745704412460327,
+            "mean_final_goal_potential": 0.9833506941795349,
+            "mean_abs_action": 0.7030193209648132
+          },
+          "cognitive_controller": {
+            "success_count": 67,
+            "success_rate": 0.6700000166893005,
+            "mean_max_height": 1.1953331232070923,
+            "mean_final_goal_potential": 1.0021560192108154,
+            "mean_abs_action": 0.8299636244773865
+          }
+        },
+        "H8": {
+          "oracle_direction": {
+            "route_score_mean": -0.002967169973999262,
+            "actual_score_mean": -0.0029672086238861084,
+            "route_actual_cosine": 0.9999994881031596,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.014110956341028214,
+            "actual_score_mean": -0.0029672086238861084,
+            "route_actual_cosine": 0.17759122344706607,
+            "sign_agreement": 0.6000000238418579,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 68,
+            "success_rate": 0.6800000071525574,
+            "mean_max_height": 1.1832588911056519,
+            "mean_final_goal_potential": 0.9780782461166382,
+            "mean_abs_action": 0.8223143815994263
+          },
+          "cognitive_controller": {
+            "success_count": 68,
+            "success_rate": 0.6800000071525574,
+            "mean_max_height": 1.2089898586273193,
+            "mean_final_goal_potential": 1.0027527809143066,
+            "mean_abs_action": 0.8562764525413513
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "cognitive_fit": {
+        "first_loss": 0.2150459736585617,
+        "last_loss": 0.007975024171173573,
+        "mean_last_20_loss": 0.007529515912756324
+      },
+      "horizons": {
+        "H1": {
+          "oracle_direction": {
+            "route_score_mean": -0.00033274994348175824,
+            "actual_score_mean": -0.00033208727836608887,
+            "route_actual_cosine": 0.9999649882156064,
+            "sign_agreement": 0.9900000095367432,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.027026979252696037,
+            "actual_score_mean": -0.00033208727836608887,
+            "route_actual_cosine": -0.07300082824362641,
+            "sign_agreement": 0.5099999904632568,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 55,
+            "success_rate": 0.550000011920929,
+            "mean_max_height": 0.9423145055770874,
+            "mean_final_goal_potential": 1.0724760293960571,
+            "mean_abs_action": 0.24501828849315643
+          },
+          "cognitive_controller": {
+            "success_count": 56,
+            "success_rate": 0.5600000023841858,
+            "mean_max_height": 0.9844412207603455,
+            "mean_final_goal_potential": 1.0620745420455933,
+            "mean_abs_action": 0.8474845886230469
+          }
+        },
+        "H4": {
+          "oracle_direction": {
+            "route_score_mean": -0.002434183144941926,
+            "actual_score_mean": -0.0024327337741851807,
+            "route_actual_cosine": 0.9999983971940929,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.10146155953407288,
+            "actual_score_mean": -0.0024327337741851807,
+            "route_actual_cosine": -0.2580006243065125,
+            "sign_agreement": 0.4099999964237213,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 59,
+            "success_rate": 0.5899999737739563,
+            "mean_max_height": 0.9531509876251221,
+            "mean_final_goal_potential": 1.026639461517334,
+            "mean_abs_action": 0.7113869190216064
+          },
+          "cognitive_controller": {
+            "success_count": 56,
+            "success_rate": 0.5600000023841858,
+            "mean_max_height": 0.9945438504219055,
+            "mean_final_goal_potential": 1.0792267322540283,
+            "mean_abs_action": 0.89090496301651
+          }
+        },
+        "H8": {
+          "oracle_direction": {
+            "route_score_mean": -0.006856372579932213,
+            "actual_score_mean": -0.006848812103271484,
+            "route_actual_cosine": 0.999999605386085,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.1883161962032318,
+            "actual_score_mean": -0.006848812103271484,
+            "route_actual_cosine": -0.310087725147337,
+            "sign_agreement": 0.3499999940395355,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 61,
+            "success_rate": 0.6100000143051147,
+            "mean_max_height": 0.9881009459495544,
+            "mean_final_goal_potential": 0.965790331363678,
+            "mean_abs_action": 0.8235787749290466
+          },
+          "cognitive_controller": {
+            "success_count": 56,
+            "success_rate": 0.5600000023841858,
+            "mean_max_height": 0.9970855116844177,
+            "mean_final_goal_potential": 1.092748999595642,
+            "mean_abs_action": 0.8964082598686218
+          }
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "cognitive_fit": {
+        "first_loss": 0.26850011944770813,
+        "last_loss": 0.008715125732123852,
+        "mean_last_20_loss": 0.007486745086498559
+      },
+      "horizons": {
+        "H1": {
+          "oracle_direction": {
+            "route_score_mean": -1.9690016415552236e-05,
+            "actual_score_mean": -2.0548701286315918e-05,
+            "route_actual_cosine": 0.9999540927949432,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.025194015353918076,
+            "actual_score_mean": -2.0548701286315918e-05,
+            "route_actual_cosine": 0.1399568636633087,
+            "sign_agreement": 0.6399999856948853,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 62,
+            "success_rate": 0.6200000047683716,
+            "mean_max_height": 1.1031473875045776,
+            "mean_final_goal_potential": 1.0362800359725952,
+            "mean_abs_action": 0.24670132994651794
+          },
+          "cognitive_controller": {
+            "success_count": 60,
+            "success_rate": 0.6000000238418579,
+            "mean_max_height": 1.07755708694458,
+            "mean_final_goal_potential": 1.0257378816604614,
+            "mean_abs_action": 0.8257941603660583
+          }
+        },
+        "H4": {
+          "oracle_direction": {
+            "route_score_mean": -0.0010744617320597172,
+            "actual_score_mean": -0.0010741949081420898,
+            "route_actual_cosine": 0.9999981063163688,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.08193046599626541,
+            "actual_score_mean": -0.0010741949081420898,
+            "route_actual_cosine": -0.11713187993314848,
+            "sign_agreement": 0.5699999928474426,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 63,
+            "success_rate": 0.6299999952316284,
+            "mean_max_height": 1.1099562644958496,
+            "mean_final_goal_potential": 0.9998934268951416,
+            "mean_abs_action": 0.7089353203773499
+          },
+          "cognitive_controller": {
+            "success_count": 60,
+            "success_rate": 0.6000000238418579,
+            "mean_max_height": 1.0945628881454468,
+            "mean_final_goal_potential": 1.0133026838302612,
+            "mean_abs_action": 0.8826011419296265
+          }
+        },
+        "H8": {
+          "oracle_direction": {
+            "route_score_mean": -0.004060822539031506,
+            "actual_score_mean": -0.004062652587890625,
+            "route_actual_cosine": 0.9999993093575746,
+            "sign_agreement": 1.0,
+            "active_fraction": 1.0
+          },
+          "cognitive_direction": {
+            "route_score_mean": 0.19281959533691406,
+            "actual_score_mean": -0.004062652587890625,
+            "route_actual_cosine": -0.22773527487835676,
+            "sign_agreement": 0.5400000214576721,
+            "active_fraction": 1.0
+          },
+          "oracle_controller": {
+            "success_count": 63,
+            "success_rate": 0.6299999952316284,
+            "mean_max_height": 1.1378668546676636,
+            "mean_final_goal_potential": 0.9844474196434021,
+            "mean_abs_action": 0.8200779557228088
+          },
+          "cognitive_controller": {
+            "success_count": 60,
+            "success_rate": 0.6000000238418579,
+            "mean_max_height": 1.0993305444717407,
+            "mean_final_goal_potential": 1.0014963150024414,
+            "mean_abs_action": 0.8868550658226013
+          }
+        }
+      }
+    }
+  ]
+}

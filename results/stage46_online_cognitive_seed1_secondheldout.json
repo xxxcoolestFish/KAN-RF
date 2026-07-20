@@ -1,0 +1,229 @@
+{
+  "architecture": "OnlineCognitiveUpdate_ProtoKANEmbeddedPPO",
+  "source_factor": [
+    7.35,
+    0.0,
+    0.8,
+    0.8
+  ],
+  "heldout_factor": [
+    13.475,
+    0.06,
+    0.9,
+    1.1
+  ],
+  "config": {
+    "cognitive_steps": 300,
+    "cognitive_batch": 32,
+    "hidden_dim": 64,
+    "num_envs": 64,
+    "rollout_horizon": 256,
+    "source_iterations": 30,
+    "adaptation_iterations": 30,
+    "ppo_epochs": 2,
+    "minibatch": 512,
+    "cognitive_minibatch": 512,
+    "cognitive_update_epochs": 1,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "cognitive_lr": 0.002,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 5,
+    "eval_steps": 500,
+    "test_count": 64,
+    "test_seed": 20260719,
+    "heldout_factor": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "seed": 1,
+    "json_out": "results/stage46_online_cognitive_seed1_secondheldout.json"
+  },
+  "result": {
+    "seed": 1,
+    "cognitive_fit": {
+      "first_loss": 0.23236171901226044,
+      "last_loss": 0.0037770336493849754,
+      "mean_last_20_loss": 0.004194639669731259
+    },
+    "source_history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.014265187244745903,
+        "critic_loss": 0.023618329330929555,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.9464223384857178,
+        "max_height": -1.7834070920944214
+      },
+      {
+        "iteration": 5,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.01544989921967499,
+        "critic_loss": 0.008305846742587164,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.877175211906433,
+        "max_height": -1.355186939239502
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.01440641118097119,
+        "critic_loss": 0.04401681150193326,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.1746972799301147,
+        "max_height": -0.22212141752243042
+      },
+      {
+        "iteration": 15,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.01404504406673368,
+        "critic_loss": 0.1720023559173569,
+        "success_count": 5,
+        "success_rate": 0.078125,
+        "mean_max_height": 0.059407591819763184,
+        "max_height": 1.3237868547439575
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.014858247639494948,
+        "critic_loss": 0.36289632273837924,
+        "success_count": 22,
+        "success_rate": 0.34375,
+        "mean_max_height": 0.8341770172119141,
+        "max_height": 1.753760814666748
+      },
+      {
+        "iteration": 25,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.013440985872875899,
+        "critic_loss": 0.4082990139722824,
+        "success_count": 25,
+        "success_rate": 0.390625,
+        "mean_max_height": 0.9636738896369934,
+        "max_height": 1.9495189189910889
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "cognitive_update_loss": null,
+        "actor_loss": -0.013028451736317948,
+        "critic_loss": 0.4374207113869488,
+        "success_count": 47,
+        "success_rate": 0.734375,
+        "mean_max_height": 1.267802119255066,
+        "max_height": 1.9901127815246582
+      }
+    ],
+    "heldout_before_adaptation": {
+      "success_count": 0,
+      "success_rate": 0.0,
+      "mean_max_height": -0.15593387186527252,
+      "max_height": 0.931806206703186
+    },
+    "adaptation_history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "cognitive_update_loss": 0.0009892700609270833,
+        "actor_loss": -0.01326791659812443,
+        "critic_loss": 0.3367340946570039,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.1643822342157364,
+        "max_height": 0.9989990592002869
+      },
+      {
+        "iteration": 5,
+        "collected_successes": 0,
+        "cognitive_update_loss": 3.6257739225220575e-05,
+        "actor_loss": -0.01326148587395437,
+        "critic_loss": 0.1589139560237527,
+        "success_count": 3,
+        "success_rate": 0.046875,
+        "mean_max_height": 0.022392049431800842,
+        "max_height": 1.4371373653411865
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 0,
+        "cognitive_update_loss": 1.9914285189770453e-05,
+        "actor_loss": -0.01219684626266826,
+        "critic_loss": 0.10827198973856866,
+        "success_count": 3,
+        "success_rate": 0.046875,
+        "mean_max_height": 0.2522768974304199,
+        "max_height": 1.394263505935669
+      },
+      {
+        "iteration": 15,
+        "collected_successes": 0,
+        "cognitive_update_loss": 1.2264963203278967e-05,
+        "actor_loss": -0.012239048635819927,
+        "critic_loss": 0.0791772132506594,
+        "success_count": 5,
+        "success_rate": 0.078125,
+        "mean_max_height": 0.2480330914258957,
+        "max_height": 1.642519474029541
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 0,
+        "cognitive_update_loss": 1.076637946084702e-05,
+        "actor_loss": -0.01219189124822151,
+        "critic_loss": 0.08458875585347414,
+        "success_count": 8,
+        "success_rate": 0.125,
+        "mean_max_height": 0.3684297502040863,
+        "max_height": 1.5381196737289429
+      },
+      {
+        "iteration": 25,
+        "collected_successes": 0,
+        "cognitive_update_loss": 8.793192350253776e-06,
+        "actor_loss": -0.01224042238027323,
+        "critic_loss": 0.06396898295497522,
+        "success_count": 6,
+        "success_rate": 0.09375,
+        "mean_max_height": 0.33350247144699097,
+        "max_height": 1.3462334871292114
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "cognitive_update_loss": 9.698734146468269e-06,
+        "actor_loss": -0.01236873070592992,
+        "critic_loss": 0.10651806695386767,
+        "success_count": 11,
+        "success_rate": 0.171875,
+        "mean_max_height": 0.44281482696533203,
+        "max_height": 1.5232877731323242
+      }
+    ],
+    "heldout_after_adaptation": {
+      "success_count": 17,
+      "success_rate": 0.265625,
+      "mean_max_height": 0.6166529059410095,
+      "max_height": 1.8750522136688232
+    },
+    "actor_parameter_count": 10115,
+    "cognitive_parameter_count": 7090
+  }
+}

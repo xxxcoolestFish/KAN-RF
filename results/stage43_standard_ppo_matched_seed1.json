@@ -1,0 +1,85 @@
+{
+  "architecture": "StandardPPO_DirectMLP_NoCognition",
+  "config": {
+    "hidden_dim": 64,
+    "num_envs": 64,
+    "rollout_horizon": 256,
+    "iterations": 30,
+    "ppo_epochs": 2,
+    "minibatch": 512,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 10,
+    "eval_steps": 500,
+    "test_count": 64,
+    "test_seed": 20260719,
+    "seed": 1,
+    "json_out": "results/stage43_standard_ppo_matched_seed1.json"
+  },
+  "result": {
+    "environment": [
+      7.35,
+      0.0,
+      0.8,
+      0.8
+    ],
+    "start_state": "hanging_down_with_small_noise",
+    "evaluation_steps": 500,
+    "history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "actor_loss": -0.014259044197387993,
+        "critic_loss": 0.022382598093827255,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.948061466217041,
+        "max_height": -1.7936320304870605
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 0,
+        "actor_loss": -0.014316394604975358,
+        "critic_loss": 0.07125897525111213,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.7141981720924377,
+        "max_height": 0.7028567790985107
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 0,
+        "actor_loss": -0.015550170603091829,
+        "critic_loss": 0.22396840970031917,
+        "success_count": 24,
+        "success_rate": 0.375,
+        "mean_max_height": 0.957243025302887,
+        "max_height": 1.9998743534088135
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "actor_loss": -0.012310913705732673,
+        "critic_loss": 0.3028038083575666,
+        "success_count": 45,
+        "success_rate": 0.703125,
+        "mean_max_height": 1.2380346059799194,
+        "max_height": 1.9964947700500488
+      }
+    ],
+    "final_evaluation": {
+      "success_count": 45,
+      "success_rate": 0.703125,
+      "mean_max_height": 1.3230926990509033,
+      "max_height": 1.993118166923523
+    },
+    "actor_parameter_count": 5058,
+    "critic_parameter_count": 5057
+  }
+}

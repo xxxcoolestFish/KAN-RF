@@ -1,0 +1,171 @@
+{
+  "architecture": "ExactTargetDynamics_ContextFiLM_DirectTargetPPO",
+  "diagnostic": "decision_capacity_without_transfer_or_identification_error",
+  "config": {
+    "target_factor": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "hidden_dim": 64,
+    "num_envs": 128,
+    "rollout_horizon": 256,
+    "iterations": 100,
+    "ppo_epochs": 4,
+    "minibatch": 1024,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01,
+    "eval_every": 10,
+    "eval_steps": 500,
+    "test_count": 64,
+    "test_seed": 20260720,
+    "seed": 0,
+    "json_out": "results/stage60_target_direct_oracle_full_seed0.json"
+  },
+  "result": {
+    "target_factor": [
+      13.475,
+      0.06,
+      0.9,
+      1.1
+    ],
+    "history": [
+      {
+        "iteration": 1,
+        "collected_successes": 0,
+        "policy_std": 0.9876981973648071,
+        "actor_loss": -0.014408318878849968,
+        "critic_loss": 0.008286630782095017,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -1.973541259765625,
+        "max_height": -1.8623249530792236
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 0,
+        "policy_std": 0.8463021516799927,
+        "actor_loss": -0.013469924182572868,
+        "critic_loss": 0.060816421173512936,
+        "success_count": 0,
+        "success_rate": 0.0,
+        "mean_max_height": -0.6074602603912354,
+        "max_height": 0.07868510484695435
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 0,
+        "policy_std": 0.7552701830863953,
+        "actor_loss": -0.012733459556329763,
+        "critic_loss": 0.060905601567355916,
+        "success_count": 3,
+        "success_rate": 0.046875,
+        "mean_max_height": 0.09812147915363312,
+        "max_height": 1.396104097366333
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 0,
+        "policy_std": 0.6835042238235474,
+        "actor_loss": -0.011398704631574219,
+        "critic_loss": 0.05703532630286645,
+        "success_count": 2,
+        "success_rate": 0.03125,
+        "mean_max_height": 0.2743353247642517,
+        "max_height": 1.4824872016906738
+      },
+      {
+        "iteration": 40,
+        "collected_successes": 0,
+        "policy_std": 0.634191632270813,
+        "actor_loss": -0.010163383427425288,
+        "critic_loss": 0.036710400570882484,
+        "success_count": 10,
+        "success_rate": 0.15625,
+        "mean_max_height": 0.41733524203300476,
+        "max_height": 1.6123899221420288
+      },
+      {
+        "iteration": 50,
+        "collected_successes": 0,
+        "policy_std": 0.6062875390052795,
+        "actor_loss": -0.009417863835551543,
+        "critic_loss": 0.035504404731909744,
+        "success_count": 6,
+        "success_rate": 0.09375,
+        "mean_max_height": 0.3728814423084259,
+        "max_height": 1.5266621112823486
+      },
+      {
+        "iteration": 60,
+        "collected_successes": 0,
+        "policy_std": 0.594007134437561,
+        "actor_loss": -0.008990595128125278,
+        "critic_loss": 0.042955403769155964,
+        "success_count": 4,
+        "success_rate": 0.0625,
+        "mean_max_height": 0.3981192409992218,
+        "max_height": 1.273811936378479
+      },
+      {
+        "iteration": 70,
+        "collected_successes": 0,
+        "policy_std": 0.5866475105285645,
+        "actor_loss": -0.008244546344940318,
+        "critic_loss": 0.06392501795198768,
+        "success_count": 4,
+        "success_rate": 0.0625,
+        "mean_max_height": 0.405642032623291,
+        "max_height": 1.3093639612197876
+      },
+      {
+        "iteration": 80,
+        "collected_successes": 0,
+        "policy_std": 0.5802290439605713,
+        "actor_loss": -0.008065401871135691,
+        "critic_loss": 0.04341274485341273,
+        "success_count": 1,
+        "success_rate": 0.015625,
+        "mean_max_height": 0.3105175197124481,
+        "max_height": 1.3934566974639893
+      },
+      {
+        "iteration": 90,
+        "collected_successes": 0,
+        "policy_std": 0.5896117687225342,
+        "actor_loss": -0.007701868729782291,
+        "critic_loss": 0.05508105244371109,
+        "success_count": 1,
+        "success_rate": 0.015625,
+        "mean_max_height": 0.30889958143234253,
+        "max_height": 1.2780742645263672
+      },
+      {
+        "iteration": 100,
+        "collected_successes": 0,
+        "policy_std": 0.5986688733100891,
+        "actor_loss": -0.007339561165281339,
+        "critic_loss": 0.04822058283025399,
+        "success_count": 1,
+        "success_rate": 0.015625,
+        "mean_max_height": 0.2992147207260132,
+        "max_height": 1.020555853843689
+      }
+    ],
+    "final_evaluation": {
+      "success_count": 1,
+      "success_rate": 0.015625,
+      "mean_max_height": 0.3209257423877716,
+      "max_height": 1.4500551223754883
+    },
+    "actor_parameter_count": 11035,
+    "critic_parameter_count": 5057
+  }
+}
