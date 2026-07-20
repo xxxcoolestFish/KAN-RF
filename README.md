@@ -112,12 +112,18 @@ Oracle 检查点之后已经接入单一、未做物理语义分割的 ProtoKAN�
 
 这说明固定时钟造成了约 90% 的原有失败：系统落后时，反馈相位会停留或重新对齐，而不会让目标走廊机械地继续前移。完整推导见 `docs/FEEDBACK_PHASE_VALIDATION.md`。
 
+### Oracle 认知拉回 Actor 首轮结果
+
+Oracle 诊断确认动力学 Jacobian 携带互补物理信息：执行器减弱使动作 Jacobian `B` 相对变化 `31.25%`，重惯性使其变化 `20.80%`；重力和阻尼主要通过状态 Jacobian `A` 的 12 步伴随传播改变拉回动作。因而 `Aᵀ` 与 `Bᵀ` 共同进入决策具有信息基础。
+
+但是第一版强制 `a = -αBᵀλ` 的 Actor 没有通过源环境门槛：最佳检查点严格复测只有 `51/320 = 15.94%`；打乱走廊为 `0/320`，打乱 Jacobian 为 `3/320`。它证明两个接口都被使用，却暴露了协变量零空间、`‖B‖≈0.01` 的尺度病态，以及弱执行器下原始 `Bᵀλ` 可能反向缩小控制幅值的问题。因此尚未进入参数切换和 ProtoKAN 实验。完整诊断见 `docs/ORACLE_PULLBACK_ACTOR_VALIDATION.md`。
+
 下一检查点是：
 
-1. 在 Oracle 动力学下验证“决策协变量 → Cognition Jacobian 拉回 → 动作”的直接 Actor；
-2. 只替换 Oracle 物理参数与 Jacobian，检查认知拉回能否立即改变动作并提升零样本控制；
-3. 再用在线 ProtoKAN 产生动态走廊与动作 Jacobian，记录物理参数变化后的恢复曲线；
-4. 消融直接动作头、认知拉回层、固定相位和反馈相位；
+1. 把决策输出从欠定协变量改为期望状态变化，并推导带正则的认知控制效果逆映射；
+2. 在 Oracle 源环境验证新算子能恢复到反馈走廊 Actor 的高成功率；
+3. 只替换 Oracle 物理参数和 Jacobian，验证弱执行器、重惯性与重力变化下的结构适应；
+4. Oracle 参数切换成立后，再接入 ProtoKAN 的在线 Jacobian 与动态走廊；
 5. 用探索数据或认证局部边替换当前源状态参考路线。
 
 ## 目录
@@ -134,6 +140,7 @@ cpbn/
   feedback_corridor.py        # 时间索引状态走廊规划
   corridor_policy.py          # 必须读取状态走廊的直接 Actor/Critic
   feedback_phase.py           # 真实状态反馈相位后验
+  cognitive_pullback.py       # Jacobian 伴随递推与强制认知拉回 Actor
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
   validate_oracle_bellman.py
@@ -149,6 +156,8 @@ scripts/
   refine_direct_corridor_actor.py
   evaluate_direct_corridor_actor_robust.py
   validate_feedback_phase_actor.py
+  diagnose_oracle_pullback_jacobians.py
+  validate_oracle_pullback_actor.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
@@ -158,6 +167,7 @@ docs/
   FEEDBACK_CORRIDOR_SOURCE_VALIDATION.md
   DIRECT_CORRIDOR_ACTOR_VALIDATION.md
   FEEDBACK_PHASE_VALIDATION.md
+  ORACLE_PULLBACK_ACTOR_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -171,6 +181,8 @@ results/
   direct_corridor_actor_refined_seed0.json
   direct_corridor_actor_robust_seed0.json
   feedback_phase_actor_seed0.json
+  oracle_pullback_jacobian_seed0.json
+  oracle_pullback_actor_seed0.json
 tests/
 ```
 
