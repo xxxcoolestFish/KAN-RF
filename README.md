@@ -90,13 +90,20 @@ Oracle 检查点之后已经接入单一、未做物理语义分割的 ProtoKAN�
 
 完整记录见 `docs/LEARNED_COGNITIVE_TUBE_VALIDATION.md`。
 
-下一检查点调整为：
+### 源环境反馈走廊组合
 
-1. 用经过局部反馈认证的短通道组成全局粗路线，停止依赖 480 步开环模型滚动；
-2. 每执行少量真实步骤就更新认知、重新定位，并根据预测创新和通道距离触发重规划；
-3. 源环境完整闭环通过后，再切换目标物理参数记录恢复曲线；
-4. 对比不更新认知、只更新认知、认知与决策共同更新三种条件；
-5. 增加多随机种子和不同物理变化幅度。
+把 24 步终点规划改为整条时间索引走廊后，冻结认知的完整任务最高高度为 `0.7631`，未成功；每执行 4 步就用真实转移更新 ProtoKAN 的条件在第 `469` 步成功，最高高度 `1.0415`。源参考路线本身在第 `474` 步成功，运行时只读取状态走廊，构造动作已丢弃。
+
+在线认知把平均预测创新从 `0.00730` 降到 `0.00456`，并把平均局部规划终点距离从 `0.9593` 降到 `0.0963`。这首次在完整源任务上验证了“真实转移 → 认知更新 → 通道重建 → 决策变化”的闭环。完整记录见 `docs/FEEDBACK_CORRIDOR_SOURCE_VALIDATION.md`。
+
+
+下一检查点是：
+
+1. 把已经验证可行的隐藏局部反馈器摊销为不接收动作教师的直接动作 Actor；
+2. 验证直接动作 Actor 在源环境随机初态和多随机种子下的完整成功率；
+3. 切换目标物理参数，记录冻结认知和在线认知的恢复曲线；
+4. 消融固定重规划、事件触发重规划和认知/决策分别更新；
+5. 用探索数据或认证局部边替换当前源状态参考路线。
 
 ## 目录
 
@@ -108,6 +115,8 @@ cpbn/
   reachability.py             # 粗状态路由基线
   reachability_funnel.py      # 开环终点椭球基线
   time_varying_tube.py        # 连续路线、局部线性化和反馈通道
+  receding_tube.py            # 短时域局部规划与时变反馈
+  feedback_corridor.py        # 时间索引状态走廊规划
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
   validate_oracle_bellman.py
@@ -117,18 +126,23 @@ scripts/
   validate_learned_cognitive_tubes.py
   validate_learned_cognitive_tubes_v2.py
   diagnose_learned_route_vs_local_dynamics.py
+  validate_receding_source_route.py
+  validate_feedback_corridor_source.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
   EDGE_FUNNEL_VALIDATION.md
   TIME_VARYING_TUBE_VALIDATION.md
   LEARNED_COGNITIVE_TUBE_VALIDATION.md
+  FEEDBACK_CORRIDOR_SOURCE_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
   learned_cognitive_tube_validation_seed0.json
   learned_cognitive_tube_multistep_seed0.json
   learned_route_vs_local_dynamics_seed0.json
+  receding_source_route_seed0.json
+  feedback_corridor_source_seed0.json
 tests/
 ```
 
