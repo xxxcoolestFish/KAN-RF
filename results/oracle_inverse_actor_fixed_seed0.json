@@ -1,0 +1,245 @@
+{
+  "experiment": "OracleCognitiveInverseFixedClockTrainingValidation",
+  "config": {
+    "hidden_dim": 64,
+    "effect_scale": 0.02,
+    "ridge": 0.0001,
+    "corridor_horizon": 12,
+    "reference_segments": 20,
+    "segment_steps": 24,
+    "reference_population": 2048,
+    "reference_elite": 128,
+    "reference_iterations": 12,
+    "reference_seed": 0,
+    "iterations": 45,
+    "num_envs": 128,
+    "rollout_horizon": 96,
+    "ppo_epochs": 3,
+    "minibatch": 768,
+    "actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "log_std_init": 0.0,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "entropy_coef": 0.005,
+    "progress_reward": 1.0,
+    "phase_progress_reward": 0.04,
+    "progress_clip": 0.25,
+    "inside_reward": 0.08,
+    "stagnation_penalty": 0.01,
+    "success_reward": 3.0,
+    "action_penalty": 0.002,
+    "corridor_radius": 0.12,
+    "initial_noise": 0.025,
+    "full_initial_noise": 0.02,
+    "phase_backtrack": 4,
+    "phase_advance": 12,
+    "eval_every": 10,
+    "eval_count": 16,
+    "num_test_seeds": 5,
+    "final_count": 64,
+    "full_evaluation_steps": 500,
+    "shuffle_offset": 120,
+    "test_seed": 20261001,
+    "seed": 0,
+    "checkpoint_out": "results\\oracle_inverse_actor_fixed_seed0.pt",
+    "json_out": "results\\oracle_inverse_actor_fixed_seed0.json",
+    "training_phase_mode": "fixed_clock"
+  },
+  "result": {
+    "reference_route": {
+      "state_count": 481,
+      "maximum_height": 1.269827961921692,
+      "success_step": 474,
+      "actions_exposed_to_actor": false
+    },
+    "history": [
+      {
+        "iteration": 1,
+        "collected_successes": 13,
+        "mean_reward": 2.750560270214919e-05,
+        "return_target_std": 0.4605868458747864,
+        "actor_loss": -0.0078780542195697,
+        "critic_loss": 0.07915541824574272,
+        "full_success_rate": 0.0,
+        "full_mean_maximum_height": -1.9849425554275513
+      },
+      {
+        "iteration": 10,
+        "collected_successes": 14,
+        "mean_reward": 0.005595393478870392,
+        "return_target_std": 0.7012249231338501,
+        "actor_loss": -0.008546019137914604,
+        "critic_loss": 0.05050431789519886,
+        "full_success_rate": 0.0,
+        "full_mean_maximum_height": -1.9863988161087036
+      },
+      {
+        "iteration": 20,
+        "collected_successes": 29,
+        "mean_reward": 0.02150784246623516,
+        "return_target_std": 1.2715214490890503,
+        "actor_loss": -0.008193782879970968,
+        "critic_loss": 0.0736789177171886,
+        "full_success_rate": 0.0,
+        "full_mean_maximum_height": -0.27397313714027405
+      },
+      {
+        "iteration": 30,
+        "collected_successes": 23,
+        "mean_reward": 0.02230375073850155,
+        "return_target_std": 1.369045615196228,
+        "actor_loss": -0.006882405752548948,
+        "critic_loss": 0.06120174160848061,
+        "full_success_rate": 0.0,
+        "full_mean_maximum_height": 0.22447873651981354
+      },
+      {
+        "iteration": 40,
+        "collected_successes": 26,
+        "mean_reward": 0.029651565477252007,
+        "return_target_std": 1.2902722358703613,
+        "actor_loss": -0.007313812913101477,
+        "critic_loss": 0.05111848982051015,
+        "full_success_rate": 0.0,
+        "full_mean_maximum_height": -0.011290304362773895
+      }
+    ],
+    "best_iteration": 30,
+    "normal": {
+      "success_count": 0,
+      "evaluation_count": 320,
+      "success_rate": 0.0,
+      "mean_success_step": 0.0,
+      "per_seed": [
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.35798123478889465,
+          "minimum_maximum_height": -1.975834608078003
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.4148862063884735,
+          "minimum_maximum_height": -1.976708173751831
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.369538813829422,
+          "minimum_maximum_height": -1.9745066165924072
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.4057699143886566,
+          "minimum_maximum_height": -0.239449605345726
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.3741694688796997,
+          "minimum_maximum_height": -1.9747116565704346
+        }
+      ]
+    },
+    "shuffled_corridor": {
+      "success_count": 0,
+      "evaluation_count": 320,
+      "success_rate": 0.0,
+      "mean_success_step": 0.0,
+      "per_seed": [
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": -1.9880249500274658,
+          "minimum_maximum_height": -1.9977571964263916
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": -1.9887158870697021,
+          "minimum_maximum_height": -1.9974274635314941
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": -1.9884976148605347,
+          "minimum_maximum_height": -1.997978925704956
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": -1.9884660243988037,
+          "minimum_maximum_height": -1.9978740215301514
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": -1.986496925354004,
+          "minimum_maximum_height": -1.9976446628570557
+        }
+      ]
+    },
+    "shuffled_jacobians": {
+      "success_count": 1,
+      "evaluation_count": 320,
+      "success_rate": 0.003125,
+      "mean_success_step": 479.0,
+      "per_seed": [
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.3197057247161865,
+          "minimum_maximum_height": -0.34746673703193665
+        },
+        {
+          "success_count": 1,
+          "success_rate": 0.015625,
+          "mean_success_step": 479.0,
+          "mean_maximum_height": 0.26981642842292786,
+          "minimum_maximum_height": -1.9763737916946411
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.28811758756637573,
+          "minimum_maximum_height": -0.4091237187385559
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.2968412935733795,
+          "minimum_maximum_height": -0.36574557423591614
+        },
+        {
+          "success_count": 0,
+          "success_rate": 0.0,
+          "mean_success_step": null,
+          "mean_maximum_height": 0.28117337822914124,
+          "minimum_maximum_height": -1.972954511642456
+        }
+      ]
+    },
+    "actor_parameter_count": 23371,
+    "zero_control_map_implies_zero_action_mean": true,
+    "weak_control_map_compensation_direction": "larger_action",
+    "action_teacher_used": false,
+    "passed": false
+  }
+}

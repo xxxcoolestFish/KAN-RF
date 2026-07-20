@@ -118,13 +118,20 @@ Oracle 诊断确认动力学 Jacobian 携带互补物理信息：执行器减弱
 
 但是第一版强制 `a = -αBᵀλ` 的 Actor 没有通过源环境门槛：最佳检查点严格复测只有 `51/320 = 15.94%`；打乱走廊为 `0/320`，打乱 Jacobian 为 `3/320`。它证明两个接口都被使用，却暴露了协变量零空间、`‖B‖≈0.01` 的尺度病态，以及弱执行器下原始 `Bᵀλ` 可能反向缩小控制幅值的问题。因此尚未进入参数切换和 ProtoKAN 实验。完整诊断见 `docs/ORACLE_PULLBACK_ACTOR_VALIDATION.md`。
 
-下一检查点是：
+### 正则化多步认知逆算子结果
 
-1. 把决策输出从欠定协变量改为期望状态变化，并推导带正则的认知控制效果逆映射；
-2. 在 Oracle 源环境验证新算子能恢复到反馈走廊 Actor 的高成功率；
-3. 只替换 Oracle 物理参数和 Jacobian，验证弱执行器、重惯性与重力变化下的结构适应；
-4. Oracle 参数切换成立后，再接入 ProtoKAN 的在线 Jacobian 与动态走廊；
-5. 用探索数据或认证局部边替换当前源状态参考路线。
+第二版把决策网络输出改为未来状态空间中的期望效果，并强制通过多步动力学敏感度的加权岭逆映射得到动作：
+
+\[
+a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
+\qquad S_k=A_{k-1}\cdots A_1B_0.
+\]
+
+该结构满足 `B=0` 时动作均值严格为零，也能在执行器变弱时产生更大的补偿动作；但 Oracle 源环境门控失败。反馈相位训练为 `1/320 = 0.31%`，与此前高性能直接 Actor 严格匹配的固定时钟训练为 `0/320`，而直接 Actor 基线为 `315/320 = 98.44%`。
+
+严格对照说明失败并非主要来自奖励函数或相位训练差异，而是算子让当前一个动作承担整段未来期望效果，求解的是开环单动作逆问题，与每一步重新决策的闭环控制时间结构不一致。硬性经过逆算子消除了计算图旁路，却没有保证网络输出的期望效果具有跨物理环境稳定语义。完整记录见 `docs/ORACLE_COGNITIVE_INVERSE_VALIDATION.md`。
+
+因此当前不进入参数切换和 ProtoKAN。下一检查点从“末端解析动作逆解”转向“认知条件化的闭环策略参数”：让认知动力学改变策略内部各层的低秩权重或门控，并使用干预一致性约束认知不可忽略，同时保留直接 Actor 已验证的闭环可训练性。
 
 ## 目录
 
@@ -140,6 +147,7 @@ cpbn/
   feedback_corridor.py        # 时间索引状态走廊规划
   corridor_policy.py          # 必须读取状态走廊的直接 Actor/Critic
   feedback_phase.py           # 真实状态反馈相位后验
+  cognitive_inverse.py        # 多步控制敏感度与正则化认知逆算子
   cognitive_pullback.py       # Jacobian 伴随递推与强制认知拉回 Actor
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
@@ -157,6 +165,8 @@ scripts/
   evaluate_direct_corridor_actor_robust.py
   validate_feedback_phase_actor.py
   diagnose_oracle_pullback_jacobians.py
+  validate_oracle_inverse_actor.py
+  validate_oracle_inverse_actor_fixed_training.py
   validate_oracle_pullback_actor.py
 docs/
   ARCHITECTURE.md
@@ -168,6 +178,7 @@ docs/
   DIRECT_CORRIDOR_ACTOR_VALIDATION.md
   FEEDBACK_PHASE_VALIDATION.md
   ORACLE_PULLBACK_ACTOR_VALIDATION.md
+  ORACLE_COGNITIVE_INVERSE_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -183,6 +194,8 @@ results/
   feedback_phase_actor_seed0.json
   oracle_pullback_jacobian_seed0.json
   oracle_pullback_actor_seed0.json
+  oracle_inverse_actor_seed0.json
+  oracle_inverse_actor_fixed_seed0.json
 tests/
 ```
 
