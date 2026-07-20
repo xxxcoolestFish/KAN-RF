@@ -4,14 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kanrf"
-version = "0.1.0"
-description = "KAN-based differentiable world models for model-based control"
+version = "0.2.0"
+description = "Cognitive Pullback Bellman Networks with ProtoKAN dynamics"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.0",
     "numpy",
-    "gymnasium",
 ]
 
 [tool.setuptools.packages.find]
-include = ["kanrf*", "control*"]
+include = ["kanrf*", "cpbn*"]
