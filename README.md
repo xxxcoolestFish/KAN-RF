@@ -96,13 +96,22 @@ Oracle 检查点之后已经接入单一、未做物理语义分割的 ProtoKAN�
 
 在线认知把平均预测创新从 `0.00730` 降到 `0.00456`，并把平均局部规划终点距离从 `0.9593` 降到 `0.0963`。这首次在完整源任务上验证了“真实转移 → 认知更新 → 通道重建 → 决策变化”的闭环。完整记录见 `docs/FEEDBACK_CORRIDOR_SOURCE_VALIDATION.md`。
 
+### 无动作教师的直接状态走廊 Actor
+
+最新实验已经把隐藏的 CEM/LQR 控制器替换为 19,010 参数的 GRU Actor。Actor 只读取当前状态与未来 12 个状态走廊 token，没有状态到动作头的旁路，也没有接收 CEM 动作、LQR 增益或动作回归教师；它完全依靠真实环境奖励和 PPO 学习直接动作。
+
+在 5 个独立测试种子、共 320 个扰动初态下，正确走廊的完整任务成功率为 `271/320 = 84.69%`，乱序走廊为 `2/320 = 0.63%`。这证明 Actor 确实利用了走廊中的长时域信息，而非绕过认知输入。但是源环境尚未达到可靠性门槛：第 14、16 个困难阶段的局部完成率只有 `25.00%` 和 `28.75%`。
+
+当前定位是：接口方向成立，解码器仍不稳定。主要机制问题是走廊相位按时钟强制前进；Actor 落后时目标仍继续移动，缺少根据真实状态重新定位可达截面的反馈相位估计。针对困难相位的简单加权继续训练没有改善，并出现全路线遗忘。
+
+完整推导、结构与结果见 `docs/DIRECT_CORRIDOR_ACTOR_VALIDATION.md`。
 
 下一检查点是：
 
-1. 把已经验证可行的隐藏局部反馈器摊销为不接收动作教师的直接动作 Actor；
-2. 验证直接动作 Actor 在源环境随机初态和多随机种子下的完整成功率；
-3. 切换目标物理参数，记录冻结认知和在线认知的恢复曲线；
-4. 消融固定重规划、事件触发重规划和认知/决策分别更新；
+1. 用真实反馈估计或校正当前走廊相位，使偏离后的 Actor 能重新进入可达截面；
+2. 在不遗忘已学阶段的条件下补强困难阶段，使源环境多种子成功率稳定通过门槛；
+3. 再把在线 ProtoKAN 产生的动态走廊接入同一个 Actor，记录物理参数变化后的恢复曲线；
+4. 消融固定相位、反馈相位、事件触发重规划和认知/决策分别更新；
 5. 用探索数据或认证局部边替换当前源状态参考路线。
 
 ## 目录
@@ -117,6 +126,7 @@ cpbn/
   time_varying_tube.py        # 连续路线、局部线性化和反馈通道
   receding_tube.py            # 短时域局部规划与时变反馈
   feedback_corridor.py        # 时间索引状态走廊规划
+  corridor_policy.py          # 必须读取状态走廊的直接 Actor/Critic
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
   validate_oracle_bellman.py
@@ -128,6 +138,9 @@ scripts/
   diagnose_learned_route_vs_local_dynamics.py
   validate_receding_source_route.py
   validate_feedback_corridor_source.py
+  validate_direct_corridor_actor.py
+  refine_direct_corridor_actor.py
+  evaluate_direct_corridor_actor_robust.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
@@ -135,6 +148,7 @@ docs/
   TIME_VARYING_TUBE_VALIDATION.md
   LEARNED_COGNITIVE_TUBE_VALIDATION.md
   FEEDBACK_CORRIDOR_SOURCE_VALIDATION.md
+  DIRECT_CORRIDOR_ACTOR_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -143,6 +157,10 @@ results/
   learned_route_vs_local_dynamics_seed0.json
   receding_source_route_seed0.json
   feedback_corridor_source_seed0.json
+  direct_corridor_actor_seed0.json
+  direct_corridor_actor_strong_seed0.json
+  direct_corridor_actor_refined_seed0.json
+  direct_corridor_actor_robust_seed0.json
 tests/
 ```
 
