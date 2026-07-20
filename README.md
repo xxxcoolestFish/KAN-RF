@@ -1,95 +1,134 @@
-# CPBN：认知拉回 Bellman 网络
+# CPBN：认知动力学到反馈可达通道
 
-本分支是项目的精简研究主线。目标仍然是：只在一种物理环境中预训练认知网络和决策网络；环境物理参数改变后，认知网络依靠真实转移持续学习，更新后的物理规律必须进入决策前向传播，从而带动策略快速恢复。
+本分支是项目的精简研究主线。目标是：只在一种物理环境中预训练认知网络和决策网络；环境物理参数改变后，认知网络依靠真实状态转移持续学习，更新后的物理规律必须进入决策前向传播，从而带动策略快速恢复。
 
-旧版数百个分阶段实验已经从本分支移除，但完整保留在提交 `f458b37` 和分支 `feature/cognitive-embedded-decision` 中。
+旧版分阶段实验保留在提交 `f458b37` 和分支 `feature/cognitive-embedded-decision` 中。当前主线位于 `feature/cognitive-pullback-bellman`。
 
-## 核心结构
+## 研究约束
 
-```mermaid
-flowchart LR
-    T["真实转移 (s,a,s')"] --> C["认知动力学 Fθ(s,a)"]
-    C --> Q["Bellman 拉回 Qθ,φ(s,a;g)"]
-    V["目标条件价值 Vφ(s,g)"] --> Q
-    Q --> I["隐式动作层 ∂Q/∂a = 0"]
-    I --> A["动作 a*"]
-```
+1. 认知网络只做状态转移预测，不产生动作；
+2. 认知损失与决策损失分开，决策训练不能破坏认知参数；
+3. 决策前向传播必须使用认知侧提供的动力学信息；
+4. 决策网络直接输出动作，而不是在运行时对动作做迭代优化；
+5. 源环境首先需要完成任务，之后再考察物理参数变化后的恢复速度。
 
-认知网络只做预测：
+## 已排除的路径：隐式 Bellman 动作层
 
-\[
-\theta \leftarrow \arg\min_\theta
-\mathbb E\|F_\theta(s_t,a_t)-s_{t+1}\|^2.
-\]
-
-决策侧不复制认知参数，也不使用稀疏探针。它把价值函数通过完整动力学算子拉回动作空间：
+最初的精简架构把价值函数通过动力学模型拉回动作空间：
 
 \[
 Q_{\theta,\phi}(s,a;g)
 =r(s,a,F_\theta(s,a);g)
 +\gamma V_\phi(F_\theta(s,a),g),
 \qquad
-a^*=\operatorname*{argmax}_{a\in[-1,1]}Q_{\theta,\phi}(s,a;g).
+a^*=\arg\max_a Q_{\theta,\phi}(s,a;g).
 \]
 
-当前一维动作通过求解 `∂Q/∂a = 0` 得到，没有独立 Actor 参数。因此动作的前向计算必然经过认知动力学；在线更新 `θ` 会直接改变动作方程。
+Oracle 动力学实验中，动作求解器的 KKT 满足率和局部凹比例都是 100%，相对动作网格的 regret 约为 `-5.6e-8`，但任务成功率是 0/16。原因不是求解器不准确，而是一步 Bellman 目标没有传播“先摆动蓄能、再到达目标”的长时域可达性，最终收敛到低动作固定点。
 
-认知损失和决策损失仍然严格分开：更新认知网络时只使用转移预测损失；更新决策价值时冻结认知参数。
+因此当前不再继续调整隐式动作求解器。
 
-## 当前验证结论
+## 当前主线：时变反馈可达通道
 
-当前保留的 Stage78 检查点先用真实动力学替代 ProtoKAN，只验证“价值网络 + 隐式动作层”本身。正式结果位于 `results/oracle_implicit_bellman_seed0.json`。
+随后实验依次验证了粗状态路由、经验终点椭球和反馈通道。结果表明，认知网络向决策网络提供的数学对象非常关键：孤立终点或开环终点分布不能保证存在一个状态反馈策略将系统稳定送达。
+
+当前算子链为：
+
+```mermaid
+flowchart LR
+    T["真实转移 (s,a,s')"] --> C["认知动力学 Fθ"]
+    C --> R["连续名义状态路线"]
+    R --> J["局部导数 At, Bt"]
+    J --> U["时变反馈可达通道 Tt"]
+    U --> P["通道条件决策网络 πφ"]
+    S["实时状态反馈"] --> P
+    P --> A["直接动作"]
+```
+
+在 Oracle 检查点中，先搜索一条连续 480 步状态路线，再从初始蓄能、高速运动和末端摆起三个阶段构造 24 步通道。局部动力学为
+
+\[
+\delta x_{t+1}\approx A_t\delta x_t+B_t\delta a_t,
+\]
+
+每个通道截面使用完整 `4×4` 精度矩阵描述角度—速度耦合关系：
+
+\[
+\mathcal T_t=
+\{x:\delta x_t^\top P_t\delta x_t\le r_t\}.
+\]
+
+LQR 只用于证明通道具有反馈可执行性和生成构造样本；CEM 动作与 LQR 增益均不进入 Actor。决策网络只接收当前状态、白化通道误差、下一截面方向和相位，使用环境反馈通过 PPO 学习直接动作。
+
+## 最新实验结果
+
+正式配置为 150 轮训练、256 个并行环境、每条边 64 个独立测试扰动，随机种子为 0。最佳策略出现在第 50 轮。
 
 | 指标 | 结果 |
 |---|---:|
-| 源环境成功率 | 0/16 |
-| 平均最高末端高度 | -1.9566 |
-| 隐式解 KKT 满足率 | 100% |
-| 局部凹比例 | 100% |
-| 相对 129 点网格的平均 regret | 约 `-5.6e-8` |
-| 可训练 Actor 参数 | 0 |
+| 三条代表性通道完成率 | 100% / 98.44% / 100% |
+| 总体完成率 | 99.48% |
+| 全程通道保持率 | 98.96% |
+| 随机常值动作完成率 | 16.67% |
+| 打乱认知通道描述后的完成率 | 0% |
+| 正确/错误描述的平均动作差 | 0.8257 |
 
-这组结果把问题定位得很清楚：动作求解器准确地求出了当前 Bellman 目标的最优动作，但当前价值学习没有传播“先摆动积累能量、再到达目标”的长时域可达性。求解器优化得很准，优化的目标却是错的。
+预设条件为每条边完成率不低于 95%，当前检查点通过。打乱通道描述后完成率归零，说明策略强烈依赖认知侧提供的通道，而不是简单记住固定动作。
 
-冷启动时 `V≈0`，一步目标几乎只看到微弱的高度变化和 `-0.005a²` 动作惩罚，于是 `a≈0` 成为自洽解。仅在全状态均匀样本上重复一步拟合价值，不能自动打破这个低动作固定点。
+完整推导见 `docs/TIME_VARYING_TUBE_VALIDATION.md`，原始结果见 `results/time_varying_tube_validation_seed0.json`，实现位于 `cpbn/time_varying_tube.py` 和 `scripts/validate_start_route_tubes.py`。
 
-因此，下一研究问题不是继续调隐式求解器，而是构造一个能从成功边界向初始状态传播可达性的决策算子，同时保持：
+## 当前边界与下一检查点
 
-1. 认知网络仍只由预测损失训练；
-2. 决策前向传播必须使用完整认知算子；
-3. 认知更新后，不依赖重新训练大型 Actor 就能改变决策；
-4. 源环境首先能稳定完成 Acrobot，再讨论参数变化后的恢复曲线。
+这还不是最终泛化结果：动力学目前仍是 Oracle，只验证了源环境中的三个独立片段和一个训练种子；尚未完成整条路线的串联，也没有验证参数变化后的在线恢复。
 
-## 精简后的目录
+下一检查点是：
+
+1. 用单一源环境的转移数据预训练 ProtoKAN 认知动力学；
+2. 在目标物理参数下根据真实转移持续更新 ProtoKAN；
+3. 由更新后的认知模型重估通道，并在模型失配超阈值时重新规划；
+4. 保持决策网络结构不变，记录成功率随在线 episode 的恢复曲线；
+5. 对比不更新认知、只更新认知、认知与决策共同更新三种条件。
+
+## 目录
 
 ```text
 cpbn/
-  acrobot.py       # 可微环境、任务目标和 Oracle 认知接口
-  bellman.py       # Bellman 拉回与无 Actor 的隐式动作层
-  networks.py      # 目标条件价值网络
-kanrf/             # KAN / ProtoKAN 核心实现
+  acrobot.py                  # 可微环境与物理参数接口
+  bellman.py                  # 早期 Bellman 拉回基线
+  reachability.py             # 粗状态路由基线
+  reachability_funnel.py      # 开环终点椭球基线
+  time_varying_tube.py        # 连续路线、局部线性化和反馈通道
+kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
   validate_oracle_bellman.py
-tests/
+  validate_coarse_reachability.py
+  validate_edge_funnels.py
+  validate_start_route_tubes.py
 docs/
-  ARCHITECTURE.md  # 数学结构、训练隔离和当前失败推导
+  ARCHITECTURE.md
+  COARSE_REACHABILITY_EXPERIMENT.md
+  EDGE_FUNNEL_VALIDATION.md
+  TIME_VARYING_TUBE_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
+  time_varying_tube_validation_seed0.json
+tests/
 ```
 
 ## 环境与运行
 
-本机所有 Python 命令都必须使用 `dl_env`：
+本机所有 Python 命令必须使用 `dl_env`：
 
 ```powershell
-C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.validate_oracle_bellman `
-  --json-out results\oracle_implicit_bellman_seed0.json
+C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.validate_start_route_tubes `
+  --iterations 150 --num-envs 256 --rollout-horizon 96 `
+  --json-out results\time_varying_tube_validation_seed0.json
 ```
 
-快速语法与最小行为验证：
+快速语法验证：
 
 ```powershell
 C:\Users\32510\miniconda3\envs\dl_env\python.exe -m compileall -q cpbn kanrf scripts tests
 ```
 
-本分支当前是理论和最小实现检查点，不宣称已经得到可投稿的最终算法。
+当前分支是理论与最小实现检查点，不宣称已经得到可投稿的最终算法。
