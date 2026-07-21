@@ -133,6 +133,15 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 因此当前不进入参数切换和 ProtoKAN。下一检查点从“末端解析动作逆解”转向“认知条件化的闭环策略参数”：让认知动力学改变策略内部各层的低秩权重或门控，并使用干预一致性约束认知不可忽略，同时保留直接 Actor 已验证的闭环可训练性。
 
+### 隐式认知—策略参数运输首轮结果
+
+新分支保留 `98.44%` 的直接反馈 Actor，并用目标/源动力学造成的闭环策略梯度差与对角 Fisher 曲率计算整网参数修正。零认知变化产生逐元素严格为零的更新，快速源复测在相同 16 个初态上保持 `16/16`，因此新耦合不再损伤已有源策略。
+
+但 6 步固定相位、6 步反馈相位和 24 步反馈相位三次 Oracle 尝试中，弱执行器、重惯性、强重力与组合变化的正确运输均为 `0/16`，也没有优于错误认知运输。重惯性下 24 步代理损失从 `0.03472` 降到 `0.03116`，平均动作改变 `0.274`，真实平均最高高度却从 `0.471` 降到 `0.385`。
+
+结论是局部参数运输确实进入了整个决策前向传播，但短时域走廊代理目标不是长程 PPO 价值的可靠最优性对象，一次局部更新也不足以重构零成功率目标环境中的长期施力时序。当前不进入 ProtoKAN，完整记录见 `docs/ORACLE_POLICY_TRANSPORT_VALIDATION.md`。
+
+
 ## 目录
 
 ```text
@@ -149,6 +158,7 @@ cpbn/
   feedback_phase.py           # 真实状态反馈相位后验
   cognitive_inverse.py        # 多步控制敏感度与正则化认知逆算子
   cognitive_pullback.py       # Jacobian 伴随递推与强制认知拉回 Actor
+  policy_transport.py         # 闭环目标、Fisher 曲率与认知策略参数运输
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
   validate_oracle_bellman.py
@@ -168,6 +178,7 @@ scripts/
   validate_oracle_inverse_actor.py
   validate_oracle_inverse_actor_fixed_training.py
   validate_oracle_pullback_actor.py
+  validate_oracle_policy_transport.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
@@ -179,6 +190,7 @@ docs/
   FEEDBACK_PHASE_VALIDATION.md
   ORACLE_PULLBACK_ACTOR_VALIDATION.md
   ORACLE_COGNITIVE_INVERSE_VALIDATION.md
+  ORACLE_POLICY_TRANSPORT_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -196,6 +208,7 @@ results/
   oracle_pullback_actor_seed0.json
   oracle_inverse_actor_seed0.json
   oracle_inverse_actor_fixed_seed0.json
+  oracle_policy_transport_seed0.json
 tests/
 ```
 
