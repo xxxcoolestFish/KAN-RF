@@ -153,9 +153,11 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 在相同目标路线、`3e-4` 学习率、60 轮训练和 96 次最终评估下，完整源 Actor 微调为 `28.13%`；只重置占总参数 `22.23%` 的动作头后提升到 `58.33%`，只重置 GRU 循环参数为 `51.04%`，同时重置二者仍为 `58.33%`，而随机 Actor 为 `88.54%`。
 
-这说明旧的隐藏表征—动作映射和时序递推都携带源环境控制惯性，其中动作头是当前最明确的负迁移来源；但两类影响不是简单相加。更关键的是，完整源策略参数并不是纯粹的物理规律载体，而是纠缠了动力学、任务目标和源环境最优施力节奏。下一版需要显式分离可迁移的规律表示与可快速重构的决策块，不能继续把“完整继承源策略”当作认知传递本身。
+单训练种子结果提示旧的隐藏表征—动作映射和时序递推都携带源环境控制惯性，但三训练种子、匹配随机数的复核修正了“动作头是稳定主要来源”的判断。完整源 Actor、动作头重置和随机 Actor 的三种子均值分别为 `27.43%`、`42.36%` 和 `57.99%`；随机 Actor 在 `3/3` 个种子上优于完整继承，但动作头重置只在 `2/3` 个种子上改善，逐种子差值为 `+6.25/-33.33/+71.88` 个百分点。
 
-本轮每个条件只有一个训练种子，结论属于结构诊断而非最终统计结论。完整记录见 `docs/SELECTIVE_POLICY_RESET_DIAGNOSIS.md`。
+稳定结论是完整源策略存在整体负迁移，而不是负迁移已经被定位到某一层。普通 Actor 参数纠缠了动力学、目标、控制节奏和优化坐标系，随机层重置会同时清除旧语义并破坏层间配合。下一版需要显式构造可迁移的规律接口，不能继续把“完整继承源策略”或“找到应重置的一层”当作认知传递。
+
+单种子诊断见 `docs/SELECTIVE_POLICY_RESET_DIAGNOSIS.md`，匹配随机数复核见 `docs/MULTISEED_NEGATIVE_TRANSFER_VALIDATION.md`。
 
 ## 目录
 
@@ -198,6 +200,7 @@ scripts/
   validate_target_fixed_route_training.py
   diagnose_policy_transport_alignment.py
   validate_target_selective_reset.py
+  validate_target_negative_transfer_multiseed.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
@@ -212,6 +215,7 @@ docs/
   ORACLE_POLICY_TRANSPORT_VALIDATION.md
   TARGET_ONLINE_ADAPTATION_DIAGNOSIS.md
   SELECTIVE_POLICY_RESET_DIAGNOSIS.md
+  MULTISEED_NEGATIVE_TRANSFER_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -236,6 +240,7 @@ results/
   policy_transport_alignment_seed0.json
   target_selective_reset_seed0.json
   target_selective_reset_combined_seed0.json
+  target_negative_transfer_multiseed.json
 tests/
 ```
 
