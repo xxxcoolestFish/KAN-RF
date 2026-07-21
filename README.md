@@ -177,6 +177,16 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 完整记录见 `docs/ORACLE_COUNTERFACTUAL_ADJOINT_VALIDATION.md`。
 
+### Oracle 闭环宏步 Bellman Actor
+
+新结构取消零动作点的价值梯度动作层，在 `{-1,-0.5,0,0.5,1}` 的完整动作范围上进行两层反馈 Bellman 备份。每个 Bellman 节点先用同一候选动作滚动 `4` 个内部认知步，让动作效果积累到可辨认尺度；随后针对每个到达状态重新比较全部动作。真实环境只执行第一个动作，下一时刻根据新状态和反馈相位重新规划。
+
+一步内正负最大动作的平均状态间距只有 `0.00982`，四步增至 `0.07583`，八步为 `0.24925`。对应地，一步全动作预筛的平均 logit 范围只有约 `0.05`，四步宏节点正式训练后提高到约 `7`。
+
+固定结构训练 `60` 轮后，最佳第 `35` 轮检查点在三个独立评估种子、共 `96` 个随机初态上得到正确源 Oracle 认知 `95/96 = 98.96%`，错误重惯性 Oracle 认知 `2/96 = 2.08%`，差值 `+96.88` 个百分点；源成功率与正确认知排序两个预设门槛均通过。零训练结构基线已能达到正确认知 `20/48 = 41.67%`、错误认知 `0/48`，说明宏步闭环结构建立了主要认知方向，PPO 学习继续提高成功率。
+
+这是首个同时满足“认知必经、无动作旁路、认知不接受策略梯度、正确认知显著优于错误认知”的高成功率 Oracle 结构。当前仍依赖外部状态走廊、固定动作网格和 Oracle 动力学，尚未证明参数切换泛化。完整记录见 `docs/ORACLE_CLOSED_LOOP_BELLMAN_VALIDATION.md`。
+
 ## 目录
 
 ```text
@@ -195,6 +205,7 @@ cpbn/
   cognitive_pullback.py       # Jacobian 伴随递推与强制认知拉回 Actor
   cognitive_adjoint.py        # 一步 Bellman 势函数与认知伴随 Actor
   counterfactual_adjoint.py   # 反事实 Bellman 值/斜率监督的认知伴随 Actor
+  closed_loop_bellman.py      # 全动作闭环宏步 Bellman Actor
   policy_transport.py         # 闭环目标、Fisher 曲率与认知策略参数运输
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
@@ -217,6 +228,7 @@ scripts/
   validate_oracle_pullback_actor.py
   validate_oracle_bellman_adjoint_actor.py
   validate_oracle_counterfactual_adjoint_actor.py
+  validate_oracle_closed_loop_bellman_actor.py
   validate_oracle_policy_transport.py
   validate_target_online_adaptation.py
   validate_target_fixed_route_training.py
@@ -240,6 +252,7 @@ docs/
   MULTISEED_NEGATIVE_TRANSFER_VALIDATION.md
   ORACLE_BELLMAN_ADJOINT_VALIDATION.md
   ORACLE_COUNTERFACTUAL_ADJOINT_VALIDATION.md
+  ORACLE_CLOSED_LOOP_BELLMAN_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -268,6 +281,7 @@ results/
   oracle_bellman_adjoint_actor_seed0.json
   oracle_bellman_adjoint_actor_60_seed0.json
   oracle_counterfactual_adjoint_actor_seed0.json
+  oracle_closed_loop_bellman_actor_seed0.json
 tests/
 ```
 
