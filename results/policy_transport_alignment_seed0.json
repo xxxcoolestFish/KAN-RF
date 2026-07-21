@@ -1,0 +1,117 @@
+{
+  "experiment": "PolicyTransportVsOnlinePPOAlignment",
+  "config": {
+    "source_checkpoint": "results/direct_corridor_actor_strong_seed0.pt",
+    "adapted_checkpoint": "results/target_fixed_route_training_equal_lr_seed0.pt",
+    "rollout_steps": 24,
+    "corridor_horizon": 12,
+    "calibration_count": 32,
+    "action_count": 512,
+    "fisher_draws": 2,
+    "damping": 0.03,
+    "trust_radius": 0.2,
+    "transport_scale": 0.125,
+    "noise": 0.025,
+    "seed": 0,
+    "json_out": "results/policy_transport_alignment_seed0.json"
+  },
+  "result": {
+    "target_factor": [
+      7.35,
+      0.0,
+      0.8,
+      1.2
+    ],
+    "actual_online_ppo_update": {
+      "norm": 1.3406568765640259,
+      "relative_to_source_parameter_norm": 0.11573188751935959
+    },
+    "cpit_update": {
+      "unscaled_norm": 0.849400520324707,
+      "evaluation_scale": 0.125,
+      "scaled_norm": 0.10617506504058838,
+      "diagnostics": {
+        "source_objective": 0.04019829258322716,
+        "target_objective": 0.04940898343920708,
+        "gradient_difference_norm": 0.1087111160159111,
+        "raw_update_norm": 0.8645893931388855,
+        "transported_update_norm": 0.8494006991386414,
+        "fisher_metric_norm": 0.20357632637023926,
+        "trust_scale": 0.9824325036510627,
+        "parameter_block_norms": {
+          "encoder.gru.weight_ih_l0": 0.29509860277175903,
+          "encoder.gru.weight_hh_l0": 0.7601538896560669,
+          "encoder.gru.bias_ih_l0": 0.12752856314182281,
+          "encoder.gru.bias_hh_l0": 0.12992146611213684,
+          "head.0.weight": 0.12728294730186462,
+          "head.0.bias": 0.03181169182062149,
+          "head.2.weight": 0.05058062821626663,
+          "head.2.bias": 0.060415010899305344
+        }
+      }
+    },
+    "parameter_space_alignment": {
+      "global_cosine": 0.07690346986055374,
+      "layer_alignment": {
+        "encoder.gru.weight_ih_l0": {
+          "actual_norm": 0.5515559315681458,
+          "predicted_norm": 0.29509860277175903,
+          "cosine": 0.2507941722869873
+        },
+        "encoder.gru.weight_hh_l0": {
+          "actual_norm": 1.1393784284591675,
+          "predicted_norm": 0.7601538896560669,
+          "cosine": 0.0226727444678545
+        },
+        "encoder.gru.bias_ih_l0": {
+          "actual_norm": 0.0853307843208313,
+          "predicted_norm": 0.12752856314182281,
+          "cosine": -0.0895240530371666
+        },
+        "encoder.gru.bias_hh_l0": {
+          "actual_norm": 0.08524718880653381,
+          "predicted_norm": 0.12992146611213684,
+          "cosine": -0.09019096940755844
+        },
+        "head.0.weight": {
+          "actual_norm": 0.42179587483406067,
+          "predicted_norm": 0.12728294730186462,
+          "cosine": 0.5442502498626709
+        },
+        "head.0.bias": {
+          "actual_norm": 0.036377061158418655,
+          "predicted_norm": 0.03181169182062149,
+          "cosine": -0.7958602905273438
+        },
+        "head.2.weight": {
+          "actual_norm": 0.03418014943599701,
+          "predicted_norm": 0.05058062821626663,
+          "cosine": 0.5756335854530334
+        },
+        "head.2.bias": {
+          "actual_norm": 0.0033657699823379517,
+          "predicted_norm": 0.060415010899305344,
+          "cosine": -1.0
+        }
+      }
+    },
+    "source_route_action_alignment": {
+      "actual_mean_absolute_change": 0.4116511046886444,
+      "predicted_mean_absolute_change": 0.29257309436798096,
+      "cosine": 0.6897743344306946,
+      "sign_agreement": 0.74609375
+    },
+    "target_route_action_alignment": {
+      "actual_mean_absolute_change": 0.34205716848373413,
+      "predicted_mean_absolute_change": 0.22726844251155853,
+      "cosine": 0.3725353479385376,
+      "sign_agreement": 0.548828125
+    },
+    "successful_target_policy_action_alignment": {
+      "actual_mean_absolute_change": 0.6154606938362122,
+      "predicted_mean_absolute_change": 0.231911763548851,
+      "cosine": 0.11564279347658157,
+      "sign_agreement": 0.455078125
+    }
+  }
+}

@@ -1,0 +1,703 @@
+{
+  "experiment": "HeavyInertiaTargetOnlineAdaptationValidation",
+  "config": {
+    "checkpoint": "results/direct_corridor_actor_strong_seed0.pt",
+    "reference_segments": 30,
+    "segment_steps": 24,
+    "reference_population": 4096,
+    "reference_elite": 256,
+    "reference_iterations": 18,
+    "reference_seed": 0,
+    "corridor_horizon": 12,
+    "iterations": 60,
+    "num_envs": 64,
+    "rollout_horizon": 96,
+    "ppo_epochs": 2,
+    "minibatch": 512,
+    "adapt_actor_lr": 0.0001,
+    "scratch_actor_lr": 0.0003,
+    "critic_lr": 0.001,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "entropy_coef": 0.005,
+    "progress_reward": 1.0,
+    "phase_progress_reward": 0.04,
+    "progress_clip": 0.25,
+    "inside_reward": 0.08,
+    "stagnation_penalty": 0.01,
+    "success_reward": 3.0,
+    "action_penalty": 0.002,
+    "corridor_radius": 0.12,
+    "initial_noise": 0.025,
+    "full_initial_noise": 0.02,
+    "phase_backtrack": 4,
+    "phase_advance": 12,
+    "eval_every": 10,
+    "eval_count": 16,
+    "num_test_seeds": 3,
+    "final_count": 32,
+    "evaluation_steps": 750,
+    "test_seed": 20261201,
+    "seed": 0,
+    "checkpoint_out": "results\\target_online_adaptation_seed0.pt",
+    "json_out": "results\\target_online_adaptation_seed0.json"
+  },
+  "result": {
+    "target_factor": [
+      7.35,
+      0.0,
+      0.8,
+      1.2
+    ],
+    "target_reference": {
+      "state_count": 721,
+      "maximum_height": 1.8568711280822754,
+      "success_step": 720,
+      "actions_exposed_to_actor": false
+    },
+    "initial": {
+      "source_actor_source_route": {
+        "success_count": 3,
+        "evaluation_count": 96,
+        "success_rate": 0.03125,
+        "mean_maximum_height": 0.5968510905901591,
+        "minimum_maximum_height": -0.8537678718566895,
+        "mean_final_phase": 428.25,
+        "mean_success_step": 577.6666666666666,
+        "per_seed": [
+          {
+            "seed": 20262201,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.6042722463607788,
+            "minimum_maximum_height": -0.8438090682029724,
+            "mean_final_phase": 430.625,
+            "minimum_final_phase": 190,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 43.741791666666664,
+            "stay_rate": 0.3288333333333333,
+            "backward_rate": 0.066625,
+            "jump_rate": 0.03575,
+            "evaluation_count": 32
+          },
+          {
+            "seed": 20263210,
+            "success_count": 1,
+            "success_rate": 0.03125,
+            "mean_maximum_height": 0.5747805833816528,
+            "minimum_maximum_height": -0.8537678718566895,
+            "mean_final_phase": 423.09375,
+            "minimum_final_phase": 189,
+            "mean_success_step": 582.0,
+            "mean_clock_lag_of_active_routes": 47.12211020914714,
+            "stay_rate": 0.32464753272910374,
+            "backward_rate": 0.07259147364887546,
+            "jump_rate": 0.03654749916079221,
+            "evaluation_count": 32
+          },
+          {
+            "seed": 20264219,
+            "success_count": 2,
+            "success_rate": 0.0625,
+            "mean_maximum_height": 0.6115004420280457,
+            "minimum_maximum_height": -0.8444368839263916,
+            "mean_final_phase": 431.03125,
+            "minimum_final_phase": 189,
+            "mean_success_step": 575.5,
+            "mean_clock_lag_of_active_routes": 44.7472799987793,
+            "stay_rate": 0.3249334066212845,
+            "backward_rate": 0.06405648809775485,
+            "jump_rate": 0.03678491395712655,
+            "evaluation_count": 32
+          }
+        ]
+      },
+      "source_actor_target_route": {
+        "success_count": 0,
+        "evaluation_count": 96,
+        "success_rate": 0.0,
+        "mean_maximum_height": 0.296898032228152,
+        "minimum_maximum_height": -1.823336124420166,
+        "mean_final_phase": 481.71875,
+        "mean_success_step": 0.0,
+        "per_seed": [
+          {
+            "seed": 20263201,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.38579124212265015,
+            "minimum_maximum_height": 0.14813435077667236,
+            "mean_final_phase": 495.09375,
+            "minimum_final_phase": 421,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 52.44145833333334,
+            "stay_rate": 0.33870833333333333,
+            "backward_rate": 0.08108333333333333,
+            "jump_rate": 0.0505,
+            "evaluation_count": 32
+          },
+          {
+            "seed": 20264210,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.30512893199920654,
+            "minimum_maximum_height": -1.8014304637908936,
+            "mean_final_phase": 485.75,
+            "minimum_final_phase": 133,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 58.11375,
+            "stay_rate": 0.36575,
+            "backward_rate": 0.07158333333333333,
+            "jump_rate": 0.04945833333333333,
+            "evaluation_count": 32
+          },
+          {
+            "seed": 20265219,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.19977392256259918,
+            "minimum_maximum_height": -1.823336124420166,
+            "mean_final_phase": 464.3125,
+            "minimum_final_phase": 133,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 69.54304166666667,
+            "stay_rate": 0.38975,
+            "backward_rate": 0.07541666666666667,
+            "jump_rate": 0.04779166666666667,
+            "evaluation_count": 32
+          }
+        ]
+      },
+      "scratch_actor_target_route": {
+        "success_count": 0,
+        "evaluation_count": 96,
+        "success_rate": 0.0,
+        "mean_maximum_height": -1.9825156132380168,
+        "minimum_maximum_height": -1.9989323616027832,
+        "mean_final_phase": 2.8645833333333335,
+        "mean_success_step": 0.0,
+        "per_seed": [
+          {
+            "seed": 20264201,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.9873985052108765,
+            "minimum_maximum_height": -1.9982967376708984,
+            "mean_final_phase": 1.96875,
+            "minimum_final_phase": 0,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 373.4526666666667,
+            "stay_rate": 0.8622916666666667,
+            "backward_rate": 0.06345833333333334,
+            "jump_rate": 0.00475,
+            "evaluation_count": 32
+          },
+          {
+            "seed": 20265210,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.9778754711151123,
+            "minimum_maximum_height": -1.9989323616027832,
+            "mean_final_phase": 2.59375,
+            "minimum_final_phase": 0,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 371.952375,
+            "stay_rate": 0.8330416666666667,
+            "backward_rate": 0.07729166666666666,
+            "jump_rate": 0.00875,
+            "evaluation_count": 32
+          },
+          {
+            "seed": 20266219,
+            "success_count": 0,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.9822728633880615,
+            "minimum_maximum_height": -1.9974689483642578,
+            "mean_final_phase": 4.03125,
+            "minimum_final_phase": 0,
+            "mean_success_step": null,
+            "mean_clock_lag_of_active_routes": 372.28766666666667,
+            "stay_rate": 0.8587083333333333,
+            "backward_rate": 0.06475,
+            "jump_rate": 0.005833333333333334,
+            "evaluation_count": 32
+          }
+        ]
+      }
+    },
+    "conditions": {
+      "source_actor_source_route": {
+        "history": [
+          {
+            "iteration": 1,
+            "collected_successes": 5,
+            "mean_reward": 0.06750431656837463,
+            "return_target_std": 0.5908437371253967,
+            "mean_phase_delta": 0.4133223593235016,
+            "actor_loss": -0.006220185003864269,
+            "critic_loss": 0.23671243091424307,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.7368512153625488,
+            "mean_final_phase": 452.25
+          },
+          {
+            "iteration": 10,
+            "collected_successes": 6,
+            "mean_reward": 0.07301614433526993,
+            "return_target_std": 1.298362374305725,
+            "mean_phase_delta": 0.44046053290367126,
+            "actor_loss": -0.007419525082999219,
+            "critic_loss": 0.1242420095950365,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.6075798273086548,
+            "mean_final_phase": 424.375
+          },
+          {
+            "iteration": 20,
+            "collected_successes": 6,
+            "mean_reward": 0.07093972712755203,
+            "return_target_std": 2.341247320175171,
+            "mean_phase_delta": 0.3253289461135864,
+            "actor_loss": -0.005517582040435324,
+            "critic_loss": 0.1385565393914779,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.6427846550941467,
+            "mean_final_phase": 408.25
+          },
+          {
+            "iteration": 30,
+            "collected_successes": 5,
+            "mean_reward": 0.07517064362764359,
+            "return_target_std": 2.2798149585723877,
+            "mean_phase_delta": 0.49638158082962036,
+            "actor_loss": -0.005882531307482471,
+            "critic_loss": 0.10928779374808073,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.7731156349182129,
+            "mean_final_phase": 448.125
+          },
+          {
+            "iteration": 40,
+            "collected_successes": 6,
+            "mean_reward": 0.0737193152308464,
+            "return_target_std": 2.5802905559539795,
+            "mean_phase_delta": 0.2455592155456543,
+            "actor_loss": -0.006357621246327956,
+            "critic_loss": 0.1265211288506786,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.7678130865097046,
+            "mean_final_phase": 445.9375
+          },
+          {
+            "iteration": 50,
+            "collected_successes": 8,
+            "mean_reward": 0.08383520692586899,
+            "return_target_std": 2.3562657833099365,
+            "mean_phase_delta": 0.49029606580734253,
+            "actor_loss": -0.005122389139917989,
+            "critic_loss": 0.09818741213530302,
+            "success_rate": 0.125,
+            "mean_maximum_height": 0.7745827436447144,
+            "mean_final_phase": 452.3125
+          },
+          {
+            "iteration": 60,
+            "collected_successes": 9,
+            "mean_reward": 0.07268712669610977,
+            "return_target_std": 2.2608344554901123,
+            "mean_phase_delta": 0.20049342513084412,
+            "actor_loss": -0.005493160958091418,
+            "critic_loss": 0.13145785157879195,
+            "success_rate": 0.125,
+            "mean_maximum_height": 0.6221551895141602,
+            "mean_final_phase": 429.6875
+          }
+        ],
+        "best_iteration": 50,
+        "final": {
+          "success_count": 9,
+          "evaluation_count": 96,
+          "success_rate": 0.09375,
+          "mean_maximum_height": 0.7931718031565348,
+          "minimum_maximum_height": 0.20423173904418945,
+          "mean_final_phase": 448.53125,
+          "mean_success_step": 563.7777845594618,
+          "per_seed": [
+            {
+              "seed": 20411201,
+              "success_count": 5,
+              "success_rate": 0.15625,
+              "mean_maximum_height": 0.8106091022491455,
+              "minimum_maximum_height": 0.4267227053642273,
+              "mean_final_phase": 450.6875,
+              "minimum_final_phase": 415,
+              "mean_success_step": 564.2000122070312,
+              "mean_clock_lag_of_active_routes": 26.40433669281006,
+              "stay_rate": 0.29084131593775736,
+              "backward_rate": 0.052403450218889515,
+              "jump_rate": 0.035672489272246546,
+              "evaluation_count": 32
+            },
+            {
+              "seed": 20412210,
+              "success_count": 2,
+              "success_rate": 0.0625,
+              "mean_maximum_height": 0.7522114515304565,
+              "minimum_maximum_height": 0.20423173904418945,
+              "mean_final_phase": 448.0,
+              "minimum_final_phase": 418,
+              "mean_success_step": 567.0,
+              "mean_clock_lag_of_active_routes": 26.477217374165853,
+              "stay_rate": 0.3068037572988068,
+              "backward_rate": 0.055597867479055596,
+              "jump_rate": 0.03571126343403571,
+              "evaluation_count": 32
+            },
+            {
+              "seed": 20413219,
+              "success_count": 2,
+              "success_rate": 0.0625,
+              "mean_maximum_height": 0.8166948556900024,
+              "minimum_maximum_height": 0.5773682594299316,
+              "mean_final_phase": 446.90625,
+              "minimum_final_phase": 416,
+              "mean_success_step": 559.5,
+              "mean_clock_lag_of_active_routes": 26.68958610280355,
+              "stay_rate": 0.3017062534400271,
+              "backward_rate": 0.05914729666793683,
+              "jump_rate": 0.035310555061602945,
+              "evaluation_count": 32
+            }
+          ]
+        }
+      },
+      "source_actor_target_route": {
+        "history": [
+          {
+            "iteration": 1,
+            "collected_successes": 12,
+            "mean_reward": 0.08409861475229263,
+            "return_target_std": 0.7712652087211609,
+            "mean_phase_delta": 0.2970394790172577,
+            "actor_loss": -0.006486988936861356,
+            "critic_loss": 0.44498041085898876,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.39009758830070496,
+            "mean_final_phase": 500.8125
+          },
+          {
+            "iteration": 10,
+            "collected_successes": 6,
+            "mean_reward": 0.07871799916028976,
+            "return_target_std": 2.175224781036377,
+            "mean_phase_delta": 0.40723684430122375,
+            "actor_loss": -0.007047320987718801,
+            "critic_loss": 0.1742524318397045,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.48336637020111084,
+            "mean_final_phase": 511.3125
+          },
+          {
+            "iteration": 20,
+            "collected_successes": 9,
+            "mean_reward": 0.08795547485351562,
+            "return_target_std": 3.0280046463012695,
+            "mean_phase_delta": 0.39605262875556946,
+            "actor_loss": -0.00587029035280769,
+            "critic_loss": 0.17552893360455832,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.18797138333320618,
+            "mean_final_phase": 472.4375
+          },
+          {
+            "iteration": 30,
+            "collected_successes": 12,
+            "mean_reward": 0.08047107607126236,
+            "return_target_std": 3.1960337162017822,
+            "mean_phase_delta": 0.3212171196937561,
+            "actor_loss": -0.005604745781359573,
+            "critic_loss": 0.22087875505288443,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.356299489736557,
+            "mean_final_phase": 500.3125
+          },
+          {
+            "iteration": 40,
+            "collected_successes": 13,
+            "mean_reward": 0.08630108833312988,
+            "return_target_std": 3.0534861087799072,
+            "mean_phase_delta": 0.04309210553765297,
+            "actor_loss": -0.006445117886566247,
+            "critic_loss": 0.18288922620316347,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.08972390741109848,
+            "mean_final_phase": 461.4375
+          },
+          {
+            "iteration": 50,
+            "collected_successes": 6,
+            "mean_reward": 0.08967241644859314,
+            "return_target_std": 2.7619917392730713,
+            "mean_phase_delta": 0.5518091917037964,
+            "actor_loss": -0.0060856360554074245,
+            "critic_loss": 0.14159516245126724,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.6236916184425354,
+            "mean_final_phase": 536.125
+          },
+          {
+            "iteration": 60,
+            "collected_successes": 9,
+            "mean_reward": 0.08788471668958664,
+            "return_target_std": 3.166175365447998,
+            "mean_phase_delta": 0.5970394611358643,
+            "actor_loss": -0.00719252028890575,
+            "critic_loss": 0.14315507157395282,
+            "success_rate": 0.0,
+            "mean_maximum_height": 0.469870388507843,
+            "mean_final_phase": 516.8125
+          }
+        ],
+        "best_iteration": 50,
+        "final": {
+          "success_count": 0,
+          "evaluation_count": 96,
+          "success_rate": 0.0,
+          "mean_maximum_height": 0.5023748675982157,
+          "minimum_maximum_height": -1.8129607439041138,
+          "mean_final_phase": 515.03125,
+          "mean_success_step": 0.0,
+          "per_seed": [
+            {
+              "seed": 20511201,
+              "success_count": 0,
+              "success_rate": 0.0,
+              "mean_maximum_height": 0.5453982353210449,
+              "minimum_maximum_height": 0.2677084505558014,
+              "mean_final_phase": 518.875,
+              "minimum_final_phase": 405,
+              "mean_success_step": null,
+              "mean_clock_lag_of_active_routes": 48.112875,
+              "stay_rate": 0.2649166666666667,
+              "backward_rate": 0.09070833333333334,
+              "jump_rate": 0.06041666666666667,
+              "evaluation_count": 32
+            },
+            {
+              "seed": 20512210,
+              "success_count": 0,
+              "success_rate": 0.0,
+              "mean_maximum_height": 0.5191831588745117,
+              "minimum_maximum_height": 0.3403276205062866,
+              "mean_final_phase": 517.125,
+              "minimum_final_phase": 483,
+              "mean_success_step": null,
+              "mean_clock_lag_of_active_routes": 48.13945833333333,
+              "stay_rate": 0.302,
+              "backward_rate": 0.08529166666666667,
+              "jump_rate": 0.059541666666666666,
+              "evaluation_count": 32
+            },
+            {
+              "seed": 20513219,
+              "success_count": 0,
+              "success_rate": 0.0,
+              "mean_maximum_height": 0.4425432085990906,
+              "minimum_maximum_height": -1.8129607439041138,
+              "mean_final_phase": 509.09375,
+              "minimum_final_phase": 134,
+              "mean_success_step": null,
+              "mean_clock_lag_of_active_routes": 53.29533333333333,
+              "stay_rate": 0.2955,
+              "backward_rate": 0.083625,
+              "jump_rate": 0.06025,
+              "evaluation_count": 32
+            }
+          ]
+        }
+      },
+      "scratch_actor_target_route": {
+        "history": [
+          {
+            "iteration": 1,
+            "collected_successes": 8,
+            "mean_reward": 0.03430510684847832,
+            "return_target_std": 0.8264439105987549,
+            "mean_phase_delta": 0.07039473950862885,
+            "actor_loss": -0.009089445520658046,
+            "critic_loss": 0.3057364883522193,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.9868156909942627,
+            "mean_final_phase": 4.0
+          },
+          {
+            "iteration": 10,
+            "collected_successes": 13,
+            "mean_reward": 0.0602378249168396,
+            "return_target_std": 1.5829248428344727,
+            "mean_phase_delta": -0.25345394015312195,
+            "actor_loss": -0.008468478413609168,
+            "critic_loss": 0.3177956280608972,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.9705960750579834,
+            "mean_final_phase": 14.875
+          },
+          {
+            "iteration": 20,
+            "collected_successes": 14,
+            "mean_reward": 0.07735153287649155,
+            "return_target_std": 1.9692107439041138,
+            "mean_phase_delta": 0.2095394730567932,
+            "actor_loss": -0.006608222669456154,
+            "critic_loss": 0.28786288636426133,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.738140344619751,
+            "mean_final_phase": 86.5
+          },
+          {
+            "iteration": 30,
+            "collected_successes": 5,
+            "mean_reward": 0.07058999687433243,
+            "return_target_std": 2.9861531257629395,
+            "mean_phase_delta": 0.5083881616592407,
+            "actor_loss": -0.0072372911575560766,
+            "critic_loss": 0.26163411637147266,
+            "success_rate": 0.0,
+            "mean_maximum_height": -0.8216704726219177,
+            "mean_final_phase": 269.5
+          },
+          {
+            "iteration": 40,
+            "collected_successes": 18,
+            "mean_reward": 0.07883390784263611,
+            "return_target_std": 2.885342597961426,
+            "mean_phase_delta": 0.005921052768826485,
+            "actor_loss": -0.007776541926432401,
+            "critic_loss": 0.22037683116892973,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.4559911489486694,
+            "mean_final_phase": 154.375
+          },
+          {
+            "iteration": 50,
+            "collected_successes": 14,
+            "mean_reward": 0.07608608156442642,
+            "return_target_std": 2.7848634719848633,
+            "mean_phase_delta": 0.3679276406764984,
+            "actor_loss": -0.007221588787312309,
+            "critic_loss": 0.22029663932820162,
+            "success_rate": 0.0,
+            "mean_maximum_height": -0.8579174280166626,
+            "mean_final_phase": 237.0
+          },
+          {
+            "iteration": 60,
+            "collected_successes": 12,
+            "mean_reward": 0.07288364320993423,
+            "return_target_std": 2.865123748779297,
+            "mean_phase_delta": 0.10805921256542206,
+            "actor_loss": -0.007216032613844921,
+            "critic_loss": 0.26498509633044404,
+            "success_rate": 0.0,
+            "mean_maximum_height": -1.0544955730438232,
+            "mean_final_phase": 236.125
+          }
+        ],
+        "best_iteration": 30,
+        "final": {
+          "success_count": 1,
+          "evaluation_count": 96,
+          "success_rate": 0.010416666666666666,
+          "mean_maximum_height": -1.281649112701416,
+          "minimum_maximum_height": -1.9756163358688354,
+          "mean_final_phase": 186.13541666666666,
+          "mean_success_step": 672.0,
+          "per_seed": [
+            {
+              "seed": 20611201,
+              "success_count": 0,
+              "success_rate": 0.0,
+              "mean_maximum_height": -1.415321946144104,
+              "minimum_maximum_height": -1.9706478118896484,
+              "mean_final_phase": 168.25,
+              "minimum_final_phase": 12,
+              "mean_success_step": null,
+              "mean_clock_lag_of_active_routes": 274.64595833333334,
+              "stay_rate": 0.5579166666666666,
+              "backward_rate": 0.14370833333333333,
+              "jump_rate": 0.04416666666666667,
+              "evaluation_count": 32
+            },
+            {
+              "seed": 20612210,
+              "success_count": 1,
+              "success_rate": 0.03125,
+              "mean_maximum_height": -1.2504138946533203,
+              "minimum_maximum_height": -1.9733028411865234,
+              "mean_final_phase": 189.40625,
+              "minimum_final_phase": 11,
+              "mean_success_step": 672.0,
+              "mean_clock_lag_of_active_routes": 260.41045955403644,
+              "stay_rate": 0.5570186439260931,
+              "backward_rate": 0.1328902265696848,
+              "jump_rate": 0.051291698018560324,
+              "evaluation_count": 32
+            },
+            {
+              "seed": 20613219,
+              "success_count": 0,
+              "success_rate": 0.0,
+              "mean_maximum_height": -1.1792114973068237,
+              "minimum_maximum_height": -1.9756163358688354,
+              "mean_final_phase": 200.75,
+              "minimum_final_phase": 11,
+              "mean_success_step": null,
+              "mean_clock_lag_of_active_routes": 254.22354166666668,
+              "stay_rate": 0.5487083333333334,
+              "backward_rate": 0.12966666666666668,
+              "jump_rate": 0.05616666666666666,
+              "evaluation_count": 32
+            }
+          ]
+        }
+      }
+    },
+    "source_initialized_parameter_displacement": {
+      "source_route": {
+        "total_norm": 0.476561963558197,
+        "relative_norm": 0.04113909602165222,
+        "parameter_block_norms": {
+          "encoder.gru.weight_ih_l0": 0.1581588238477707,
+          "encoder.gru.weight_hh_l0": 0.3675086498260498,
+          "encoder.gru.bias_ih_l0": 0.022993121296167374,
+          "encoder.gru.bias_hh_l0": 0.02325287088751793,
+          "head.0.weight": 0.25334736704826355,
+          "head.0.bias": 0.024530038237571716,
+          "head.2.weight": 0.03415125980973244,
+          "head.2.bias": 0.0034954696893692017
+        }
+      },
+      "target_route": {
+        "total_norm": 0.5722084045410156,
+        "relative_norm": 0.04939575120806694,
+        "parameter_block_norms": {
+          "encoder.gru.weight_ih_l0": 0.26732930541038513,
+          "encoder.gru.weight_hh_l0": 0.47227996587753296,
+          "encoder.gru.bias_ih_l0": 0.033886127173900604,
+          "encoder.gru.bias_hh_l0": 0.034056004136800766,
+          "head.0.weight": 0.17376962304115295,
+          "head.0.bias": 0.006897604092955589,
+          "head.2.weight": 0.018873978406190872,
+          "head.2.bias": 0.0011703968048095703
+        }
+      }
+    },
+    "summary": {
+      "target_route_is_physically_solved": true,
+      "source_route_online_success_rate": 0.09375,
+      "target_route_online_success_rate": 0.0,
+      "scratch_target_success_rate": 0.010416666666666666
+    }
+  }
+}

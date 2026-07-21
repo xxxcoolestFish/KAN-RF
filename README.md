@@ -141,6 +141,13 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 结论是局部参数运输确实进入了整个决策前向传播，但短时域走廊代理目标不是长程 PPO 价值的可靠最优性对象，一次局部更新也不足以重构零成功率目标环境中的长期施力时序。当前不进入 ProtoKAN，完整记录见 `docs/ORACLE_POLICY_TRANSPORT_VALIDATION.md`。
 
+### 重惯性目标在线恢复诊断
+
+原 480 步目标路线在重惯性环境中不可达，CEM 最高高度只有 `0.590`；扩展到 720 步后找到最高高度 `1.8569` 的成功路线。这说明此前 500 步零成功率混入了路线时域限制。
+
+在同一 Oracle 目标路线、固定时钟训练和反馈相位执行下，随机初始化 Actor 达到 `85/96 = 88.54%`，而相同 `3e-4` 学习率的源 Actor 微调只有 `27/96 = 28.13%`。目标任务、网络和 PPO 均可工作，但源策略产生了显著负迁移；训练时直接使用反馈相位也明显弱于已经验证的固定时钟协议。
+
+当前 CPIT 与真实源 Actor 在线 PPO 位移的参数余弦只有 `0.0769`，与 88.54% 成功目标策略在目标路线上的动作变化余弦只有 `0.1156`、同号率 `45.51%`。因此运输方向与成功策略所需的功能变化基本不一致。完整诊断见 `docs/TARGET_ONLINE_ADAPTATION_DIAGNOSIS.md`。
 
 ## 目录
 
@@ -179,6 +186,9 @@ scripts/
   validate_oracle_inverse_actor_fixed_training.py
   validate_oracle_pullback_actor.py
   validate_oracle_policy_transport.py
+  validate_target_online_adaptation.py
+  validate_target_fixed_route_training.py
+  diagnose_policy_transport_alignment.py
 docs/
   ARCHITECTURE.md
   COARSE_REACHABILITY_EXPERIMENT.md
@@ -191,6 +201,7 @@ docs/
   ORACLE_PULLBACK_ACTOR_VALIDATION.md
   ORACLE_COGNITIVE_INVERSE_VALIDATION.md
   ORACLE_POLICY_TRANSPORT_VALIDATION.md
+  TARGET_ONLINE_ADAPTATION_DIAGNOSIS.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -209,6 +220,10 @@ results/
   oracle_inverse_actor_seed0.json
   oracle_inverse_actor_fixed_seed0.json
   oracle_policy_transport_seed0.json
+  target_online_adaptation_seed0.json
+  target_fixed_route_training_seed0.json
+  target_fixed_route_training_equal_lr_seed0.json
+  policy_transport_alignment_seed0.json
 tests/
 ```
 
