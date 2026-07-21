@@ -167,6 +167,16 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 完整记录见 `docs/ORACLE_BELLMAN_ADJOINT_VALIDATION.md`。
 
+### 反事实 Bellman / Sobolev 监督复核
+
+为直接约束真正生成动作的价值梯度，训练阶段在每个状态构造 `a=+0.5/-0.5` 两个反事实转移，并用冻结目标 Critic 的 Bellman 值同时监督势函数的值与中心差分动作斜率；执行阶段仍然只有一次认知伴随前向传播，不使用动作探针。
+
+这项约束确实生效：动作对认知替换的平均敏感度升至 `0.14162`，Sobolev 斜率损失也持续处于非零量级。但正式复测中，正确源认知只有 `46/96 = 47.92%`，错误重惯性认知反而达到 `62/96 = 64.58%`，正确认知落后 `16.67` 个百分点；源环境成功率和正确/错误认知排序两个门槛均失败。
+
+新的关键结论是：梯度监督只会忠实复制教师所给的梯度，而目标 Critic 只在当前策略访问到的状态上训练，其对反事实下一状态的值属于未经验证的离策略外推。于是更强的 Sobolev 约束可能把错误外推更稳定地写入动作方向；一步局部走廊收益也无法表达 Acrobot 摆起所需的先蓄能、后到达。当前停止调权，不进入 ProtoKAN。
+
+完整记录见 `docs/ORACLE_COUNTERFACTUAL_ADJOINT_VALIDATION.md`。
+
 ## 目录
 
 ```text
@@ -184,6 +194,7 @@ cpbn/
   cognitive_inverse.py        # 多步控制敏感度与正则化认知逆算子
   cognitive_pullback.py       # Jacobian 伴随递推与强制认知拉回 Actor
   cognitive_adjoint.py        # 一步 Bellman 势函数与认知伴随 Actor
+  counterfactual_adjoint.py   # 反事实 Bellman 值/斜率监督的认知伴随 Actor
   policy_transport.py         # 闭环目标、Fisher 曲率与认知策略参数运输
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
@@ -205,6 +216,7 @@ scripts/
   validate_oracle_inverse_actor_fixed_training.py
   validate_oracle_pullback_actor.py
   validate_oracle_bellman_adjoint_actor.py
+  validate_oracle_counterfactual_adjoint_actor.py
   validate_oracle_policy_transport.py
   validate_target_online_adaptation.py
   validate_target_fixed_route_training.py
@@ -227,6 +239,7 @@ docs/
   SELECTIVE_POLICY_RESET_DIAGNOSIS.md
   MULTISEED_NEGATIVE_TRANSFER_VALIDATION.md
   ORACLE_BELLMAN_ADJOINT_VALIDATION.md
+  ORACLE_COUNTERFACTUAL_ADJOINT_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -254,6 +267,7 @@ results/
   target_negative_transfer_multiseed.json
   oracle_bellman_adjoint_actor_seed0.json
   oracle_bellman_adjoint_actor_60_seed0.json
+  oracle_counterfactual_adjoint_actor_seed0.json
 tests/
 ```
 
