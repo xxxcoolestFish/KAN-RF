@@ -159,6 +159,14 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 单种子诊断见 `docs/SELECTIVE_POLICY_RESET_DIAGNOSIS.md`，匹配随机数复核见 `docs/MULTISEED_NEGATIVE_TRANSFER_VALIDATION.md`。
 
+### Oracle 一步 Bellman 伴随策略
+
+新结构用标量任务势函数的一步认知拉回生成动作，取消自由四维协变量，并用局部控制 Gramian 修复尺度：当前动作只负责 (F_\theta(s,a)) 的一步转移，未来控制由势函数表示。它在源环境把旧拉回的 `15.94%` 提升到 45 轮的 `84/96 = 87.50%`，证明时间结构修正确实有效，但仍未通过预设的 `90%` 门槛。
+
+延长到 60 轮后，正确认知复测为 `80/96 = 83.33%`，错误重惯性认知反而为 `87/96 = 90.63%`；认知替换使动作平均变化 `0.06944`，说明网络使用了认知，却没有稳定使用其正确物理语义。根因是状态值回归约束函数值但不唯一约束用于动作的梯度。当前按门控规则停止，不进入目标环境和 ProtoKAN。
+
+完整记录见 `docs/ORACLE_BELLMAN_ADJOINT_VALIDATION.md`。
+
 ## 目录
 
 ```text
@@ -175,6 +183,7 @@ cpbn/
   feedback_phase.py           # 真实状态反馈相位后验
   cognitive_inverse.py        # 多步控制敏感度与正则化认知逆算子
   cognitive_pullback.py       # Jacobian 伴随递推与强制认知拉回 Actor
+  cognitive_adjoint.py        # 一步 Bellman 势函数与认知伴随 Actor
   policy_transport.py         # 闭环目标、Fisher 曲率与认知策略参数运输
 kanrf/                        # KAN / ProtoKAN 核心实现
 scripts/
@@ -195,6 +204,7 @@ scripts/
   validate_oracle_inverse_actor.py
   validate_oracle_inverse_actor_fixed_training.py
   validate_oracle_pullback_actor.py
+  validate_oracle_bellman_adjoint_actor.py
   validate_oracle_policy_transport.py
   validate_target_online_adaptation.py
   validate_target_fixed_route_training.py
@@ -216,6 +226,7 @@ docs/
   TARGET_ONLINE_ADAPTATION_DIAGNOSIS.md
   SELECTIVE_POLICY_RESET_DIAGNOSIS.md
   MULTISEED_NEGATIVE_TRANSFER_VALIDATION.md
+  ORACLE_BELLMAN_ADJOINT_VALIDATION.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -241,6 +252,8 @@ results/
   target_selective_reset_seed0.json
   target_selective_reset_combined_seed0.json
   target_negative_transfer_multiseed.json
+  oracle_bellman_adjoint_actor_seed0.json
+  oracle_bellman_adjoint_actor_60_seed0.json
 tests/
 ```
 
