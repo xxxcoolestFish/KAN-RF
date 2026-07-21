@@ -187,6 +187,14 @@ a_t=\left(\rho+\sum_k S_k^\top W_kS_k\right)^{-1}\sum_k S_k^\top W_kv_k,
 
 这是首个同时满足“认知必经、无动作旁路、认知不接受策略梯度、正确认知显著优于错误认知”的高成功率 Oracle 结构。当前仍依赖外部状态走廊、固定动作网格和 Oracle 动力学，尚未证明参数切换泛化。完整记录见 `docs/ORACLE_CLOSED_LOOP_BELLMAN_VALIDATION.md`。
 
+### 固定目标走廊下的重惯性认知迁移
+
+源环境最佳 Actor 参数完全冻结后，在真实重惯性环境中给所有条件同一条 `721` 状态的目标 Oracle 走廊，只替换 Actor 内部闭环 Bellman 树使用的动力学。三个条件共享相同初态和评估种子，目标走廊不包含参考动作。
+
+三个独立种子、共 `96` 次评估中，正确重惯性认知为 `94/96 = 97.92%`，冻结源认知为 `85/96 = 88.54%`，错误强重力认知为 `5/96 = 5.21%`。正确认知在三个种子上分别比冻结源认知多成功 `2/3/4` 条，平均动作变化为 `0.55664`；Actor 参数在评估前后逐位相同。
+
+该结果证明同一个决策网络能够立即利用正确目标动力学改善新物理环境中的动作，但仍由 Oracle 提供目标认知和目标走廊，不能称为完整自主泛化。完整记录见 `docs/TARGET_CLOSED_LOOP_BELLMAN_TRANSFER.md`。
+
 ## 目录
 
 ```text
@@ -229,6 +237,7 @@ scripts/
   validate_oracle_bellman_adjoint_actor.py
   validate_oracle_counterfactual_adjoint_actor.py
   validate_oracle_closed_loop_bellman_actor.py
+  validate_target_closed_loop_bellman_transfer.py
   validate_oracle_policy_transport.py
   validate_target_online_adaptation.py
   validate_target_fixed_route_training.py
@@ -253,6 +262,7 @@ docs/
   ORACLE_BELLMAN_ADJOINT_VALIDATION.md
   ORACLE_COUNTERFACTUAL_ADJOINT_VALIDATION.md
   ORACLE_CLOSED_LOOP_BELLMAN_VALIDATION.md
+  TARGET_CLOSED_LOOP_BELLMAN_TRANSFER.md
 results/
   oracle_implicit_bellman_seed0.json
   time_varying_tube_validation_seed0.json
@@ -282,6 +292,7 @@ results/
   oracle_bellman_adjoint_actor_60_seed0.json
   oracle_counterfactual_adjoint_actor_seed0.json
   oracle_closed_loop_bellman_actor_seed0.json
+  target_closed_loop_bellman_transfer_seed0.json
 tests/
 ```
 
