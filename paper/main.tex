@@ -1,0 +1,423 @@
+\documentclass[letterpaper]{article}
+\usepackage[submission]{aaai2027}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\urlstyle{rm}
+\def\UrlFont{\rm}
+\usepackage{natbib}
+\usepackage{caption}
+\frenchspacing
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\pdfinfo{
+/TemplateVersion (2027.1)
+}
+
+\setcounter{secnumdepth}{1}
+
+% Working title. Do not freeze until the inverse-dynamics comparison and
+% task-relevant effect metric are complete.
+\title{Making Learned Dynamics Actionable: Posterior Control-Equivalent
+Transport for Source-Only Continual Adaptation}
+
+\author{Anonymous Submission}
+\affiliations{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Policies trained under one set of physical dynamics can fail when mass,
+gravity, friction, or actuation changes at deployment.  An online world model
+can relearn the changed transition law, but accurate prediction alone does not
+specify how a frozen task policy should change its action.  We study this
+\emph{actionability gap} in a source-only continual adaptation setting: the
+policy and dynamics model are trained in one source environment, target
+dynamics are unlabeled and may recur, and deployment provides only observed
+state--action transitions.  We introduce posterior control-equivalent
+transport (PCET), which interprets a source-policy action through its predicted
+local physical effect and pulls that effect back to an action under the current
+online dynamics posterior.  A Bayesian KAN model supplies the local drift,
+action-effect operator, and directional uncertainty required by a closed-form,
+risk-regularized pullback; no target-domain policy optimization or online
+trajectory search is required.  A non-overwriting memory indexed by
+control-equivalent residuals supports recurring dynamics.  Across a two-link
+nonlinear system and continuous-action CartPole, the current implementation
+recovers frozen policies from severe dynamics shifts using only self-supervised
+transition updates.  The results indicate that the primary benefit is faster
+performance recovery rather than merely a higher asymptotic success rate.
+\end{abstract}
+
+\section{Introduction}
+
+Reinforcement-learning policies often entangle a task---such as balancing or
+reaching---with the particular dynamics under which the policy was trained.
+Consequently, a policy that succeeds in a nominal environment may fail after a
+change in payload, gravity, link inertia, friction, or actuator strength.  A
+common response is to expose the policy to a distribution of dynamics during
+training or to adapt the policy itself after deployment.  The former requires
+anticipating a useful variation family, while the latter consumes task reward
+and can damage previously learned behavior.
+
+World models offer a different source of adaptation.  Recent transitions can
+identify how the current system responds to actions, without a physical
+parameter label or a task-success signal.  Context-aware dynamics models
+\cite{lee2020cadm}, augmented world models \cite{ball2021augwm}, and online
+world-model planning \cite{liu2025onlinewm} demonstrate the value of adapting
+the predictive model.  However, an accurate estimate of
+$F_t(s,a)$ answers ``what will this action do?'' rather than ``which action now
+preserves the task intended by a source policy?''  We call this missing map
+from updated dynamics knowledge to action correction the \emph{actionability
+gap of learned dynamics}.
+
+Matching action effects across domains is not itself new.  Deep inverse
+dynamics transfer predicts the state change intended by a source controller
+and inverts a target model to reproduce it \cite{christiano2016inverse};
+Grounded Action Transformation (GAT) similarly learns action transformations
+for simulator grounding \cite{hanna2021gat}.  Task--dynamics decoupling has
+also been used to convert high-level task commands to platform-specific control
+signals \cite{liu2023dttd}.  Our question is narrower and continual: can a
+frozen task policy be re-grounded from a \emph{source-only}, self-supervised
+forward-dynamics posterior when unannounced dynamics changes recur, without a
+separately trained black-box inverse model, target reward optimization, or
+online model-predictive search?
+
+Our answer is posterior control-equivalent transport (PCET).  A source action
+$a^{\mathrm{src}}=\pi_0(s)$ is first encoded as the local physical effect that
+the source model predicts it should cause.  A continually updated Bayesian KAN
+represents the current dynamics as a local drift plus an action-effect operator.
+PCET then solves a risk-regularized inverse problem that reproduces the source
+effect under the current dynamics.  Under a locally control-affine model this
+inverse has a closed form, and every executed action depends explicitly on the
+current drift, action-effect matrix, and posterior risk.  The world model is
+therefore on the mandatory decision path rather than an optional context that
+the policy can ignore.
+
+We make three contributions.  First, we formalize source-only continual
+dynamics adaptation as an actionability problem, separating task knowledge in
+a frozen policy from its changing physical realization.  Second, we derive a
+posterior-risk control-equivalent pullback from an online forward model to the
+action space, together with a structured KAN realization that exposes the
+required local action-effect operator.  Third, we combine the pullback with
+control-relevant posterior stabilization and non-overwriting dynamics memory,
+and evaluate recovery and retention under multiple unseen dynamics shifts.
+
+\section{Related Work}
+
+\paragraph{Dynamics generalization and context.}
+CaDM infers a latent dynamics context from recent experience and conditions a
+forward model on it \cite{lee2020cadm}.  AugWM starts from a single offline
+environment but constructs an explicit augmentation family during training and
+conditions the policy on the inferred augmentation \cite{ball2021augwm}.
+These methods show that recent transitions contain useful dynamics information.
+PCET instead asks how an online forward posterior can alter the physical action
+of an already trained policy through an explicit operator.
+
+\paragraph{Action grounding and task--dynamics separation.}
+Inverse-dynamics transfer and GAT provide the closest conceptual precedents to
+effect matching \cite{christiano2016inverse,hanna2021gat}.  DTTD separates a
+task-oriented reinforcement-learning module from a low-level dynamics
+controller in a UAV interception system \cite{liu2023dttd}.  A recent dual
+control formulation also treats world-model predictions as reference
+trajectories for rapid motor adaptation \cite{brito2025rwm}.  PCET does not
+claim task--dynamics separation or effect matching as new in isolation.  Its
+candidate contribution is the posterior, forward-model-based and continual
+formulation: uncertainty affects the inverse operator directionally, only the
+cognitive model is updated online, and recurring dynamics are recalled without
+overwriting other posterior states.
+
+\paragraph{Continual world models.}
+Planning with online world models can provide continual decision making and
+formal regret guarantees under suitable assumptions \cite{liu2025onlinewm}.
+Our setting retains a learned task policy and avoids online action-sequence
+planning.  It focuses on the interface that re-realizes that policy under a
+changing plant.  KANs \cite{liu2024kan} are used here as a structured local
+function dictionary, not on the assumption that spline networks are inherently
+immune to catastrophic forgetting.
+
+\section{Problem Formulation}
+
+Let $\mathcal{M}_{\xi}=(\mathcal{S},\mathcal{A},P_{\xi},r,\gamma)$ denote a
+family of continuous-control MDPs.  Across the family, state semantics, action
+semantics, reward, and the task remain fixed; only the transition dynamics
+$P_{\xi}$ change.  Training data are available from one source dynamics
+$\xi_0$ only.  Source training produces a task policy $\pi_0$ and a source
+dynamics model $F_0$.  Both may use any valid source-domain optimization, but
+their losses are separate.
+
+At deployment, the unobserved dynamics index $\xi_t$ may change abruptly or
+recur.  The agent receives neither $\xi_t$ nor a change-point notification.  It
+observes only transition tuples
+\begin{equation}
+\mathcal{D}_t=\{(s_i,a_i,s_{i+1})\}_{i=1}^{N_t}.
+\end{equation}
+The policy parameters remain frozen.  Only the dynamics posterior and its
+memory may update, using a one-step prediction objective.  No target reward,
+teacher action, or target-domain policy gradient is used.
+
+We distinguish three evaluation regimes.  \emph{Zero-shot transfer} is the
+performance immediately after a shift and before any target update.
+\emph{Recovery} is performance as a function of the number of target
+transitions.  \emph{Retention} is the performance and recovery delay when a
+previously encountered dynamics condition returns.  The main objective is the
+area under the recovery curve, subject to a small final performance gap and
+limited forgetting, rather than an unidentifiable guarantee of zero-shot
+success for arbitrary unseen physics.
+
+\section{Posterior Control-Equivalent Transport}
+
+\subsection{Local Physical Effects}
+
+Let $y\in\mathbb{R}^{d}$ be a local physical effect derived from a transition,
+such as acceleration or a selected state increment.  The cognitive model is
+\begin{equation}
+y=F_{\theta}(s,a)+\epsilon.
+\end{equation}
+We use a locally control-affine representation
+\begin{equation}
+F_{\theta}(s,a)=f_{\theta}(s)+G_{\theta}(s)a,
+\quad G_{\theta}(s)\in\mathbb{R}^{d\times m}.
+\label{eq:affine}
+\end{equation}
+This is an exact model for control-affine systems and a local Jacobian model for
+general differentiable action dynamics.  It does not require naming mass,
+gravity, or friction; $f$ and $G$ are identifiable function-level quantities
+needed for control.
+
+For the frozen source action
+\begin{equation}
+a^{\mathrm{src}}=\pi_0(s),
+\end{equation}
+the source model defines the intended effect
+\begin{equation}
+v_0(s)=F_0(s,a^{\mathrm{src}}).
+\label{eq:intent}
+\end{equation}
+Equation~\eqref{eq:intent} does not assert that every source next state must be
+copied.  More generally, an effect metric $W(s)\succeq 0$ can retain only
+task-relevant directions.  The validated base implementation uses $W=I$.
+Learning or deriving a nontrivial task-relevant metric is treated as a pending
+extension and is not used in the reported claims.
+
+\subsection{Bayesian KAN Dynamics Posterior}
+
+Let $\phi(s)$ be a fixed multiresolution KAN dictionary containing local
+B-spline features and low-order cross-state interactions.  Action-conditioned
+features are
+\begin{equation}
+\Phi(s,a)=\left[\phi(s),\frac{a_1}{\sigma_1}\phi(s),\ldots,
+\frac{a_m}{\sigma_m}\phi(s)\right],
+\end{equation}
+and the effect prediction is $\hat y=\Phi(s,a)B$.  Fixing the dictionary keeps a
+stable coordinate system while its coefficients are updated recursively.
+For a local chart $k$, sufficient statistics follow
+\begin{align}
+\Lambda_{k,t}&=\Lambda_{k,t-1}+X_{k,t}^{\top}X_{k,t},\\
+b_{k,t}&=b_{k,t-1}+X_{k,t}^{\top}y_t,\\
+\bar B_{k,t}&=\Lambda_{k,t}^{-1}b_{k,t},\quad
+\Sigma_{k,t}=\Lambda_{k,t}^{-1}.
+\end{align}
+Local charts are blended by fixed-support weights and may grow when deployment
+data reach an uncovered state region.  The resulting posterior supplies
+$\bar f_t(s)$, $\bar G_t(s)$, and action-directional epistemic uncertainty.
+
+Before updating with a new micro-batch, we compute the prequential residual
+\begin{equation}
+r_t=y_t-\hat y_{t\mid t-1}.
+\end{equation}
+Its control-equivalent form is
+\begin{equation}
+e_t^a=(\bar G_t^{\top}\bar G_t+\eta I)^{-1}\bar G_t^{\top}r_t,
+\label{eq:action-residual}
+\end{equation}
+which measures how much action error would have an effect comparable to the
+model residual.  Unlike raw prediction RMSE, this coordinate discounts errors
+that the action cannot correct and preserves errors that matter strongly to
+control.
+
+\subsection{Posterior-Risk Pullback}
+
+Let $U_t(s)\succ 0$ denote the action-space risk obtained by propagating the
+KAN posterior covariance through the action-effect operator.  PCET selects the
+current physical action by
+\begin{equation}
+a_t^*=\arg\min_a
+\left\|\bar f_t(s)+\bar G_t(s)a-v_0(s)\right\|_{W(s)}^2
++\left\|a-a^{\mathrm{src}}\right\|_{U_t(s)}^2.
+\label{eq:pullback-objective}
+\end{equation}
+For the local model in Equation~\eqref{eq:affine}, the solution is
+\begin{equation}
+\boxed{
+a_t^*=
+(\bar G_t^{\top}W\bar G_t+U_t)^{-1}
+\left[\bar G_t^{\top}W(v_0-\bar f_t)+U_ta^{\mathrm{src}}\right].}
+\label{eq:pullback}
+\end{equation}
+The first term reproduces the source effect under the new dynamics.  The second
+shrinks toward the verified source action along uncertain or weakly
+identifiable directions.  Equation~\eqref{eq:pullback} supports $d\neq m$ and
+handles both under- and over-actuated local maps through regularization.
+
+If the current model equals the source model, the source action is a minimizer.
+More importantly, the executed action explicitly depends on
+$(\bar f_t,\bar G_t,U_t)$ at every step, which rules out a policy-side shortcut
+that ignores the cognitive model.  PCET performs one matrix solve rather than
+rolling out a model or searching an action sequence.
+
+\subsection{Stable Transfer and Recurring Dynamics}
+
+Fast posterior updates can produce abrupt control changes before the relevant
+operator directions are sufficiently identified.  For difficult shifts, we
+maintain a fast cognitive posterior and a decision-side posterior.  Candidate
+coefficient changes are decomposed under a control metric and admitted
+continuously in the directions supported by evidence.  This spectral transport
+is an online stabilization layer, not a prerequisite for the core pullback.
+
+A single posterior still forgets when the same state--action region supports
+conflicting transition functions.  We therefore maintain a set of
+non-overwriting posterior contexts.  For each context $k$, recent transitions
+produce control-equivalent residuals from Equation~\eqref{eq:action-residual}
+and a Mahalanobis score
+\begin{equation}
+m_k=\frac{1}{N}\sum_i
+\tilde e_i^{(k)\top}(C_k+\varepsilon I)^{-1}\tilde e_i^{(k)}.
+\end{equation}
+A sticky transition prior combines this score with temporal persistence.  An
+existing posterior is recalled when it explains the batch; otherwise a new
+posterior is created.  Updating one context does not overwrite the sufficient
+statistics of another.
+
+\begin{algorithm}[t]
+\caption{Online Posterior Control-Equivalent Transport}
+\label{alg:pcet}
+\begin{algorithmic}[1]
+\REQUIRE Frozen source policy $\pi_0$, source model $F_0$, posterior memory
+\FOR{each control step $t$}
+  \STATE Observe state $s_t$ and compute $a^{\mathrm{src}}=\pi_0(s_t)$
+  \STATE Encode source intent $v_0=F_0(s_t,a^{\mathrm{src}})$
+  \STATE Query current posterior for $\bar f_t,\bar G_t,U_t$
+  \STATE Compute $a_t$ with Equation~\eqref{eq:pullback} and execute it
+  \STATE Observe $s_{t+1}$ and form the local effect $y_t$
+  \STATE Score, recall, or create a posterior context using $e_t^a$
+  \STATE Update only the selected cognitive posterior with $(s_t,a_t,s_{t+1})$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\section{Experiments}
+
+We evaluate three questions: (i) whether an accurate target dynamics model can
+recover a frozen source policy, (ii) how rapidly a self-supervised online KAN
+approaches that oracle, and (iii) whether recurring dynamics can be recalled
+without catastrophic performance loss.  The policy is trained under one source
+dynamics only.  At deployment, no method receives the target physical
+parameters or an environment identifier.
+
+\subsection{Continuous-Action CartPole}
+
+The CartPole state is $[x,\theta,\dot x,\dot\theta]$ and the action is a scalar
+continuous force.  The source actor achieves 100\% success over 1,024 random
+initial states, and the source KAN has acceleration RMSE $0.00488$.  We test
+three shifts that reduce the frozen actor to 0\% success.  Table~\ref{tab:cartpole}
+reports five-seed means.  The oracle pullback uses the true target dynamics;
+the online result uses only transition updates.
+
+\begin{table}[t]
+\centering
+\caption{CartPole success rate under unseen dynamics. ``Online'' uses 2,048
+target transitions and keeps the actor frozen.}
+\label{tab:cartpole}
+\begin{tabular}{lrrr}
+\toprule
+Shift & Frozen & Oracle & Online \\
+\midrule
+Heavy cart + weak actuator & 0.00 & 100.00 & 100.00 \\
+High gravity + weak actuator & 0.00 & 99.80 & 99.86 \\
+Hard multi-parameter shift & 0.00 & 96.78 & 92.13 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For the hard multi-parameter shift, success rises from 59.41\% with 64 target
+transitions to 78.75\%, 80.61\%, 81.52\%, 88.75\%, and 92.13\% at budgets
+$128,256,512,1024,$ and $2048$, respectively.  All five seeds exceed 90\% at
+the final budget.  This curve supports the intended causal chain: as the
+transition-only cognitive posterior improves, the frozen policy is re-grounded
+without policy optimization.
+
+\subsection{Two-Link Nonlinear Control}
+
+The two-link environment has four-dimensional state, two-dimensional action,
+and two-dimensional acceleration effects.  We evaluate heavy-load, low-gravity,
+and coupled multi-parameter shifts at budgets of 128 to 2,048 transitions over
+five seeds.  Table~\ref{tab:twolink} compares the previous spectral-transport
+baseline with posterior-conditioned decision making.
+
+\begin{table}[t]
+\centering
+\caption{Five-seed two-link recovery results (success rate, \%).}
+\label{tab:twolink}
+\begin{tabular}{lrr}
+\toprule
+Metric & Spectral baseline & PCET \\
+\midrule
+Mean recovery curve & 75.89 & \textbf{82.76} \\
+Final success mean & 95.55 & \textbf{95.70} \\
+Worst final success & 71.48 & \textbf{72.66} \\
+Coupled-shift recovery & 44.69 & \textbf{60.31} \\
+Seeds reaching 95\% on coupled shift & 1/5 & \textbf{3/5} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The largest gain is in the recovery trajectory rather than the final mean.  In
+a separate three-seed sequence---heavy load, low gravity, coupled shift, and
+then revisits---the first 128-transition revisit batch averages 98.87\%
+success, the final revisit mean is 98.96\%, and the worst final revisit is
+90.63\%.  The memory creates two duplicate contexts, so these results support
+retention of control performance but not optimal memory allocation.
+
+\subsection{Required Final Comparisons}
+
+The current evidence establishes feasibility and cross-system recovery, but
+the final empirical claim requires a unified-budget comparison with (i) learned
+inverse dynamics/GAT-style action transfer, (ii) a context-conditioned actor,
+(iii) online policy fine-tuning, (iv) model-predictive control, and (v) an
+equal-capacity MLP forward model.  The decisive ablation compares $W=I$ with a
+task-relevant effect metric and removes posterior risk, stable transport, and
+non-overwriting memory individually.  These comparisons are deliberately not
+filled with proxy numbers in this draft.
+
+\section{Limitations}
+
+The current experiments use simulated systems and safe exploratory transitions
+with randomized resets.  CartPole does not yet include recurrent-environment
+memory, and the two-link memory can create duplicate contexts.  The base
+pullback matches the full chosen effect ($W=I$); whether a learned
+task-relevant effect metric improves transfer over full-effect matching remains
+an open experiment.  Finally, local control affinity and sufficient excitation
+are substantive assumptions: if the action-effect operator is poorly
+conditioned or the target effect is infeasible, regularization can limit
+unsafe corrections but cannot guarantee task recovery.
+
+\section{Conclusion}
+
+We study how an online dynamics model can become operationally useful to a
+frozen task policy under unseen and recurring physical changes.  PCET encodes
+the source policy through its intended local effect and uses a Bayesian KAN
+posterior to compute an uncertainty-aware action that realizes that effect
+under the current dynamics.  Initial results show rapid source-only recovery in
+systems with different action dimensions.  The remaining decisive question is
+whether task-relevant posterior transport consistently outperforms strong
+inverse-dynamics and context-conditioning baselines under identical online
+budgets.
+
+\bibliography{references}
+
+\end{document}
