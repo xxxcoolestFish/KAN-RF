@@ -1,0 +1,110 @@
+{
+  "experiment": "HopperPullbackTrueEffectCounterfactual",
+  "target": "combo_mild",
+  "states": 64,
+  "physical_parameters_visible_to_learner": false,
+  "target_simulator_used_for_evaluation_only": true,
+  "baseline_effect_error_mean": 0.46649470637802787,
+  "corrected_effect_error_mean": 0.4664947063780278,
+  "error_ratio_mean": 1.0,
+  "correction_improves_fraction": 0.140625,
+  "predicted_post_correction_error_mean": 0.0,
+  "predicted_true_mismatch_cosine_mean": 0.0,
+  "predicted_true_mismatch_positive_fraction": 0.0,
+  "action_change_l2_mean": 0.0,
+  "source_gain_to_true_target_relative_error_mean": 0.22676939200186363,
+  "estimated_gain_to_true_target_relative_error_mean": 0.19990161900433523,
+  "estimated_gain_true_target_cosine_mean": 0.9789172974221667,
+  "model_source_oracle_global_transform_relative_error_mean": 0.13177133836173854,
+  "true_source_oracle_global_transform_relative_error_mean": 0.03652080931778991,
+  "model_source_oracle_global_transform": [
+    [
+      0.8518251721230794,
+      -0.013090372801458949,
+      -0.0012557495181590014
+    ],
+    [
+      -0.019450913815910194,
+      0.8659159916812375,
+      -0.006641823851000349
+    ],
+    [
+      -0.0006750678213459587,
+      -0.015464099319061139,
+      0.8420497585196889
+    ]
+  ],
+  "true_source_oracle_global_transform": [
+    [
+      0.8393564010010042,
+      -0.010321021213472698,
+      -0.003188059103517349
+    ],
+    [
+      -0.013542685882197269,
+      0.8227318730426345,
+      -0.0029809867126071327
+    ],
+    [
+      -4.498783185338427e-05,
+      -0.0064882905052230135,
+      0.8472839892033295
+    ]
+  ],
+  "state_coordinate_exceedance_fraction": 0.004261363636363636,
+  "state_sample_any_exceedance_fraction": 0.046875,
+  "state_coordinate_max_normalized": [
+    0.8355248148337202,
+    0.9354648662004963,
+    0.7899391101546513,
+    0.6473495928191515,
+    1.0086983482627319,
+    0.7821217322584082,
+    0.7529275958659486,
+    1.0090288587352465,
+    0.646377266605921,
+    0.9269966813845139,
+    1.0
+  ],
+  "config": {
+    "seed": 1811,
+    "device": "cpu",
+    "target": "combo_mild",
+    "states": 64,
+    "cognition_warmup": 2048,
+    "cognition_batch": 64,
+    "warmup_noise": 0.3,
+    "warmup_exploration": "symmetric",
+    "cognition_mode": "orthogonal_transform",
+    "stein_ridge": 1.0,
+    "transform_ridge": 10.0,
+    "transform_iterations": 5,
+    "pullback_damping": 0.05,
+    "jacobian_epsilon": 0.05,
+    "effect_metric": "identity",
+    "metric_isotropic_floor": 0.05,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_broad_seed1811.pt",
+    "json_out": "results/hopper_pullback_orthogonal_symmetric_combo_seed1811.json"
+  },
+  "estimated_control_transform": [
+    [
+      0.8729047179222107,
+      0.037316691130399704,
+      -0.1288314014673233
+    ],
+    [
+      0.014305305667221546,
+      0.7608938813209534,
+      0.07485789805650711
+    ],
+    [
+      -0.0043737199157476425,
+      0.06359262764453888,
+      0.9643997550010681
+    ]
+  ],
+  "transform_design_condition": 6.892107009887695,
+  "orthogonal_score_norm": 0.00430665910243988
+}

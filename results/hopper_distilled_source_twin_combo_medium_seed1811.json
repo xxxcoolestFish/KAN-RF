@@ -1,0 +1,131 @@
+{
+  "experiment": "HopperPullbackTrueEffectCounterfactual",
+  "target": "combo_medium",
+  "states": 128,
+  "physical_parameters_visible_to_learner": false,
+  "target_simulator_used_for_evaluation_only": true,
+  "baseline_effect_error_mean": 0.46601681454474764,
+  "corrected_effect_error_mean": 0.5705463926550216,
+  "error_ratio_mean": 1.3727307178042212,
+  "correction_improves_fraction": 0.3203125,
+  "predicted_post_correction_error_mean": 0.24788606143556535,
+  "predicted_true_mismatch_cosine_mean": 0.2605256734532304,
+  "predicted_true_mismatch_positive_fraction": 0.7109375,
+  "action_change_l2_mean": 0.26542752981185913,
+  "source_gain_to_true_target_relative_error_mean": 0.4397266859738833,
+  "estimated_gain_to_true_target_relative_error_mean": 0.24779479723748454,
+  "estimated_gain_true_target_cosine_mean": 0.9725739151232278,
+  "model_source_oracle_global_transform_relative_error_mean": 0.20384030538740813,
+  "true_source_oracle_global_transform_relative_error_mean": 0.07023894994510153,
+  "model_source_oracle_global_transform": [
+    [
+      0.730003399147048,
+      -0.011679771015821369,
+      -0.006266622570927557
+    ],
+    [
+      -0.02127085541076492,
+      0.720505200003966,
+      0.001933673002479387
+    ],
+    [
+      -0.012790389567587594,
+      -0.01639403098786006,
+      0.7146272620278894
+    ]
+  ],
+  "true_source_oracle_global_transform": [
+    [
+      0.7323673597052575,
+      -0.012397207591197838,
+      -0.00452447042412854
+    ],
+    [
+      -0.020089429806947005,
+      0.7168743922231924,
+      -0.0008274496663340452
+    ],
+    [
+      -0.004309371672860664,
+      -0.006576180987636009,
+      0.7406743718056737
+    ]
+  ],
+  "state_coordinate_exceedance_fraction": 0.011363636363636364,
+  "state_sample_any_exceedance_fraction": 0.0625,
+  "state_coordinate_max_normalized": [
+    0.8700386014276172,
+    1.1188327664356943,
+    1.057111343111215,
+    0.7311672229246368,
+    1.0017501504785915,
+    0.5847048925903423,
+    1.2692273861828145,
+    0.7112136076379459,
+    0.8577931379756824,
+    0.8680841930904714,
+    1.0
+  ],
+  "true_action_correction_mean": [
+    0.015244100286548283,
+    0.05029858943611701,
+    -0.35619756558669846
+  ],
+  "true_action_correction_std": [
+    0.1784268112825472,
+    0.5449486630555848,
+    1.6822693913474527
+  ],
+  "true_action_correction_pca_variance_ratio": [
+    0.8962593594179199,
+    0.0941560263716294,
+    0.009584614210450789
+  ],
+  "estimated_true_action_correction_cosine_mean": -0.004135627491726796,
+  "config": {
+    "seed": 1811,
+    "device": "cpu",
+    "target": "combo_medium",
+    "states": 128,
+    "cognition_warmup": 2048,
+    "cognition_batch": 64,
+    "warmup_noise": 0.3,
+    "warmup_exploration": "gaussian_clipped",
+    "cognition_mode": "distilled_source_twin",
+    "stein_ridge": 1.0,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "drift_coordinate_damping": 0.05,
+    "drift_lift_ridge": 100.0,
+    "transform_iterations": 5,
+    "pullback_damping": 0.05,
+    "jacobian_epsilon": 0.05,
+    "effect_metric": "identity",
+    "metric_isotropic_floor": 0.05,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_twin_checkpoint": "results/hopper_source_affine_twin_seed1811.pt",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "json_out": "results/hopper_distilled_source_twin_combo_medium_seed1811.json"
+  },
+  "estimated_control_transform": [
+    [
+      0.7817906141281128,
+      -0.022926384583115578,
+      -0.000599177903495729
+    ],
+    [
+      0.04263646528124809,
+      0.7852399349212646,
+      -0.07497827708721161
+    ],
+    [
+      -0.0345970056951046,
+      0.06804261356592178,
+      0.8837802410125732
+    ]
+  ],
+  "transform_design_condition": 10.990520477294922,
+  "paired_source_drift_delta_norm": 0.7736654281616211,
+  "source_twin_target_state_effect_error_mean": 0.839721146763848
+}

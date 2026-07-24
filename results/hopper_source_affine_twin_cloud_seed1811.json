@@ -1,0 +1,47 @@
+{
+  "experiment": "HopperSourceAffineNeuralTwin",
+  "source_only": true,
+  "physical_parameters_visible": false,
+  "train_metrics": {
+    "transition_normalized_rmse": 0.24502846598625183,
+    "baseline_normalized_rmse": 0.1282595843076706,
+    "jacobian_relative_error_mean": 0.1459309160709381,
+    "jacobian_cosine_mean": 0.9856191277503967,
+    "jacobian_positive_cosine_fraction": 1.0
+  },
+  "validation_metrics": {
+    "transition_normalized_rmse": 0.2448301911354065,
+    "baseline_normalized_rmse": 0.12157941609621048,
+    "jacobian_relative_error_mean": 0.14259664714336395,
+    "jacobian_cosine_mean": 0.9868773221969604,
+    "jacobian_positive_cosine_fraction": 1.0
+  },
+  "config": {
+    "seed": 1811,
+    "device": "cuda",
+    "train_transitions": 30000,
+    "validation_transitions": 4096,
+    "train_probes": 4096,
+    "validation_probes": 512,
+    "noise_levels": "0.0,0.15,0.3,0.5",
+    "state_perturb_probability": 0.5,
+    "state_perturb_scale": 0.2,
+    "probe_epsilon": 0.1,
+    "probe_trajectory_noise": 0.3,
+    "hidden_dim": 256,
+    "depth": 3,
+    "gradient_steps": 3000,
+    "batch_size": 512,
+    "probe_batch_size": 256,
+    "learning_rate": 0.0003,
+    "weight_decay": 1e-05,
+    "baseline_weight": 1.0,
+    "jacobian_weight": 0.2,
+    "report_every": 500,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "template_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "checkpoint_out": "results/hopper_source_affine_twin_cloud_seed1811.pt",
+    "json_out": "results/hopper_source_affine_twin_cloud_seed1811.json"
+  }
+}
