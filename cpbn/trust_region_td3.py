@@ -19,6 +19,7 @@ class TrustRegionTD3(TD3):
         uncertainty_coefficient: float = 0.1,
         behavior_coefficient: float = 0.0,
         adaptive_q_coefficient: float = 2.5,
+        baseline_action_probability: float = 0.0,
         **kwargs,
     ):
         self.source_trust_coefficient = float(
@@ -29,7 +30,34 @@ class TrustRegionTD3(TD3):
         )
         self.behavior_coefficient = float(behavior_coefficient)
         self.adaptive_q_coefficient = float(adaptive_q_coefficient)
+        self.baseline_action_probability = float(
+            baseline_action_probability,
+        )
         super().__init__(*args, **kwargs)
+        self._baseline_rng = np.random.default_rng(self.seed + 27011)
+
+    def _sample_action(
+        self,
+        learning_starts,
+        action_noise=None,
+        n_envs=1,
+    ):
+        action, buffer_action = super()._sample_action(
+            learning_starts,
+            action_noise,
+            n_envs,
+        )
+        if self.baseline_action_probability <= 0.0:
+            return action, buffer_action
+        baseline = (
+            self._baseline_rng.random(n_envs)
+            < self.baseline_action_probability
+        )
+        if np.any(baseline):
+            buffer_action = np.asarray(buffer_action).copy()
+            buffer_action[baseline] = 0.0
+            action = self.policy.unscale_action(buffer_action)
+        return action, buffer_action
 
     def train(self, gradient_steps: int, batch_size: int = 100):
         self.policy.set_training_mode(True)

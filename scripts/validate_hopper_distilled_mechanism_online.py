@@ -19,6 +19,10 @@ from cpbn.global_mechanism_kan import (
     GlobalMechanismKANDynamics,
     RecursiveGlobalMechanismEstimator,
 )
+from cpbn.centered_advantage_critic import CenteredAdvantageTD3Policy
+from cpbn.conservative_policy_selection import (
+    paired_return_lower_bound,
+)
 from cpbn.policy_mechanism_decoder import PolicyMechanismDecoder
 from cpbn.trust_region_td3 import TrustRegionTD3
 from scripts.diagnose_hopper_global_physics_context import collect_transitions
@@ -367,17 +371,25 @@ def pretrain_historical_critic(model, dataset, args, device):
 
 
 @torch.no_grad()
-def evaluate(model, environment, args):
+def evaluate(
+    model,
+    environment,
+    args,
+    *,
+    episodes=None,
+    seed_offset=10000,
+):
     target = make_shifted_env(
-        SHIFTS[args.target], args.seed + 10000,
+        SHIFTS[args.target], args.seed + seed_offset,
     )()
     returns, lengths = [], []
     healthy = 0
     residuals = []
     physical_residuals = []
-    for episode in range(args.evaluation_episodes):
+    episode_count = episodes or args.evaluation_episodes
+    for episode in range(episode_count):
         observation, _ = target.reset(
-            seed=args.seed + 10000 + episode,
+            seed=args.seed + seed_offset + episode,
         )
         total = 0.0
         length = 0
@@ -418,7 +430,9 @@ def evaluate(model, environment, args):
         "mean_return": float(np.mean(returns)),
         "std_return": float(np.std(returns)),
         "mean_episode_length": float(np.mean(lengths)),
-        "healthy_completion_rate": healthy / args.evaluation_episodes,
+        "healthy_completion_rate": healthy / episode_count,
+        "episode_returns": returns,
+        "episode_lengths": lengths,
         "residual_abs_mean": float(np.mean(residuals)),
         "residual_mean_per_dimension": (
             residual_array.mean(axis=0).tolist()
@@ -539,7 +553,11 @@ def main(args):
             else TD3
         )
         model = algorithm_class(
-            "MlpPolicy",
+            (
+                CenteredAdvantageTD3Policy
+                if args.centered_advantage_critic
+                else "MlpPolicy"
+            ),
             normalized,
             learning_rate=args.learning_rate,
             buffer_size=args.replay_buffer_size,
@@ -569,6 +587,9 @@ def main(args):
                     ),
                     "adaptive_q_coefficient": (
                         args.adaptive_q_coefficient
+                    ),
+                    "baseline_action_probability": (
+                        args.baseline_action_probability
                     ),
                 }
                 if args.decision_algorithm == "td3_trust"
@@ -611,24 +632,76 @@ def main(args):
                 model, historical_dataset, args, device,
             )
     model.learn(total_timesteps=args.decision_transitions)
+    selection = {
+        "episodes_per_policy": 0,
+        "candidate_selected": True,
+        "paired_improvement_mean": None,
+        "paired_improvement_lcb": None,
+        "transitions": 0,
+    }
+    if args.policy_selection_episodes > 0:
+        selection_base = evaluate(
+            None,
+            environment,
+            args,
+            episodes=args.policy_selection_episodes,
+            seed_offset=20000,
+        )
+        selection_candidate = evaluate(
+            model,
+            environment,
+            args,
+            episodes=args.policy_selection_episodes,
+            seed_offset=20000,
+        )
+        comparison = paired_return_lower_bound(
+            selection_base["episode_returns"],
+            selection_candidate["episode_returns"],
+            confidence_multiplier=(
+                args.policy_selection_confidence
+            ),
+        )
+        selection = {
+            "episodes_per_policy": args.policy_selection_episodes,
+            "candidate_selected": comparison["accepted"],
+            "paired_improvement_mean": comparison["mean"],
+            "paired_improvement_lcb": comparison["lower_bound"],
+            "paired_improvement_standard_error": (
+                comparison["standard_error"]
+            ),
+            "base_returns": selection_base["episode_returns"],
+            "candidate_returns": (
+                selection_candidate["episode_returns"]
+            ),
+            "transitions": int(
+                sum(selection_base["episode_lengths"])
+                + sum(selection_candidate["episode_lengths"])
+            ),
+        }
+    total_target_transitions = (
+        args.cognition_warmup
+        + args.decision_transitions
+        + selection["transitions"]
+    )
     final_base = {
-        "target_transitions": (
-            args.cognition_warmup + args.decision_transitions
-        ),
+        "target_transitions": total_target_transitions,
         "mechanism_coefficients": (
             environment.coefficients().cpu().tolist()
         ),
         **evaluate(None, environment, args),
     }
-    final = {
-        "target_transitions": (
-            args.cognition_warmup + args.decision_transitions
-        ),
+    final_candidate = {
+        "target_transitions": total_target_transitions,
         "mechanism_coefficients": (
             environment.coefficients().cpu().tolist()
         ),
         **evaluate(model, environment, args),
     }
+    final = (
+        final_candidate
+        if selection["candidate_selected"]
+        else final_base
+    )
     print({"stage": "final", **final}, flush=True)
     output = {
         "experiment": "HopperDistilledMechanismOnlineResidual",
@@ -640,8 +713,10 @@ def main(args):
         "decision_uses_real_reward": True,
         "decision_algorithm": args.decision_algorithm,
         "historical_critic_pretraining": historical_critic,
+        "policy_selection": selection,
         "initial": initial,
         "final_cognition_base_only": final_base,
+        "final_candidate": final_candidate,
         "final": final,
         "config": {
             key: (
@@ -713,6 +788,20 @@ def parse_args():
     )
     parser.add_argument(
         "--adaptive-q-coefficient", type=float, default=2.5,
+    )
+    parser.add_argument(
+        "--centered-advantage-critic",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--baseline-action-probability", type=float, default=0.0,
+    )
+    parser.add_argument(
+        "--policy-selection-episodes", type=int, default=0,
+    )
+    parser.add_argument(
+        "--policy-selection-confidence", type=float, default=1.0,
+        help="One-sided standard-error multiplier.",
     )
     parser.add_argument(
         "--historical-mechanism-environments",
