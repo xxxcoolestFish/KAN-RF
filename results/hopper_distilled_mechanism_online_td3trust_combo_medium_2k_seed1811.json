@@ -1,0 +1,93 @@
+{
+  "experiment": "HopperDistilledMechanismOnlineResidual",
+  "seed": 1811,
+  "device": "cuda",
+  "target": "combo_medium",
+  "physical_parameters_visible_to_learner": false,
+  "cognition_reward_free": true,
+  "decision_uses_real_reward": true,
+  "decision_algorithm": "td3_trust",
+  "initial": {
+    "target_transitions": 512,
+    "mechanism_coefficients": [
+      -0.37459373474121094,
+      0.27926865220069885,
+      1.163605809211731
+    ],
+    "mean_return": 434.04788323727496,
+    "std_return": 0.7027808376572314,
+    "mean_episode_length": 154.0,
+    "healthy_completion_rate": 0.0,
+    "residual_abs_mean": 0.0
+  },
+  "final_cognition_base_only": {
+    "target_transitions": 2560,
+    "mechanism_coefficients": [
+      -0.3360671401023865,
+      0.2815585732460022,
+      1.1376217603683472
+    ],
+    "mean_return": 434.0990078339423,
+    "std_return": 0.7308131858771637,
+    "mean_episode_length": 154.0,
+    "healthy_completion_rate": 0.0,
+    "residual_abs_mean": 0.0
+  },
+  "final": {
+    "target_transitions": 2560,
+    "mechanism_coefficients": [
+      -0.3360671401023865,
+      0.2815585732460022,
+      1.1376217603683472
+    ],
+    "mean_return": 434.4932002534248,
+    "std_return": 0.6467085213621284,
+    "mean_episode_length": 154.0,
+    "healthy_completion_rate": 0.0,
+    "residual_abs_mean": 0.045681606978178024
+  },
+  "config": {
+    "seed": 1811,
+    "target": "combo_medium",
+    "cognition_warmup": 512,
+    "cognition_batch": 512,
+    "online_cognition_weight": 0.01,
+    "exploration_noise": 0.2,
+    "mechanism_latent_ridge": 0.01,
+    "decision_transitions": 2048,
+    "decision_algorithm": "td3_trust",
+    "rollout_steps": 512,
+    "minibatch_size": 256,
+    "update_epochs": 3,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "initial_log_std": -1.5,
+    "replay_buffer_size": 100000,
+    "learning_starts": 256,
+    "train_frequency": 1,
+    "gradient_steps": 1,
+    "target_tau": 0.005,
+    "policy_delay": 2,
+    "target_policy_noise": 0.1,
+    "target_noise_clip": 0.2,
+    "td3_exploration_noise": 0.1,
+    "source_trust_coefficient": 0.1,
+    "uncertainty_coefficient": 0.1,
+    "residual_scale": 0.25,
+    "evaluation_episodes": 5,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "cognition_checkpoint": "results/hopper_source_centered_protokan_seed1811.pt",
+    "mechanism_checkpoint": "results/hopper_global_mechanism_latent_seed1811.pt",
+    "decoder_checkpoint": "results/hopper_policy_mechanism_decoder_seed1811.pt",
+    "model_out": "results\\hopper_distilled_mechanism_online_td3trust_combo_medium_2k_seed1811",
+    "json_out": "results\\hopper_distilled_mechanism_online_td3trust_combo_medium_2k_seed1811.json",
+    "device": "cuda",
+    "mechanism_latent_scale": [
+      0.07443573325872421,
+      0.07610886543989182,
+      0.05849728360772133
+    ]
+  }
+}

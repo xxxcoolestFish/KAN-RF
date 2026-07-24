@@ -9,14 +9,18 @@ from pathlib import Path
 import gymnasium as gym
 import numpy as np
 import torch
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, TD3
+from stable_baselines3.common.noise import NormalActionNoise
+from stable_baselines3.common.utils import polyak_update
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+from torch.nn import functional as F
 
 from cpbn.global_mechanism_kan import (
     GlobalMechanismKANDynamics,
     RecursiveGlobalMechanismEstimator,
 )
 from cpbn.policy_mechanism_decoder import PolicyMechanismDecoder
+from cpbn.trust_region_td3 import TrustRegionTD3
 from scripts.diagnose_hopper_global_physics_context import collect_transitions
 from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
 from scripts.validate_hopper_joint_online_adaptation import (
@@ -57,16 +61,22 @@ class DistilledMechanismResidualHopper(gym.Env):
         )
         self.raw_observation = None
         self.buffer = []
+        self._coefficients = None
+        self.refresh_coefficients()
 
     @torch.no_grad()
-    def coefficients(self):
+    def refresh_coefficients(self):
         coordinate = (
             self.estimator.latent() / self.args.mechanism_latent_scale
         )
-        return torch.linalg.lstsq(
+        self._coefficients = torch.linalg.lstsq(
             self.training_coordinates.T,
             coordinate,
         ).solution
+
+    @torch.no_grad()
+    def coefficients(self):
+        return self._coefficients
 
     @torch.no_grad()
     def base_action(self, observation):
@@ -80,6 +90,41 @@ class DistilledMechanismResidualHopper(gym.Env):
         )[0]
         return (
             self.source.action(observation) + correction
+        ).clamp(-1.0, 1.0)
+
+    @torch.no_grad()
+    def physical_residual(self, observation, mechanism_action):
+        mechanism_action = torch.as_tensor(
+            mechanism_action,
+            dtype=torch.float32,
+            device=self.args.device,
+        )
+        if self.args.residual_parameterization == "direct":
+            return mechanism_action
+        state = torch.as_tensor(
+            observation,
+            dtype=torch.float32,
+            device=self.args.device,
+        ).unsqueeze(0)
+        effects = self.decoder.mechanism_effects(state)[0]
+        tangent = effects.T * self.coefficients().unsqueeze(0)
+        gram = tangent.T @ tangent
+        eigenvalues, eigenvectors = torch.linalg.eigh(
+            gram
+            + self.args.tangent_damping
+            * torch.eye(
+                gram.shape[0],
+                dtype=gram.dtype,
+                device=gram.device,
+            )
+        )
+        inverse_root = (
+            eigenvectors
+            @ torch.diag(eigenvalues.clamp_min(1e-8).rsqrt())
+            @ eigenvectors.T
+        )
+        return (
+            tangent @ inverse_root @ mechanism_action
         ).clamp(-1.0, 1.0)
 
     @torch.no_grad()
@@ -106,10 +151,8 @@ class DistilledMechanismResidualHopper(gym.Env):
 
     def step(self, residual_action):
         base = self.base_action(self.raw_observation)
-        residual = torch.as_tensor(
-            residual_action,
-            dtype=torch.float32,
-            device=self.args.device,
+        residual = self.physical_residual(
+            self.raw_observation, residual_action,
         )
         action = (
             base + self.args.residual_scale * residual
@@ -146,6 +189,7 @@ class DistilledMechanismResidualHopper(gym.Env):
                     ),
                     evidence_weight=self.args.online_cognition_weight,
                 )
+                self.refresh_coefficients()
                 self.buffer.clear()
         self.raw_observation = following
         info["base_action"] = base.cpu().numpy()
@@ -162,6 +206,167 @@ class DistilledMechanismResidualHopper(gym.Env):
 
 
 @torch.no_grad()
+def collect_historical_critic_dataset(source, decoder, args, device):
+    """Collect reward-labeled residual rollouts in known mechanism worlds."""
+    observations = []
+    actions = []
+    returns = []
+    rng = np.random.default_rng(args.seed + 23001)
+    mechanism_count = decoder.mechanisms.__len__()
+    for environment_index, environment_name in enumerate(
+        args.historical_mechanism_environments
+    ):
+        if environment_index >= mechanism_count:
+            raise ValueError(
+                "More historical environments than decoder mechanisms.",
+            )
+        coordinate = torch.zeros(mechanism_count, device=device)
+        coordinate[environment_index] = 1.0
+        environment = make_shifted_env(
+            SHIFTS[environment_name],
+            args.seed + 23000 + environment_index,
+        )()
+        state, _ = environment.reset(
+            seed=args.seed + 23000 + environment_index,
+        )
+        episode_observations = []
+        episode_actions = []
+        episode_rewards = []
+        collected = 0
+        while collected < args.historical_critic_transitions:
+            tensor_state = torch.as_tensor(
+                state, dtype=torch.float32, device=device,
+            ).unsqueeze(0)
+            correction = decoder(
+                tensor_state, coordinate.unsqueeze(0),
+            )[0]
+            base = (
+                source.action(state) + correction
+            ).clamp(-1.0, 1.0)
+            residual = np.clip(
+                rng.normal(
+                    0.0,
+                    args.historical_critic_noise,
+                    size=3,
+                ),
+                -1.0,
+                1.0,
+            ).astype(np.float32)
+            physical_action = (
+                base
+                + args.residual_scale
+                * torch.as_tensor(
+                    residual,
+                    dtype=torch.float32,
+                    device=device,
+                )
+            ).clamp(-1.0, 1.0)
+            normalized_state = (
+                (
+                    tensor_state[0] - source.mean
+                )
+                / (source.variance + 1e-8).sqrt()
+            ).clamp(-10.0, 10.0)
+            transformed = torch.cat(
+                (normalized_state, coordinate),
+            ).cpu().numpy().astype(np.float32)
+            following, reward, terminated, truncated, _ = (
+                environment.step(physical_action.cpu().numpy())
+            )
+            episode_observations.append(transformed)
+            episode_actions.append(residual)
+            episode_rewards.append(float(reward))
+            collected += 1
+            state = following
+            if (
+                terminated
+                or truncated
+                or collected == args.historical_critic_transitions
+            ):
+                discounted = 0.0
+                episode_returns = []
+                for value in reversed(episode_rewards):
+                    discounted = value + args.gamma * discounted
+                    episode_returns.append(discounted)
+                observations.extend(episode_observations)
+                actions.extend(episode_actions)
+                returns.extend(reversed(episode_returns))
+                episode_observations.clear()
+                episode_actions.clear()
+                episode_rewards.clear()
+                if collected < args.historical_critic_transitions:
+                    state, _ = environment.reset()
+        environment.close()
+    return {
+        "observations": torch.as_tensor(
+            np.asarray(observations),
+            dtype=torch.float32,
+            device=device,
+        ),
+        "actions": torch.as_tensor(
+            np.asarray(actions),
+            dtype=torch.float32,
+            device=device,
+        ),
+        "returns": torch.as_tensor(
+            np.asarray(returns),
+            dtype=torch.float32,
+            device=device,
+        ).unsqueeze(1),
+    }
+
+
+def pretrain_historical_critic(model, dataset, args, device):
+    """Supervise both TD3 critics with historical Monte-Carlo returns."""
+    generator = torch.Generator(device=device).manual_seed(
+        args.seed + 23011,
+    )
+    sample_count = dataset["observations"].shape[0]
+    history = []
+    for step in range(1, args.historical_critic_gradient_steps + 1):
+        indices = torch.randint(
+            sample_count,
+            (
+                min(
+                    args.minibatch_size,
+                    sample_count,
+                ),
+            ),
+            generator=generator,
+            device=device,
+        )
+        predicted = model.critic(
+            dataset["observations"][indices],
+            dataset["actions"][indices],
+        )
+        target = dataset["returns"][indices]
+        loss = sum(F.mse_loss(q_value, target) for q_value in predicted)
+        model.critic.optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        model.critic.optimizer.step()
+        if (
+            step == 1
+            or step == args.historical_critic_gradient_steps
+            or step % args.historical_critic_report_every == 0
+        ):
+            record = {
+                "step": step,
+                "loss": float(loss.detach()),
+            }
+            history.append(record)
+            print(
+                {"stage": "historical_critic", **record},
+                flush=True,
+            )
+    polyak_update(
+        model.critic.parameters(),
+        model.critic_target.parameters(),
+        1.0,
+    )
+    return history
+
+
+@torch.no_grad()
 def evaluate(model, environment, args):
     target = make_shifted_env(
         SHIFTS[args.target], args.seed + 10000,
@@ -169,6 +374,7 @@ def evaluate(model, environment, args):
     returns, lengths = [], []
     healthy = 0
     residuals = []
+    physical_residuals = []
     for episode in range(args.evaluation_episodes):
         observation, _ = target.reset(
             seed=args.seed + 10000 + episode,
@@ -184,16 +390,18 @@ def evaluate(model, environment, args):
                     transformed, deterministic=True,
                 )
             base = environment.base_action(observation)
+            physical_residual = environment.physical_residual(
+                observation, residual,
+            )
             action = (
                 base
                 + args.residual_scale
-                * torch.as_tensor(
-                    residual,
-                    dtype=torch.float32,
-                    device=args.device,
-                )
+                * physical_residual
             ).clamp(-1.0, 1.0)
             residuals.extend(np.abs(residual))
+            physical_residuals.extend(
+                torch.abs(physical_residual).cpu().tolist(),
+            )
             observation, reward, terminated, truncated, _ = (
                 target.step(action.cpu().numpy())
             )
@@ -205,12 +413,25 @@ def evaluate(model, environment, args):
         returns.append(total)
         lengths.append(length)
     target.close()
+    residual_array = np.asarray(residuals, dtype=np.float32).reshape(-1, 3)
     return {
         "mean_return": float(np.mean(returns)),
         "std_return": float(np.std(returns)),
         "mean_episode_length": float(np.mean(lengths)),
         "healthy_completion_rate": healthy / args.evaluation_episodes,
         "residual_abs_mean": float(np.mean(residuals)),
+        "residual_mean_per_dimension": (
+            residual_array.mean(axis=0).tolist()
+        ),
+        "residual_std_per_dimension": (
+            residual_array.std(axis=0).tolist()
+        ),
+        "residual_saturation_rate": float(
+            (np.abs(residual_array) > 0.95).mean(),
+        ),
+        "physical_residual_abs_mean": float(
+            np.mean(physical_residuals),
+        ),
     }
 
 
@@ -285,25 +506,110 @@ def main(args):
         vector,
         training=True,
         norm_obs=False,
-        norm_reward=True,
+        norm_reward=args.reward_normalization == "running",
         gamma=args.gamma,
     )
-    model = PPO(
-        "MlpPolicy",
-        normalized,
-        learning_rate=args.learning_rate,
-        n_steps=args.rollout_steps,
-        batch_size=args.minibatch_size,
-        n_epochs=args.update_epochs,
-        gamma=args.gamma,
-        gae_lambda=args.gae_lambda,
-        seed=args.seed,
-        device=device,
-        verbose=0,
-    )
-    torch.nn.init.zeros_(model.policy.action_net.weight)
-    torch.nn.init.zeros_(model.policy.action_net.bias)
-    model.policy.log_std.data.fill_(args.initial_log_std)
+    historical_critic = []
+    if args.decision_algorithm == "ppo":
+        model = PPO(
+            "MlpPolicy",
+            normalized,
+            learning_rate=args.learning_rate,
+            n_steps=args.rollout_steps,
+            batch_size=args.minibatch_size,
+            n_epochs=args.update_epochs,
+            gamma=args.gamma,
+            gae_lambda=args.gae_lambda,
+            seed=args.seed,
+            device=device,
+            verbose=0,
+        )
+        torch.nn.init.zeros_(model.policy.action_net.weight)
+        torch.nn.init.zeros_(model.policy.action_net.bias)
+        model.policy.log_std.data.fill_(args.initial_log_std)
+    else:
+        noise = NormalActionNoise(
+            mean=np.zeros(3, dtype=np.float32),
+            sigma=args.td3_exploration_noise
+            * np.ones(3, dtype=np.float32),
+        )
+        algorithm_class = (
+            TrustRegionTD3
+            if args.decision_algorithm == "td3_trust"
+            else TD3
+        )
+        model = algorithm_class(
+            "MlpPolicy",
+            normalized,
+            learning_rate=args.learning_rate,
+            buffer_size=args.replay_buffer_size,
+            learning_starts=args.learning_starts,
+            batch_size=args.minibatch_size,
+            tau=args.target_tau,
+            gamma=args.gamma,
+            train_freq=(args.train_frequency, "step"),
+            gradient_steps=args.gradient_steps,
+            action_noise=noise,
+            policy_delay=args.policy_delay,
+            target_policy_noise=args.target_policy_noise,
+            target_noise_clip=args.target_noise_clip,
+            seed=args.seed,
+            device=device,
+            verbose=0,
+            **(
+                {
+                    "source_trust_coefficient": (
+                        args.source_trust_coefficient
+                    ),
+                    "uncertainty_coefficient": (
+                        args.uncertainty_coefficient
+                    ),
+                    "behavior_coefficient": (
+                        args.behavior_coefficient
+                    ),
+                    "adaptive_q_coefficient": (
+                        args.adaptive_q_coefficient
+                    ),
+                }
+                if args.decision_algorithm == "td3_trust"
+                else {}
+            ),
+        )
+        actor_last = next(
+            layer
+            for layer in reversed(model.actor.mu)
+            if isinstance(layer, torch.nn.Linear)
+        )
+        torch.nn.init.zeros_(actor_last.weight)
+        torch.nn.init.zeros_(actor_last.bias)
+        model.actor_target.load_state_dict(model.actor.state_dict())
+        if args.historical_critic_transitions > 0:
+            if args.reward_normalization != "none":
+                raise ValueError(
+                    "Historical Monte-Carlo critic targets require "
+                    "--reward-normalization none.",
+                )
+            historical_dataset = collect_historical_critic_dataset(
+                source, decoder, args, device,
+            )
+            print(
+                {
+                    "stage": "historical_dataset",
+                    "transitions": int(
+                        historical_dataset["observations"].shape[0],
+                    ),
+                    "return_mean": float(
+                        historical_dataset["returns"].mean(),
+                    ),
+                    "return_std": float(
+                        historical_dataset["returns"].std(),
+                    ),
+                },
+                flush=True,
+            )
+            historical_critic = pretrain_historical_critic(
+                model, historical_dataset, args, device,
+            )
     model.learn(total_timesteps=args.decision_transitions)
     final_base = {
         "target_transitions": (
@@ -332,6 +638,8 @@ def main(args):
         "physical_parameters_visible_to_learner": False,
         "cognition_reward_free": True,
         "decision_uses_real_reward": True,
+        "decision_algorithm": args.decision_algorithm,
+        "historical_critic_pretraining": historical_critic,
         "initial": initial,
         "final_cognition_base_only": final_base,
         "final": final,
@@ -366,6 +674,11 @@ def parse_args():
     parser.add_argument("--exploration-noise", type=float, default=0.2)
     parser.add_argument("--mechanism-latent-ridge", type=float, default=1e-2)
     parser.add_argument("--decision-transitions", type=int, default=2048)
+    parser.add_argument(
+        "--decision-algorithm",
+        choices=("ppo", "td3", "td3_trust"),
+        default="ppo",
+    )
     parser.add_argument("--rollout-steps", type=int, default=512)
     parser.add_argument("--minibatch-size", type=int, default=256)
     parser.add_argument("--update-epochs", type=int, default=3)
@@ -373,7 +686,59 @@ def parse_args():
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--gae-lambda", type=float, default=0.95)
     parser.add_argument("--initial-log-std", type=float, default=-1.5)
+    parser.add_argument("--replay-buffer-size", type=int, default=100000)
+    parser.add_argument("--learning-starts", type=int, default=256)
+    parser.add_argument("--train-frequency", type=int, default=1)
+    parser.add_argument("--gradient-steps", type=int, default=1)
+    parser.add_argument(
+        "--reward-normalization",
+        choices=("running", "none"),
+        default="running",
+    )
+    parser.add_argument("--target-tau", type=float, default=0.005)
+    parser.add_argument("--policy-delay", type=int, default=2)
+    parser.add_argument("--target-policy-noise", type=float, default=0.1)
+    parser.add_argument("--target-noise-clip", type=float, default=0.2)
+    parser.add_argument(
+        "--td3-exploration-noise", type=float, default=0.1,
+    )
+    parser.add_argument(
+        "--source-trust-coefficient", type=float, default=0.1,
+    )
+    parser.add_argument(
+        "--uncertainty-coefficient", type=float, default=0.1,
+    )
+    parser.add_argument(
+        "--behavior-coefficient", type=float, default=0.0,
+    )
+    parser.add_argument(
+        "--adaptive-q-coefficient", type=float, default=2.5,
+    )
+    parser.add_argument(
+        "--historical-mechanism-environments",
+        nargs="+",
+        default=("payload_125", "friction_070", "actuator_080"),
+    )
+    parser.add_argument(
+        "--historical-critic-transitions", type=int, default=0,
+        help="Transitions per known mechanism environment.",
+    )
+    parser.add_argument(
+        "--historical-critic-noise", type=float, default=0.2,
+    )
+    parser.add_argument(
+        "--historical-critic-gradient-steps", type=int, default=1000,
+    )
+    parser.add_argument(
+        "--historical-critic-report-every", type=int, default=250,
+    )
     parser.add_argument("--residual-scale", type=float, default=0.25)
+    parser.add_argument(
+        "--residual-parameterization",
+        choices=("direct", "mechanism_tangent"),
+        default="direct",
+    )
+    parser.add_argument("--tangent-damping", type=float, default=1e-3)
     parser.add_argument("--evaluation-episodes", type=int, default=5)
     parser.add_argument(
         "--source-model",
