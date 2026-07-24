@@ -13,7 +13,10 @@ from cpbn.global_mechanism_kan import (
     GlobalMechanismKANDynamics,
     RecursiveGlobalMechanismEstimator,
 )
-from cpbn.policy_mechanism_decoder import PolicyMechanismDecoder
+from cpbn.policy_mechanism_decoder import (
+    ContextConcatPolicyDecoder,
+    PolicyMechanismDecoder,
+)
 from scripts.diagnose_hopper_global_physics_context import collect_transitions
 from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
 from scripts.validate_hopper_joint_online_adaptation import (
@@ -73,8 +76,14 @@ def train_decoder(decoder, source, experts, states, args, device):
                 generator=generator,
                 device=device,
             )
-            effect = decoder.mechanism_effects(state[sample])[:, index, :]
-            loss = loss + (effect - target[sample]).square().mean()
+            coordinates = torch.zeros(
+                (sample.shape[0], len(tensors)),
+                dtype=state.dtype,
+                device=device,
+            )
+            coordinates[:, index] = 1.0
+            prediction = decoder(state[sample], coordinates)
+            loss = loss + (prediction - target[sample]).square().mean()
         loss = loss / len(tensors)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
@@ -156,10 +165,26 @@ def main(args):
             zip(experts, args.mechanism_environments)
         )
     ]
-    decoder = PolicyMechanismDecoder(
-        source.mean, source.variance,
+    decoder_class = {
+        "mechanism": PolicyMechanismDecoder,
+        "concat_mlp": ContextConcatPolicyDecoder,
+    }[args.decoder_architecture]
+    decoder = decoder_class(
+        source.mean,
+        source.variance,
         mechanism_dim=len(experts),
     ).to(device)
+    parameter_count = sum(
+        parameter.numel() for parameter in decoder.parameters()
+    )
+    print(
+        {
+            "stage": "decoder",
+            "architecture": args.decoder_architecture,
+            "parameters": parameter_count,
+        },
+        flush=True,
+    )
     history = train_decoder(
         decoder, source, experts, states, args, device,
     )
@@ -215,6 +240,8 @@ def main(args):
         "seed": args.seed,
         "device": str(device),
         "target": args.target,
+        "decoder_architecture": args.decoder_architecture,
+        "decoder_parameter_count": parameter_count,
         "physical_parameters_visible_to_learner": False,
         "historical_policy_coefficients": coefficients.cpu().tolist(),
         "distillation": history,
@@ -227,6 +254,8 @@ def main(args):
     torch.save(
         {
             "decoder": decoder.state_dict(),
+            "decoder_architecture": args.decoder_architecture,
+            "decoder_parameter_count": parameter_count,
             "training_coordinates": training_coordinates.cpu(),
         },
         args.checkpoint_out,
@@ -242,6 +271,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
     parser.add_argument("--target", default="combo_medium")
+    parser.add_argument(
+        "--decoder-architecture",
+        choices=("mechanism", "concat_mlp"),
+        default="mechanism",
+    )
     parser.add_argument(
         "--mechanism-environments",
         nargs="+",

@@ -1,0 +1,115 @@
+{
+  "experiment": "HopperCognitionDictionaryPolicyTransfer",
+  "seed": 1811,
+  "device": "cuda",
+  "target": "combo_mild",
+  "physical_parameters_visible_to_learner": false,
+  "reward_used_by_cognition": false,
+  "same_online_linear_context_inference": true,
+  "mlp_source_training": [
+    {
+      "step": 1,
+      "loss": 9.646781921386719
+    },
+    {
+      "step": 200,
+      "loss": 0.35779592394828796
+    },
+    {
+      "step": 400,
+      "loss": 0.32148146629333496
+    },
+    {
+      "step": 600,
+      "loss": 0.2436697781085968
+    },
+    {
+      "step": 800,
+      "loss": 0.2646586298942566
+    },
+    {
+      "step": 1000,
+      "loss": 0.25618821382522583
+    }
+  ],
+  "records": {
+    "kan": {
+      "dictionary_trainable_parameters": 0,
+      "feature_dim": 111,
+      "source_holdout_normalized_rmse": 0.39770758152008057,
+      "target_source_normalized_rmse": 0.4180108308792114,
+      "target_adapted_normalized_rmse": 0.35039022564888,
+      "target_latent": [
+        0.06980269402265549,
+        0.13758209347724915,
+        0.31521353125572205
+      ],
+      "policy_coefficients": [
+        0.13867343962192535,
+        0.06745658814907074,
+        0.6612551808357239
+      ],
+      "policy": {
+        "mean_return": 647.304293728869,
+        "std_return": 4.603700001188072,
+        "mean_episode_length": 203.4,
+        "healthy_completion_rate": 0.0,
+        "correction_abs_mean": 0.07111429239565098,
+        "correction_abs_p95": 0.1740904077887535
+      }
+    },
+    "mlp": {
+      "dictionary_trainable_parameters": 7918,
+      "feature_dim": 111,
+      "source_holdout_normalized_rmse": 0.3550735414028168,
+      "target_source_normalized_rmse": 0.41527947783470154,
+      "target_adapted_normalized_rmse": 0.33435219526290894,
+      "target_latent": [
+        0.1591818928718567,
+        0.12434318661689758,
+        0.37727463245391846
+      ],
+      "policy_coefficients": [
+        0.09158021211624146,
+        0.1193026453256607,
+        0.8649476766586304
+      ],
+      "policy": {
+        "mean_return": 697.0763713742192,
+        "std_return": 7.061491254870748,
+        "mean_episode_length": 218.0,
+        "healthy_completion_rate": 0.0,
+        "correction_abs_mean": 0.0949993321042656,
+        "correction_abs_p95": 0.23274976611137385
+      }
+    }
+  },
+  "config": {
+    "seed": 1811,
+    "target": "combo_mild",
+    "mechanism_environments": [
+      "payload_125",
+      "friction_070",
+      "actuator_080"
+    ],
+    "source_transitions": 8192,
+    "mechanism_transitions": 1024,
+    "adaptation_transitions": 512,
+    "holdout_transitions": 512,
+    "exploration_noise": 0.2,
+    "pair_modes": 1,
+    "context_ridge": 0.01,
+    "latent_ridge": 0.01,
+    "whitening_floor": 0.0001,
+    "mlp_hidden_dim": 64,
+    "mlp_gradient_steps": 1000,
+    "mlp_learning_rate": 0.001,
+    "batch_size": 256,
+    "report_every": 200,
+    "evaluation_episodes": 5,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "decoder_checkpoint": "results/hopper_policy_mechanism_decoder_fair_combo_medium_seed1811.pt",
+    "json_out": "results\\hopper_cognition_dictionary_transfer_combo_mild_seed1811.json"
+  }
+}

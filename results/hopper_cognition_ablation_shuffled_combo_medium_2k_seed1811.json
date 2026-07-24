@@ -1,0 +1,249 @@
+{
+  "experiment": "HopperDistilledMechanismOnlineResidual",
+  "seed": 1811,
+  "device": "cuda",
+  "target": "combo_medium",
+  "physical_parameters_visible_to_learner": false,
+  "cognition_reward_free": true,
+  "cognition_condition": "shuffled",
+  "decision_uses_real_reward": true,
+  "decision_algorithm": "td3_trust",
+  "historical_critic_pretraining": [],
+  "policy_selection": {
+    "episodes_per_policy": 3,
+    "candidate_selected": true,
+    "paired_improvement_mean": 29.615820231395997,
+    "paired_improvement_lcb": 28.438269158095483,
+    "paired_improvement_standard_error": 1.177551073300514,
+    "base_returns": [
+      347.28637594852296,
+      344.0496259946423,
+      347.88485402203275
+    ],
+    "candidate_returns": [
+      375.270556553363,
+      373.01048608042277,
+      379.78727402560025
+    ],
+    "transitions": 815
+  },
+  "initial": {
+    "target_transitions": 512,
+    "mechanism_coefficients": [
+      1.163605809211731,
+      -0.37459373474121094,
+      0.27926865220069885
+    ],
+    "mean_return": 343.78369034891193,
+    "std_return": 2.4603232855382715,
+    "mean_episode_length": 132.0,
+    "healthy_completion_rate": 0.0,
+    "episode_returns": [
+      339.7596978389671,
+      343.94740845781706,
+      343.4640713069526,
+      347.4874405092071,
+      344.25983363161595
+    ],
+    "episode_lengths": [
+      131,
+      132,
+      132,
+      133,
+      132
+    ],
+    "residual_abs_mean": 0.0,
+    "residual_mean_per_dimension": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "residual_std_per_dimension": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "residual_saturation_rate": 0.0,
+    "physical_residual_abs_mean": 0.0
+  },
+  "final_cognition_base_only": {
+    "target_transitions": 3375,
+    "mechanism_coefficients": [
+      1.1660611629486084,
+      -0.3636282980442047,
+      0.274809867143631
+    ],
+    "mean_return": 344.32648635962767,
+    "std_return": 1.6431979734134314,
+    "mean_episode_length": 132.2,
+    "healthy_completion_rate": 0.0,
+    "episode_returns": [
+      342.73265557144725,
+      343.8111195235699,
+      343.3914429977216,
+      347.4589780308114,
+      344.2382356745883
+    ],
+    "episode_lengths": [
+      132,
+      132,
+      132,
+      133,
+      132
+    ],
+    "residual_abs_mean": 0.0,
+    "residual_mean_per_dimension": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "residual_std_per_dimension": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "residual_saturation_rate": 0.0,
+    "physical_residual_abs_mean": 0.0
+  },
+  "final_candidate": {
+    "target_transitions": 3375,
+    "mechanism_coefficients": [
+      1.1660611629486084,
+      -0.3636282980442047,
+      0.274809867143631
+    ],
+    "mean_return": 374.4372788784245,
+    "std_return": 2.4621553718598643,
+    "mean_episode_length": 138.6,
+    "healthy_completion_rate": 0.0,
+    "episode_returns": [
+      376.3208201644023,
+      376.6576426416568,
+      371.8762152768958,
+      376.31954198290777,
+      371.01217432625975
+    ],
+    "episode_lengths": [
+      139,
+      139,
+      138,
+      139,
+      138
+    ],
+    "residual_abs_mean": 0.457012414932251,
+    "residual_mean_per_dimension": [
+      0.383815735578537,
+      0.5603371858596802,
+      0.42688438296318054
+    ],
+    "residual_std_per_dimension": [
+      0.24834586679935455,
+      0.3382068872451782,
+      0.26356232166290283
+    ],
+    "residual_saturation_rate": 0.08946608946608947,
+    "physical_residual_abs_mean": 0.45701239414660044
+  },
+  "final": {
+    "target_transitions": 3375,
+    "mechanism_coefficients": [
+      1.1660611629486084,
+      -0.3636282980442047,
+      0.274809867143631
+    ],
+    "mean_return": 374.4372788784245,
+    "std_return": 2.4621553718598643,
+    "mean_episode_length": 138.6,
+    "healthy_completion_rate": 0.0,
+    "episode_returns": [
+      376.3208201644023,
+      376.6576426416568,
+      371.8762152768958,
+      376.31954198290777,
+      371.01217432625975
+    ],
+    "episode_lengths": [
+      139,
+      139,
+      138,
+      139,
+      138
+    ],
+    "residual_abs_mean": 0.457012414932251,
+    "residual_mean_per_dimension": [
+      0.383815735578537,
+      0.5603371858596802,
+      0.42688438296318054
+    ],
+    "residual_std_per_dimension": [
+      0.24834586679935455,
+      0.3382068872451782,
+      0.26356232166290283
+    ],
+    "residual_saturation_rate": 0.08946608946608947,
+    "physical_residual_abs_mean": 0.45701239414660044
+  },
+  "config": {
+    "seed": 1811,
+    "target": "combo_medium",
+    "cognition_warmup": 512,
+    "cognition_batch": 512,
+    "online_cognition_weight": 0.01,
+    "cognition_condition": "shuffled",
+    "exploration_noise": 0.2,
+    "mechanism_latent_ridge": 0.01,
+    "decision_transitions": 2048,
+    "decision_algorithm": "td3_trust",
+    "rollout_steps": 512,
+    "minibatch_size": 256,
+    "update_epochs": 3,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "initial_log_std": -1.5,
+    "replay_buffer_size": 100000,
+    "learning_starts": 256,
+    "train_frequency": 1,
+    "gradient_steps": 1,
+    "reward_normalization": "none",
+    "target_tau": 0.005,
+    "policy_delay": 2,
+    "target_policy_noise": 0.1,
+    "target_noise_clip": 0.2,
+    "td3_exploration_noise": 0.1,
+    "source_trust_coefficient": 0.1,
+    "uncertainty_coefficient": 0.0,
+    "behavior_coefficient": 1.0,
+    "adaptive_q_coefficient": 10.0,
+    "centered_advantage_critic": false,
+    "baseline_action_probability": 0.0,
+    "policy_selection_episodes": 3,
+    "policy_selection_confidence": 1.0,
+    "historical_mechanism_environments": [
+      "payload_125",
+      "friction_070",
+      "actuator_080"
+    ],
+    "historical_critic_transitions": 0,
+    "historical_critic_noise": 0.2,
+    "historical_critic_gradient_steps": 1000,
+    "historical_critic_report_every": 250,
+    "residual_scale": 0.25,
+    "residual_parameterization": "direct",
+    "tangent_damping": 0.001,
+    "evaluation_episodes": 5,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "cognition_checkpoint": "results/hopper_source_centered_protokan_seed1811.pt",
+    "mechanism_checkpoint": "results/hopper_global_mechanism_latent_seed1811.pt",
+    "decoder_checkpoint": "results/hopper_policy_mechanism_decoder_seed1811.pt",
+    "model_out": "results\\hopper_cognition_ablation_shuffled_combo_medium_2k_seed1811",
+    "json_out": "results\\hopper_cognition_ablation_shuffled_combo_medium_2k_seed1811.json",
+    "device": "cuda",
+    "mechanism_latent_scale": [
+      0.07443573325872421,
+      0.07610886543989182,
+      0.05849728360772133
+    ]
+  }
+}

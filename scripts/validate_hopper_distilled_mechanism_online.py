@@ -20,6 +20,7 @@ from cpbn.global_mechanism_kan import (
     RecursiveGlobalMechanismEstimator,
 )
 from cpbn.centered_advantage_critic import CenteredAdvantageTD3Policy
+from cpbn.cognitive_ablation import intervene_on_coordinates
 from cpbn.conservative_policy_selection import (
     paired_return_lower_bound,
 )
@@ -73,10 +74,15 @@ class DistilledMechanismResidualHopper(gym.Env):
         coordinate = (
             self.estimator.latent() / self.args.mechanism_latent_scale
         )
-        self._coefficients = torch.linalg.lstsq(
+        inferred = torch.linalg.lstsq(
             self.training_coordinates.T,
             coordinate,
         ).solution
+        self._inferred_coefficients = inferred
+        self._coefficients = intervene_on_coordinates(
+            inferred,
+            self.args.cognition_condition,
+        )
 
     @torch.no_grad()
     def coefficients(self):
@@ -505,7 +511,10 @@ def main(args):
         decoder_payload["training_coordinates"].to(device),
         args,
         seed_offset=500,
-        update_cognition=True,
+        update_cognition=args.cognition_condition in {
+            "inferred",
+            "shuffled",
+        },
     )
     initial = {
         "target_transitions": args.cognition_warmup,
@@ -710,6 +719,7 @@ def main(args):
         "target": args.target,
         "physical_parameters_visible_to_learner": False,
         "cognition_reward_free": True,
+        "cognition_condition": args.cognition_condition,
         "decision_uses_real_reward": True,
         "decision_algorithm": args.decision_algorithm,
         "historical_critic_pretraining": historical_critic,
@@ -745,6 +755,11 @@ def parse_args():
     parser.add_argument("--cognition-batch", type=int, default=512)
     parser.add_argument(
         "--online-cognition-weight", type=float, default=0.1,
+    )
+    parser.add_argument(
+        "--cognition-condition",
+        choices=("inferred", "frozen", "zero", "shuffled"),
+        default="inferred",
     )
     parser.add_argument("--exploration-noise", type=float, default=0.2)
     parser.add_argument("--mechanism-latent-ridge", type=float, default=1e-2)

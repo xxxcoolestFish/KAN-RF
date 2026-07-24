@@ -1,0 +1,92 @@
+{
+  "experiment": "HopperDistilledPolicyMechanismGate",
+  "seed": 1811,
+  "device": "cuda",
+  "target": "combo_mild",
+  "decoder_architecture": "concat_mlp",
+  "decoder_parameter_count": 15413,
+  "physical_parameters_visible_to_learner": false,
+  "historical_policy_coefficients": [
+    0.04099755361676216,
+    0.12492197006940842,
+    0.7703008651733398
+  ],
+  "distillation": [
+    {
+      "step": 1,
+      "loss": 0.020327003672719002
+    },
+    {
+      "step": 200,
+      "loss": 0.0013762719463557005
+    },
+    {
+      "step": 400,
+      "loss": 0.0006492175161838531
+    },
+    {
+      "step": 600,
+      "loss": 0.00046069826930761337
+    },
+    {
+      "step": 800,
+      "loss": 0.000362343096639961
+    },
+    {
+      "step": 1000,
+      "loss": 0.0002816327032633126
+    }
+  ],
+  "frozen_source": {
+    "mean_return": 542.2238013606689,
+    "std_return": 3.7450930207203403,
+    "mean_episode_length": 173.8,
+    "healthy_completion_rate": 0.0,
+    "correction_abs_mean": 0.0,
+    "correction_abs_p95": 0.0
+  },
+  "distilled_transport": {
+    "mean_return": 715.6932334364681,
+    "std_return": 7.399647747762307,
+    "mean_episode_length": 223.2,
+    "healthy_completion_rate": 0.0,
+    "correction_abs_mean": 0.0846105559785787,
+    "correction_abs_p95": 0.21195303052663803
+  },
+  "improvement": 173.4694320757992,
+  "config": {
+    "seed": 1811,
+    "target": "combo_mild",
+    "decoder_architecture": "concat_mlp",
+    "mechanism_environments": [
+      "payload_125",
+      "friction_070",
+      "actuator_080"
+    ],
+    "expert_transitions": 2048,
+    "gradient_steps": 1000,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "report_every": 200,
+    "cognition_warmup": 512,
+    "exploration_noise": 0.2,
+    "evaluation_episodes": 5,
+    "mechanism_latent_ridge": 0.01,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "cognition_checkpoint": "results/hopper_source_centered_protokan_seed1811.pt",
+    "mechanism_checkpoint": "results/hopper_global_mechanism_latent_seed1811.pt",
+    "mechanism_actor_models": [
+      "results/hopper_payload125_mechanism_actor_frozennorm_80k_seed1811.zip",
+      "results/hopper_friction070_mechanism_actor_frozennorm_80k_seed1811.zip",
+      "results/hopper_actuator080_mechanism_actor_frozennorm_80k_seed1811.zip"
+    ],
+    "mechanism_actor_norms": [
+      "results/hopper_payload125_mechanism_actor_frozennorm_16k_norm_seed1811.pkl",
+      "results/hopper_friction070_mechanism_actor_frozennorm_16k_norm_seed1811.pkl",
+      "results/hopper_actuator080_mechanism_actor_frozennorm_16k_norm_seed1811.pkl"
+    ],
+    "checkpoint_out": "results\\hopper_context_concat_residual_decoder_combo_mild_seed1811.pt",
+    "json_out": "results\\hopper_context_concat_residual_decoder_combo_mild_seed1811.json"
+  }
+}
