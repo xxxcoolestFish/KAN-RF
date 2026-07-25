@@ -1,0 +1,63 @@
+{
+  "experiment": "HopperPolicyCenteredProtoKANCognition",
+  "seed": 1811,
+  "device": "cuda",
+  "target": "combo_mild",
+  "physical_parameters_visible_to_learner": false,
+  "reward_used_for_cognition": false,
+  "policy_centered": true,
+  "state_dim": 11,
+  "action_dim": 3,
+  "feature_dim": 111,
+  "context_feature_dim": 444,
+  "config": {
+    "seed": 1811,
+    "target": "combo_mild",
+    "source_samples": 32768,
+    "holdout_samples": 4096,
+    "budgets": [
+      0,
+      256,
+      1024,
+      4096,
+      16384
+    ],
+    "batch_size": 128,
+    "pair_modes": 1,
+    "exploration_noise": 0.2,
+    "source_fit_ridge": 0.01,
+    "cognition_ridge": 0.1,
+    "forgetting_factor": 0.9999,
+    "model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "checkpoint_out": "results/hopper_source_centered_protokan_seed1811.pt",
+    "json_out": "results/hopper_centered_protokan_combo_mild_seed1811.json"
+  },
+  "records": [
+    {
+      "transitions": 0,
+      "source_normalized_rmse": 0.3918641209602356,
+      "target_normalized_rmse": 0.4062718152999878
+    },
+    {
+      "transitions": 256,
+      "source_normalized_rmse": 0.39244094491004944,
+      "target_normalized_rmse": 0.3900316655635834
+    },
+    {
+      "transitions": 1024,
+      "source_normalized_rmse": 0.3943866789340973,
+      "target_normalized_rmse": 0.361189067363739
+    },
+    {
+      "transitions": 4096,
+      "source_normalized_rmse": 0.4026542901992798,
+      "target_normalized_rmse": 0.32607805728912354
+    },
+    {
+      "transitions": 16384,
+      "source_normalized_rmse": 0.44208213686943054,
+      "target_normalized_rmse": 0.2892652153968811
+    }
+  ]
+}

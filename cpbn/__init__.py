@@ -1,35 +1,29 @@
-"""Cognitive Pullback Bellman Network (CPBN).
+"""Control-equivalent ProtoKAN cognition for continual dynamics adaptation."""
 
-The package keeps cognition and decision training separate while coupling
-their forward computations through a differentiable dynamics operator.
-"""
-
-from cpbn.acrobot import (
-    GOAL,
-    SOURCE_FACTOR,
-    OracleAcrobotDynamics,
-    random_states,
-    reset_down_states,
-    task_reward,
-    tip_height,
+from cpbn.generic_affine_kan import (
+    AffineKANContext,
+    AffineKANPosterior,
+    AffinePosteriorPullback,
+    CompactInteractionKANDictionary,
+    LearnedMLPDictionary,
+    RecursiveAffineKANEstimator,
+    fit_affine_kan_context,
 )
-from cpbn.bellman import (
-    ImplicitBellmanAction,
-    bellman_return,
-    grid_best_action,
+from cpbn.hopper_source_twin import (
+    HopperSourceAffineTwin,
+    JointStateSupportCalibrator,
+    SparseComposableKANTwin,
 )
-from cpbn.networks import ValueNetwork
 
 __all__ = [
-    "GOAL",
-    "SOURCE_FACTOR",
-    "ImplicitBellmanAction",
-    "OracleAcrobotDynamics",
-    "ValueNetwork",
-    "bellman_return",
-    "grid_best_action",
-    "random_states",
-    "reset_down_states",
-    "task_reward",
-    "tip_height",
+    "AffineKANContext",
+    "AffineKANPosterior",
+    "AffinePosteriorPullback",
+    "CompactInteractionKANDictionary",
+    "HopperSourceAffineTwin",
+    "JointStateSupportCalibrator",
+    "LearnedMLPDictionary",
+    "RecursiveAffineKANEstimator",
+    "SparseComposableKANTwin",
+    "fit_affine_kan_context",
 ]

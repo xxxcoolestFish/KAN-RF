@@ -3,6 +3,17 @@
 The submission draft is written in English LaTeX using the official AAAI-27
 style files downloaded from the AAAI Author Kit on 2026-07-22.
 
+## Important Handoff Warning
+
+The current `main.tex` is an earlier PCET draft centered on CartPole and a
+two-link system. It is not yet synchronized with the latest Hopper result:
+online target ProtoKAN cognition, an affine source twin, ungated
+control-equivalent action transport, and the three-seed recovery curve. Treat
+the draft as reusable writing material, not as the current scientific record.
+Before submission, rewrite the abstract, method, experiments, KAN contribution,
+and limitations using `docs/COLLABORATOR_HANDOFF_CN.md` and
+`docs/HOPPER_CLOSED_LOOP_COGNITIVE_TRANSPORT_STAGE_CN.md`.
+
 ## Files
 
 - `main.tex`: single-source anonymous paper draft required by the author kit.

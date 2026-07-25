@@ -1,17 +1,19 @@
 # 实验与代码索引
 
 更新日期：2026-07-25  
-工作分支：`research/paper-candidate-v1`
+工作分支：`collab/handoff-latest-20260725`
 
 ## 1. 分支定位
 
-本分支只服务于当前 Hopper 论文候选路线：在单一源物理环境中训练源策略和认知模型；物理条件未知变化后，ProtoKAN 从真实在线转移中持续更新目标动力学，并通过控制等价动作运输影响决策，使闭环回报随交互预算恢复。
+本分支只服务于当前 Hopper 论文候选路线及同事协作交接：在单一源物理环境中训练源策略和认知模型；物理条件未知变化后，ProtoKAN 从真实在线转移中持续更新目标动力学，并通过控制等价动作运输影响决策，使闭环回报随交互预算恢复。
 
 完整的历史探索、失败实验、旧环境结果和对应测试保存在：
 
 - 分支：`archive/research-history-20260725`
 - 完整归档提交：`5f20465`
 - 归档前的 Acrobot/ProtoKAN 批次：`2a4bc88`
+- 整理前论文候选分支：`research/paper-candidate-v1`
+- 当前详细交接：`docs/COLLABORATOR_HANDOFF_CN.md`
 
 除非是在追溯负结果或设计消融，不应从归档分支中的旧实验直接形成论文主张。
 
@@ -59,6 +61,7 @@
 ### 3.2 源阶段
 
 - `scripts/train_hopper_sb3_ppo.py`：训练源 PPO Actor。
+- `scripts/validate_hopper_centered_protokan_cognition.py`：生成源策略中心化 ProtoKAN 基础检查点。
 - `scripts/train_hopper_source_affine_twin.py`：训练源控制仿射动力学模型。
 - `scripts/train_hopper_control_sobolev_cognition.py`：加入动作导数约束的认知训练。
 - `scripts/prescreen_hopper_physics_shifts.py`：统一定义评测用物理变化；这些标签只用于实验配置，不作为模型输入。

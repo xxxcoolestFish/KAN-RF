@@ -2,7 +2,9 @@
 
 > 更新时间：2026-07-25
 >
-> 当前分支：`research/paper-candidate-v1`
+> 当前分支：`collab/handoff-latest-20260725`
+>
+> 注：本报告包含部分已归档阶段的历史路径。当前协作入口、保留文件和复现顺序以 `docs/COLLABORATOR_HANDOFF_CN.md` 为准；被精简的历史代码与结果位于 `archive/research-history-20260725`。
 >
 > 本文档目的：统一记录项目目标、当前方法、关键实验、失败原因、理论边界与下一阶段路线，作为后续算法迭代和论文写作的事实基线。
 

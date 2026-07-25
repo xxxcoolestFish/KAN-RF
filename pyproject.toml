@@ -12,5 +12,15 @@ dependencies = [
     "numpy",
 ]
 
+[project.optional-dependencies]
+research = [
+    "gymnasium[mujoco]>=1.0",
+    "mujoco>=3.0",
+    "stable-baselines3>=2.4",
+]
+test = [
+    "pytest>=8",
+]
+
 [tool.setuptools.packages.find]
 include = ["kanrf*", "cpbn*"]
