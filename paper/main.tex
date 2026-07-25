@@ -102,8 +102,8 @@ We make three contributions.  First, we formalize source-only continual
 dynamics adaptation as an actionability problem, separating task knowledge in
 a frozen policy from its changing physical realization.  Second, we derive a
 posterior-risk control-equivalent pullback from an online forward model to the
-action space, together with a structured KAN realization that exposes the
-required local action-effect operator.  Third, we combine the pullback with
+action space, together with a structured KAN realization exposing the local
+action-effect operator.  Third, we combine the pullback with
 control-relevant posterior stabilization and non-overwriting dynamics memory,
 and evaluate recovery and retention under multiple unseen dynamics shifts.
 
@@ -200,9 +200,20 @@ v_0(s)=F_0(s,a^{\mathrm{src}}).
 \end{equation}
 Equation~\eqref{eq:intent} does not assert that every source next state must be
 copied.  More generally, an effect metric $W(s)\succeq 0$ can retain only
-task-relevant directions.  The validated base implementation uses $W=I$.
-Learning or deriving a nontrivial task-relevant metric is treated as a pending
-extension and is not used in the reported claims.
+task-relevant directions.
+
+\subsection{Effect Geometry and Automaticity Boundary}
+
+The current reported method uses $W=I$.  A task-dependent $W(s)$ can improve a
+chosen benchmark when its directions are specified manually, but such a result
+does not establish automatic transfer.  We therefore exclude manually weighted
+metrics from the empirical claims.  A source-only value Critic predicts returns
+accurately in our diagnostic study, yet both its gradient outer product and its
+positive-semidefinite value Hessian fail as effect metrics.  This indicates that
+a local symmetric metric is insufficient to represent the full, asymmetric
+counterfactual advantage of a physical effect.  Learning and transporting that
+advantage is left as an open extension rather than hidden behind a hand-crafted
+weight.
 
 \subsection{Bayesian KAN Dynamics Posterior}
 
@@ -246,17 +257,20 @@ Let $U_t(s)\succ 0$ denote the action-space risk obtained by propagating the
 KAN posterior covariance through the action-effect operator.  PCET selects the
 current physical action by
 \begin{equation}
-a_t^*=\arg\min_a
-\left\|\bar f_t(s)+\bar G_t(s)a-v_0(s)\right\|_{W(s)}^2
-+\left\|a-a^{\mathrm{src}}\right\|_{U_t(s)}^2.
+\begin{aligned}
+a_t^*=\arg\min_a\quad
+&\left\|\bar f_t(s)+\bar G_t(s)a-v_0(s)\right\|_{W(s)}^2\\
+&+\left\|a-a^{\mathrm{src}}\right\|_{U_t(s)}^2.
+\end{aligned}
 \label{eq:pullback-objective}
 \end{equation}
 For the local model in Equation~\eqref{eq:affine}, the solution is
 \begin{equation}
-\boxed{
-a_t^*=
-(\bar G_t^{\top}W\bar G_t+U_t)^{-1}
-\left[\bar G_t^{\top}W(v_0-\bar f_t)+U_ta^{\mathrm{src}}\right].}
+\begin{aligned}
+H_t={}&\bar G_t^{\top}W\bar G_t+U_t,\\
+a_t^*={}&H_t^{-1}
+\left[\bar G_t^{\top}W(v_0-\bar f_t)+U_ta^{\mathrm{src}}\right].
+\end{aligned}
 \label{eq:pullback}
 \end{equation}
 The first term reproduces the source effect under the new dynamics.  The second
@@ -313,9 +327,9 @@ statistics of another.
 \section{Experiments}
 
 We evaluate three questions: (i) whether an accurate target dynamics model can
-recover a frozen source policy, (ii) how rapidly a self-supervised online KAN
-approaches that oracle, and (iii) whether recurring dynamics can be recalled
-without catastrophic performance loss.  The policy is trained under one source
+recover a frozen source policy, (ii) how full-effect PCET compares with learned
+inverse transfer under a shared data budget, and (iii) whether recurring dynamics can be recalled without catastrophic
+performance loss.  The policy is trained under one source
 dynamics only.  At deployment, no method receives the target physical
 parameters or an environment identifier.
 
@@ -325,31 +339,32 @@ The CartPole state is $[x,\theta,\dot x,\dot\theta]$ and the action is a scalar
 continuous force.  The source actor achieves 100\% success over 1,024 random
 initial states, and the source KAN has acceleration RMSE $0.00488$.  We test
 three shifts that reduce the frozen actor to 0\% success.  Table~\ref{tab:cartpole}
-reports five-seed means.  The oracle pullback uses the true target dynamics;
-the online result uses only transition updates.
+reports five-seed means after 2,048 target transitions.  All online methods see
+identical target transition prefixes and test states; the learned inverse KAN
+has 271 coefficients versus 300 for the forward KAN.
 
 \begin{table}[t]
 \centering
-\caption{CartPole success rate under unseen dynamics. ``Online'' uses 2,048
-target transitions and keeps the actor frozen.}
+\small
+\caption{CartPole final success under unseen dynamics (\%).  The actor remains frozen.}
 \label{tab:cartpole}
-\begin{tabular}{lrrr}
+\begin{tabular}{@{}lrr@{}}
 \toprule
-Shift & Frozen & Oracle & Online \\
+Shift & PCET & Inverse \\
 \midrule
-Heavy cart + weak actuator & 0.00 & 100.00 & 100.00 \\
-High gravity + weak actuator & 0.00 & 99.80 & 99.86 \\
-Hard multi-parameter shift & 0.00 & 96.78 & 92.13 \\
+Heavy cart, weak act. & 99.96 & \textbf{100.00} \\
+High gravity, weak act. & 98.79 & \textbf{99.08} \\
+Hard combined shift & 78.63 & \textbf{79.51} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-For the hard multi-parameter shift, success rises from 59.41\% with 64 target
-transitions to 78.75\%, 80.61\%, 81.52\%, 88.75\%, and 92.13\% at budgets
-$128,256,512,1024,$ and $2048$, respectively.  All five seeds exceed 90\% at
-the final budget.  This curve supports the intended causal chain: as the
-transition-only cognitive posterior improves, the frozen policy is re-grounded
-without policy optimization.
+For the hard shift, PCET and direct inverse transfer obtain mean recovery rates
+of 71.45\% and 70.22\%, respectively, and neither dominates at the final
+budget.  This strong comparison prevents us from attributing the present result
+to a uniquely effective forward-model transport mechanism.  A manually
+weighted diagnostic performs better, but is excluded because its task geometry
+was not recovered automatically.
 
 \subsection{Two-Link Nonlinear Control}
 
@@ -361,17 +376,18 @@ baseline with posterior-conditioned decision making.
 
 \begin{table}[t]
 \centering
+\small
 \caption{Five-seed two-link recovery results (success rate, \%).}
 \label{tab:twolink}
-\begin{tabular}{lrr}
+\begin{tabular}{@{}lrr@{}}
 \toprule
-Metric & Spectral baseline & PCET \\
+Metric & Spectral & PCET \\
 \midrule
-Mean recovery curve & 75.89 & \textbf{82.76} \\
-Final success mean & 95.55 & \textbf{95.70} \\
-Worst final success & 71.48 & \textbf{72.66} \\
-Coupled-shift recovery & 44.69 & \textbf{60.31} \\
-Seeds reaching 95\% on coupled shift & 1/5 & \textbf{3/5} \\
+Mean recovery & 75.89 & \textbf{82.76} \\
+Final mean & 95.55 & \textbf{95.70} \\
+Worst final & 71.48 & \textbf{72.66} \\
+Coupled recovery & 44.69 & \textbf{60.31} \\
+Coupled seeds at 95\% & 1/5 & \textbf{3/5} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -385,23 +401,20 @@ retention of control performance but not optimal memory allocation.
 
 \subsection{Required Final Comparisons}
 
-The current evidence establishes feasibility and cross-system recovery, but
-the final empirical claim requires a unified-budget comparison with (i) learned
-inverse dynamics/GAT-style action transfer, (ii) a context-conditioned actor,
-(iii) online policy fine-tuning, (iv) model-predictive control, and (v) an
-equal-capacity MLP forward model.  The decisive ablation compares $W=I$ with a
-task-relevant effect metric and removes posterior risk, stable transport, and
-non-overwriting memory individually.  These comparisons are deliberately not
-filled with proxy numbers in this draft.
+The current evidence establishes feasibility, cross-system recovery, and a
+unified-budget learned-inverse comparison on CartPole.  The final empirical
+claim still requires (i) an automatic source-value transfer operator, (ii) a context-conditioned actor, (iii) online policy
+fine-tuning, (iv) model-predictive control, and (v) an equal-capacity MLP
+forward model.  The task metric must also be validated on the two-link system,
+and posterior risk, stable transport, and memory require individual ablations.
 
 \section{Limitations}
 
 The current experiments use simulated systems and safe exploratory transitions
 with randomized resets.  CartPole does not yet include recurrent-environment
-memory, and the two-link memory can create duplicate contexts.  The base
-pullback matches the full chosen effect ($W=I$); whether a learned
-task-relevant effect metric improves transfer over full-effect matching remains
-an open experiment.  Finally, local control affinity and sufficient excitation
+memory, and the two-link memory can create duplicate contexts.  Manually
+weighted effect geometry is not counted as evidence; automatic Critic-gradient
+and Critic-Hessian metrics currently underperform $W=I$.  Finally, local control affinity and sufficient excitation
 are substantive assumptions: if the action-effect operator is poorly
 conditioned or the target effect is infeasible, regularization can limit
 unsafe corrections but cannot guarantee task recovery.
@@ -412,11 +425,11 @@ We study how an online dynamics model can become operationally useful to a
 frozen task policy under unseen and recurring physical changes.  PCET encodes
 the source policy through its intended local effect and uses a Bayesian KAN
 posterior to compute an uncertainty-aware action that realizes that effect
-under the current dynamics.  Initial results show rapid source-only recovery in
-systems with different action dimensions.  The remaining decisive question is
-whether task-relevant posterior transport consistently outperforms strong
-inverse-dynamics and context-conditioning baselines under identical online
-budgets.
+under the current dynamics.  Results show source-only recovery in systems with
+different action dimensions, but a unified-budget CartPole comparison finds no
+clear advantage over learned inverse transfer.  The central remaining problem
+is to transport a source task's full counterfactual value information without
+manual effect weights or target-domain supervision.
 
 \bibliography{references}
 

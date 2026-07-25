@@ -30,3 +30,15 @@ def test_protokan_forward_shape():
     output = model(torch.randn(5, 7))
     assert output.shape == (5, 6)
     assert output.isfinite().all()
+
+
+def test_kan_spline_edges_do_not_mix_input_dimensions():
+    layer = KANLayer(in_dim=2, out_dim=1, grid_size=5, spline_order=3)
+    with torch.no_grad():
+        layer.base_weight.zero_()
+        layer.spline_weight.zero_()
+        layer.spline_weight[0, 0].fill_(1.0)
+
+    first = layer(torch.tensor([[0.0, -0.5]]))
+    second = layer(torch.tensor([[0.0, 0.5]]))
+    assert torch.allclose(first, second, atol=1e-7)

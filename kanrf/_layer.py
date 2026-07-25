@@ -50,7 +50,7 @@ class KANLayer(nn.Module):
         B = B_flat.reshape(batch, self.in_dim, -1)  # (batch, in_dim, n_basis)
 
         # Spline part: Σ_j Σ_k c_{i,j,k} · B_k(x_j)
-        spline_out = torch.einsum('bjk,oik->bo', B, self.spline_weight)
+        spline_out = torch.einsum('bik,oik->bo', B, self.spline_weight)
 
         # Base part: Σ_j w_{i,j} · silu(x_j)
         base_out = F.silu(x) @ self.base_weight.T
@@ -60,7 +60,7 @@ class KANLayer(nn.Module):
             # spline_weight: (out_dim, in_dim, n_basis)
             # B: (batch, in_dim, n_basis)
             # edge_contrib: (batch, out_dim, in_dim) = Σ_k c_{i,j,k} * B_k(x_j)
-            edge_contrib = torch.einsum('bjk,oik->boj', B, self.spline_weight)
+            edge_contrib = torch.einsum('bik,oik->boi', B, self.spline_weight)
             spline_energy = edge_contrib ** 2  # (batch, out_dim, in_dim)
             return base_out + spline_out, B, spline_energy
 

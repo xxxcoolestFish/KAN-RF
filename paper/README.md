@@ -21,9 +21,9 @@ pdflatex main.tex
 pdflatex main.tex
 ```
 
-The current machine did not expose `pdflatex`, `latexmk`, or `bibtex` on
-`PATH` when this workspace was created, so the draft has not yet received a
-rendered page-count or layout check.
+The manuscript was compiled successfully with TeX Live 2026 installed at
+`C:\texlive\2026`. If that directory is not yet on `PATH`, invoke
+`C:\texlive\2026\bin\windows\pdflatex.exe` and `bibtex.exe` directly.
 
 ## Draft Status
 

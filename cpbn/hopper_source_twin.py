@@ -196,3 +196,130 @@ class SparseComposableKANTwin(nn.Module):
             for group in self.group_slices[1:]
         ])
         return float((norms > threshold).float().mean())
+
+
+class JointStateSupportCalibrator:
+    """Source-only joint-state coverage and local-error calibrator.
+
+    Coordinate-wise ranges cannot detect unseen combinations of individually
+    familiar state coordinates.  This calibrator whitens the joint source
+    cloud, measures k-nearest-neighbour coverage in that joint geometry, and
+    attaches a source-only local counterfactual error estimate.
+    """
+
+    def __init__(
+        self,
+        reference_state,
+        reference_error,
+        state_scale,
+        *,
+        neighbors: int = 16,
+        covariance_ridge: float = 0.05,
+        chunk_size: int = 512,
+    ):
+        reference_state = torch.as_tensor(
+            reference_state, dtype=torch.float32,
+        )
+        reference_error = torch.as_tensor(
+            reference_error,
+            dtype=torch.float32,
+            device=reference_state.device,
+        ).flatten()
+        state_scale = torch.as_tensor(
+            state_scale,
+            dtype=torch.float32,
+            device=reference_state.device,
+        )
+        if reference_state.ndim != 2:
+            raise ValueError("reference_state must be a matrix")
+        if reference_error.shape[0] != reference_state.shape[0]:
+            raise ValueError("reference error count must match states")
+        if reference_state.shape[0] <= neighbors:
+            raise ValueError("more reference states than neighbors required")
+        self.neighbors = int(neighbors)
+        self.chunk_size = int(chunk_size)
+        self.state_scale = state_scale.clamp_min(1e-6)
+        normalized = reference_state / self.state_scale
+        self.center = normalized.mean(dim=0)
+        centered = normalized - self.center
+        covariance = centered.T @ centered / max(centered.shape[0] - 1, 1)
+        average_variance = covariance.diagonal().mean().clamp_min(1e-6)
+        eigenvalue, eigenvector = torch.linalg.eigh(covariance)
+        regularized = eigenvalue.clamp_min(
+            float(covariance_ridge) * average_variance,
+        )
+        self.whitener = eigenvector @ torch.diag(regularized.rsqrt())
+        self.reference = centered @ self.whitener
+        self.reference_error = reference_error.clamp_min(0.0)
+        calibration = self._neighbor_summary(
+            self.reference,
+            exclude_reference_self=True,
+        )
+        self.distance_scale = torch.quantile(
+            calibration["coverage_distance"], 0.95,
+        ).clamp_min(1e-6)
+        self.error_scale = torch.quantile(
+            self.reference_error, 0.95,
+        ).clamp_min(1e-6)
+
+    def _neighbor_summary(self, query, *, exclude_reference_self=False):
+        distances = []
+        local_errors = []
+        count = query.shape[0]
+        requested = self.neighbors + int(exclude_reference_self)
+        for start in range(0, count, self.chunk_size):
+            stop = min(start + self.chunk_size, count)
+            distance = torch.cdist(query[start:stop], self.reference)
+            if exclude_reference_self:
+                rows = torch.arange(stop - start, device=distance.device)
+                columns = torch.arange(start, stop, device=distance.device)
+                distance[rows, columns] = torch.inf
+            nearest_distance, nearest_index = torch.topk(
+                distance,
+                k=requested - int(exclude_reference_self),
+                dim=-1,
+                largest=False,
+            )
+            weight = nearest_distance.clamp_min(1e-4).reciprocal()
+            neighbor_error = self.reference_error[nearest_index]
+            local_error = (
+                weight * neighbor_error
+            ).sum(dim=-1) / weight.sum(dim=-1)
+            distances.append(nearest_distance[:, -1])
+            local_errors.append(local_error)
+        return {
+            "coverage_distance": torch.cat(distances),
+            "local_source_error": torch.cat(local_errors),
+        }
+
+    def score(self, state):
+        """Return source-only uncertainty components and confidence."""
+        state = torch.as_tensor(
+            state,
+            dtype=torch.float32,
+            device=self.reference.device,
+        )
+        whitened = (
+            state / self.state_scale - self.center
+        ) @ self.whitener
+        summary = self._neighbor_summary(whitened)
+        coverage_ratio = (
+            summary["coverage_distance"] / self.distance_scale
+        )
+        local_error_ratio = (
+            summary["local_source_error"] / self.error_scale
+        )
+        # Coverage is the primary identifiability term.  Local source error
+        # modulates it without allowing a fortuitously small local fit error
+        # to declare a distributionally distant state safe.
+        uncertainty = coverage_ratio * (
+            0.5 + 0.5 * local_error_ratio.clamp_min(0.0)
+        )
+        confidence = torch.exp(-uncertainty)
+        return {
+            **summary,
+            "coverage_ratio": coverage_ratio,
+            "local_error_ratio": local_error_ratio,
+            "uncertainty": uncertainty,
+            "confidence": confidence,
+        }

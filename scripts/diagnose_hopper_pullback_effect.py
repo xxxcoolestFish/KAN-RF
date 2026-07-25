@@ -676,9 +676,13 @@ def fit_distilled_source_counterfactual_context(
     source_context,
     args,
     device,
+    source_twin=None,
 ):
     """Replace the retained source simulator with a distilled source twin."""
-    source_twin = load_source_twin(args.source_twin_checkpoint, device)
+    if source_twin is None:
+        source_twin = load_source_twin(
+            args.source_twin_checkpoint, device,
+        )
     target_environment = make_shifted_env(
         SHIFTS[args.target], args.seed + 200,
     )()

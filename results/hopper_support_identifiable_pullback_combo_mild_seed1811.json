@@ -1,0 +1,103 @@
+{
+  "experiment": "HopperSourceSupportGatedDistilledPullback",
+  "target": "combo_mild",
+  "source_only_gate": true,
+  "target_physical_parameters_visible_to_gate": false,
+  "source_simulator_used_for_evaluation_only": true,
+  "states": 128,
+  "baseline_effect_error_mean": 0.3767504792787956,
+  "support_statistics": {
+    "coverage_ratio_mean": 0.6717721223831177,
+    "coverage_ratio_q50": 0.6965196132659912,
+    "coverage_ratio_q95": 0.9619005918502808,
+    "uncertainty_mean": 0.4683282673358917,
+    "uncertainty_q95": 0.7775616645812988,
+    "predicted_shift_mean": 0.3745386600494385,
+    "local_source_error_mean": 0.3133585453033447,
+    "signal_to_source_error_q50": 1.3055320978164673,
+    "signal_to_source_error_q95": 2.5734217166900635
+  },
+  "methods": {
+    "ungated": {
+      "effect_error_mean": 0.3995283497626734,
+      "relative_to_baseline": 1.060458769760508,
+      "improves_fraction": 0.46875,
+      "action_change_l2_mean": 0.10712532699108124,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0
+    },
+    "hard_source_q95": {
+      "effect_error_mean": 0.3994727953658825,
+      "relative_to_baseline": 1.060311313022305,
+      "improves_fraction": 0.484375,
+      "action_change_l2_mean": 0.10189231485128403,
+      "gate_mean": 0.953125,
+      "gate_active_fraction": 0.953125
+    },
+    "soft_source_q95": {
+      "effect_error_mean": 0.3990507276132212,
+      "relative_to_baseline": 1.0591910284417272,
+      "improves_fraction": 0.46875,
+      "action_change_l2_mean": 0.1066485047340393,
+      "gate_mean": 0.9948438405990601,
+      "gate_active_fraction": 1.0
+    },
+    "calibrated_risk": {
+      "effect_error_mean": 0.39951207896859503,
+      "relative_to_baseline": 1.06041558257171,
+      "improves_fraction": 0.46875,
+      "action_change_l2_mean": 0.1071164458990097,
+      "gate_mean": 0.9998655319213867,
+      "gate_active_fraction": 1.0
+    },
+    "identifiable_hard": {
+      "effect_error_mean": 0.38942873191579086,
+      "relative_to_baseline": 1.033651589936302,
+      "improves_fraction": 0.40625,
+      "action_change_l2_mean": 0.06610901653766632,
+      "gate_mean": 0.625,
+      "gate_active_fraction": 0.625
+    },
+    "identifiable_margin": {
+      "effect_error_mean": 0.3742554508009447,
+      "relative_to_baseline": 0.9933775041703276,
+      "improves_fraction": 0.484375,
+      "action_change_l2_mean": 0.023617640137672424,
+      "gate_mean": 0.22831475734710693,
+      "gate_active_fraction": 0.625
+    }
+  },
+  "negative_transfer_avoided": {
+    "hard_source_q95": true,
+    "soft_source_q95": true,
+    "calibrated_risk": true,
+    "identifiable_hard": true,
+    "identifiable_margin": true
+  },
+  "config": {
+    "seed": 1811,
+    "device": "cuda",
+    "target": "combo_mild",
+    "states": 128,
+    "source_calibration_states": 2048,
+    "neighbors": 16,
+    "covariance_ridge": 0.05,
+    "chunk_size": 512,
+    "state_perturb_probability": 0.0,
+    "state_perturb_scale": 0.2,
+    "state_support": 1.5,
+    "trajectory_noise": 0.3,
+    "cognition_warmup": 2048,
+    "warmup_noise": 0.3,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "pullback_damping": 0.05,
+    "effect_metric": "identity",
+    "metric_isotropic_floor": 0.05,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "source_twin_checkpoint": "results/hopper_source_affine_twin_cloud_seed1811.pt",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "json_out": "results/hopper_support_identifiable_pullback_combo_mild_seed1811.json"
+  }
+}

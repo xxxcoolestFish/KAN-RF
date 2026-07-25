@@ -1,0 +1,48 @@
+{
+  "experiment": "HopperSupportGatedClosedLoopPolicy",
+  "target": "combo_medium",
+  "source_stage_calibration_only": true,
+  "source_simulator_queried_during_target_evaluation": false,
+  "target_physical_parameters_visible": false,
+  "target_reward_used_for_policy_update": false,
+  "methods": {
+    "ungated": {
+      "mean_return": 403.6256259294517,
+      "std_return": 1.6441722890611055,
+      "mean_episode_length": 144.33333333333334,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.20248879472494952,
+      "episode_returns": [
+        402.7265247350062,
+        405.93223510296775,
+        402.21811795038104
+      ]
+    }
+  },
+  "config": {
+    "seed": 1813,
+    "device": "cuda",
+    "target": "combo_medium",
+    "source_calibration_states": 2048,
+    "neighbors": 16,
+    "covariance_ridge": 0.05,
+    "chunk_size": 512,
+    "state_support": 1.5,
+    "trajectory_noise": 0.3,
+    "cognition_warmup": 1024,
+    "warmup_noise": 0.3,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "pullback_damping": 0.05,
+    "evaluation_episodes": 3,
+    "evaluation_modes": "ungated",
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "source_twin_checkpoint": "results/hopper_source_affine_twin_cloud_seed1811.pt",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "json_out": "results/hopper_distilled_policy_recovery_n1024_combo_medium_seed1813.json"
+  }
+}

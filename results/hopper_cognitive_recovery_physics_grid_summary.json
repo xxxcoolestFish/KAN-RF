@@ -1,0 +1,138 @@
+{
+  "experiment": "HopperCognitiveRecoveryPhysicsGridSummary",
+  "seed": 1811,
+  "fixed_hyperparameters_across_targets": true,
+  "screening_protocol": {
+    "budgets": [
+      0,
+      512,
+      2048
+    ],
+    "source_actor_frozen": true,
+    "target_reward_used_for_policy_update": false,
+    "target_physical_parameters_visible": false
+  },
+  "targets": {
+    "payload_125": {
+      "returns": {
+        "0": 1854.7161411809623,
+        "512": 1554.776808807285,
+        "2048": 1691.1146171334428
+      },
+      "delta_at_512": -299.9393323736772,
+      "delta_at_2048": -163.60152404751943,
+      "relative_at_512": 0.8382828909966269,
+      "relative_at_2048": 0.9117916103628944,
+      "monotonic": false,
+      "evaluation_episodes": 3,
+      "source_file": "hopper_cognitive_recovery_grid_payload125_seed1811.json"
+    },
+    "payload_150": {
+      "returns": {
+        "0": 834.7393539253989,
+        "512": 864.1446790263099,
+        "2048": 877.8697751170689
+      },
+      "delta_at_512": 29.405325100911,
+      "delta_at_2048": 43.13042119167005,
+      "relative_at_512": 1.0352269543332673,
+      "relative_at_2048": 1.0516693276635962,
+      "monotonic": true,
+      "evaluation_episodes": 1,
+      "source_file": "hopper_cognitive_recovery_grid_payload150_quick_seed1811.json"
+    },
+    "friction_070": {
+      "returns": {
+        "0": 588.0258591950677,
+        "512": 680.8271794254536,
+        "2048": 585.7103756791814
+      },
+      "delta_at_512": 92.80132023038584,
+      "delta_at_2048": -2.315483515886285,
+      "relative_at_512": 1.157818433967205,
+      "relative_at_2048": 0.996062276038241,
+      "monotonic": false,
+      "evaluation_episodes": 1,
+      "source_file": "hopper_cognitive_recovery_grid_friction070_quick_seed1811.json"
+    },
+    "actuator_080": {
+      "returns": {
+        "0": 595.4560589692942,
+        "512": 728.4982035601118,
+        "2048": 801.0824737740625
+      },
+      "delta_at_512": 133.04214459081766,
+      "delta_at_2048": 205.62641480476827,
+      "relative_at_512": 1.22342898789393,
+      "relative_at_2048": 1.3453259257462216,
+      "monotonic": true,
+      "evaluation_episodes": 1,
+      "source_file": "hopper_cognitive_recovery_grid_actuator080_quick_seed1811.json"
+    },
+    "actuator_065": {
+      "returns": {
+        "0": 420.50400073753116,
+        "512": 475.59860453190134,
+        "2048": 502.99225534964177
+      },
+      "delta_at_512": 55.09460379437019,
+      "delta_at_2048": 82.48825461211061,
+      "relative_at_512": 1.1310204033677171,
+      "relative_at_2048": 1.1961652076256888,
+      "monotonic": true,
+      "evaluation_episodes": 1,
+      "source_file": "hopper_cognitive_recovery_grid_actuator065_quick_seed1811.json"
+    },
+    "combo_mild": {
+      "returns": {
+        "0": 539.347273622198,
+        "512": 557.0319272700732,
+        "2048": 564.00277304586
+      },
+      "delta_at_512": 17.684653647875166,
+      "delta_at_2048": 24.655499423661922,
+      "relative_at_512": 1.0327889923853828,
+      "relative_at_2048": 1.0457135886829987,
+      "monotonic": true,
+      "evaluation_episodes": 1,
+      "source_file": "hopper_cognitive_recovery_grid_combo_mild_quick_seed1811.json"
+    },
+    "combo_medium": {
+      "returns": {
+        "0": 340.04024294111326,
+        "512": 379.9497406424959,
+        "2048": 405.5110096196433
+      },
+      "delta_at_512": 39.909497701382634,
+      "delta_at_2048": 65.47076667853003,
+      "relative_at_512": 1.1173669838493028,
+      "relative_at_2048": 1.1925382893279135,
+      "monotonic": true,
+      "evaluation_episodes": 3,
+      "source_file": "fixed-protocol recovery files"
+    }
+  },
+  "positive_targets_at_512": [
+    "payload_150",
+    "friction_070",
+    "actuator_080",
+    "actuator_065",
+    "combo_mild",
+    "combo_medium"
+  ],
+  "positive_targets_at_2048": [
+    "payload_150",
+    "actuator_080",
+    "actuator_065",
+    "combo_mild",
+    "combo_medium"
+  ],
+  "positive_fraction_at_512": 0.8571428571428571,
+  "positive_fraction_at_2048": 0.7142857142857143,
+  "recommended_formal_targets": [
+    "actuator_080",
+    "friction_070",
+    "combo_medium",
+    "payload_125"
+  ]
+}

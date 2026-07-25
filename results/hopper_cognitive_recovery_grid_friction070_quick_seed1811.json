@@ -1,0 +1,74 @@
+{
+  "experiment": "HopperCognitiveRecoveryPhysicsGrid",
+  "target": "friction_070",
+  "hidden_shift_not_visible_to_learner": true,
+  "source_actor_frozen": true,
+  "target_reward_used_for_policy_update": false,
+  "source_simulator_queried_during_target_evaluation": false,
+  "budgets": [
+    0,
+    512,
+    2048
+  ],
+  "results": {
+    "0": {
+      "mean_return": 588.0258591950677,
+      "std_return": 0.0,
+      "mean_episode_length": 185.0,
+      "gate_mean": 0.0,
+      "gate_active_fraction": 0.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.0,
+      "episode_returns": [
+        588.0258591950677
+      ]
+    },
+    "512": {
+      "mean_return": 680.8271794254536,
+      "std_return": 0.0,
+      "mean_episode_length": 202.0,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.11379086353474914,
+      "episode_returns": [
+        680.8271794254536
+      ]
+    },
+    "2048": {
+      "mean_return": 585.7103756791814,
+      "std_return": 0.0,
+      "mean_episode_length": 185.0,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.09855126363250452,
+      "episode_returns": [
+        585.7103756791814
+      ]
+    }
+  },
+  "improvement_at_final_budget": -2.315483515886285,
+  "relative_final_return": 0.996062276038241,
+  "monotonic_recovery": false,
+  "config": {
+    "seed": 1811,
+    "device": "cuda",
+    "target": "friction_070",
+    "budgets": "0,512,2048",
+    "evaluation_episodes": 1,
+    "cognition_warmup": 0,
+    "warmup_noise": 0.3,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "pullback_damping": 0.05,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "source_twin_checkpoint": "results/hopper_source_affine_twin_cloud_seed1811.pt",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "json_out": "results/hopper_cognitive_recovery_grid_friction070_quick_seed1811.json"
+  }
+}

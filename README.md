@@ -1,8 +1,8 @@
-# CPBN：认知动力学到反馈可达通道
+# CPBN：持续认知驱动的控制等价迁移
 
-本分支是项目的精简研究主线。目标是：只在一种物理环境中预训练认知网络和决策网络；环境物理参数改变后，认知网络依靠真实状态转移持续学习，更新后的物理规律必须进入决策前向传播，从而带动策略快速恢复。
+本项目研究：只在一种物理环境中预训练认知网络和决策网络；环境物理参数未知变化后，认知网络依靠真实状态转移持续学习，并通过控制等价接口把更新后的动力学规律用于决策，使闭环任务性能在有限交互预算内快速恢复。
 
-旧版分阶段实验保留在提交 `f458b37` 和分支 `feature/cognitive-embedded-decision` 中。当前主线位于 `feature/cognitive-pullback-bellman`。
+当前精简论文候选分支为 `research/paper-candidate-v1`。完整研究轨迹保存在 `archive/research-history-20260725`；当前有效代码、正式结果与论文证据的入口见 [`docs/EXPERIMENT_INDEX.md`](docs/EXPERIMENT_INDEX.md)，最新事实基线见 [`docs/CURRENT_RESEARCH_STATUS_REPORT_CN.md`](docs/CURRENT_RESEARCH_STATUS_REPORT_CN.md)。
 
 ## 研究约束
 

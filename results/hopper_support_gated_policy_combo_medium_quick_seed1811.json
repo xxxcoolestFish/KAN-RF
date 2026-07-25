@@ -1,0 +1,79 @@
+{
+  "experiment": "HopperSupportGatedClosedLoopPolicy",
+  "target": "combo_medium",
+  "source_stage_calibration_only": true,
+  "source_simulator_queried_during_target_evaluation": false,
+  "target_physical_parameters_visible": false,
+  "target_reward_used_for_policy_update": false,
+  "methods": {
+    "source": {
+      "mean_return": 340.04024294111326,
+      "std_return": 1.534296166259072,
+      "mean_episode_length": 130.66666666666666,
+      "gate_mean": 0.0,
+      "gate_active_fraction": 0.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.0,
+      "episode_returns": [
+        340.4789648476135,
+        341.6611915828127,
+        337.98057239291353
+      ]
+    },
+    "ungated": {
+      "mean_return": 394.13849675113255,
+      "std_return": 1.9052969060628446,
+      "mean_episode_length": 141.33333333333334,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.2071997724969889,
+      "episode_returns": [
+        392.73192129481265,
+        396.8321094689959,
+        392.8514594895891
+      ]
+    },
+    "identifiable_margin": {
+      "mean_return": 340.80250948065066,
+      "std_return": 0.47291631263577083,
+      "mean_episode_length": 131.0,
+      "gate_mean": 0.1538868244671033,
+      "gate_active_fraction": 0.5521628498727735,
+      "coverage_ratio_mean": 0.6986276994983052,
+      "signal_to_source_error_mean": 1.2972729386567463,
+      "action_change_l2_mean": 0.020866494433114273,
+      "episode_returns": [
+        340.2089410898125,
+        341.3661872544561,
+        340.83240009768326
+      ]
+    }
+  },
+  "gated_improvement_over_source": 0.7622665395373929,
+  "gated_improvement_over_ungated": -53.335987270481894,
+  "config": {
+    "seed": 1811,
+    "device": "cuda",
+    "target": "combo_medium",
+    "source_calibration_states": 1024,
+    "neighbors": 16,
+    "covariance_ridge": 0.05,
+    "chunk_size": 512,
+    "state_support": 1.5,
+    "trajectory_noise": 0.3,
+    "cognition_warmup": 1024,
+    "warmup_noise": 0.3,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "pullback_damping": 0.05,
+    "evaluation_episodes": 3,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "source_twin_checkpoint": "results/hopper_source_affine_twin_cloud_seed1811.pt",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "json_out": "results/hopper_support_gated_policy_combo_medium_quick_seed1811.json"
+  }
+}
