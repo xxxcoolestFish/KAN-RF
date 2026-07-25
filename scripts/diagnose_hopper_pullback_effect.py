@@ -1,4 +1,12 @@
-"""Counterfactual test of whether Hopper cognition pullback improves effects."""
+"""Counterfactual test of whether Hopper cognition pullback improves effects.
+
+LEGACY — retained for W_t fitting utilities (fit_distilled_source_counterfactual_context,
+load_source_twin, solve_drift_trust_region, solve_spectral_ridge) used by
+analyze_kan_physics_representation.py and validate_kan_pca_consistency.py.
+
+TODO: extract clean W_t-fitting + PCA interface into cpbn/cognitive_pca.py
+and retire this file.
+"""
 
 from __future__ import annotations
 
