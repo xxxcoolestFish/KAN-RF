@@ -1,0 +1,65 @@
+{
+  "experiment": "HopperPolicyCenteredProtoKANCognition",
+  "env": "walker2d",
+  "seed": 1811,
+  "device": "cuda",
+  "target": "combo_mild",
+  "physical_parameters_visible_to_learner": false,
+  "reward_used_for_cognition": false,
+  "policy_centered": true,
+  "state_dim": 17,
+  "action_dim": 6,
+  "feature_dim": 222,
+  "context_feature_dim": 1554,
+  "config": {
+    "seed": 1811,
+    "env": "walker2d",
+    "target": "combo_mild",
+    "source_samples": 32768,
+    "holdout_samples": 4096,
+    "budgets": [
+      0,
+      256,
+      1024,
+      4096,
+      16384
+    ],
+    "batch_size": 128,
+    "pair_modes": 1,
+    "exploration_noise": 0.2,
+    "source_fit_ridge": 0.01,
+    "cognition_ridge": 0.1,
+    "forgetting_factor": 0.9999,
+    "model": "results/walker2d_source_sb3_ppo_phase3_seed1811.zip",
+    "norm": "results/walker2d_source_sb3_vecnorm_phase3_seed1811.pkl",
+    "checkpoint_out": "results/walker2d_source_centered_protokan_seed1811.pt",
+    "json_out": "results/walker2d_centered_protokan_combo_mild_seed1811.json"
+  },
+  "records": [
+    {
+      "transitions": 0,
+      "source_normalized_rmse": 0.47249171137809753,
+      "target_normalized_rmse": 0.542763352394104
+    },
+    {
+      "transitions": 256,
+      "source_normalized_rmse": 0.47282302379608154,
+      "target_normalized_rmse": 0.535499095916748
+    },
+    {
+      "transitions": 1024,
+      "source_normalized_rmse": 0.475020170211792,
+      "target_normalized_rmse": 0.5198208689689636
+    },
+    {
+      "transitions": 4096,
+      "source_normalized_rmse": 0.48085254430770874,
+      "target_normalized_rmse": 0.4850311577320099
+    },
+    {
+      "transitions": 16384,
+      "source_normalized_rmse": 0.524640679359436,
+      "target_normalized_rmse": 0.44644197821617126
+    }
+  ]
+}

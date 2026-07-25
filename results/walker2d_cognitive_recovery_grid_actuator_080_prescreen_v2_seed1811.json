@@ -1,0 +1,79 @@
+{
+  "experiment": "HopperCognitiveRecoveryPhysicsGrid",
+  "env": "walker2d",
+  "target": "actuator_080",
+  "hidden_shift_not_visible_to_learner": true,
+  "source_actor_frozen": true,
+  "target_reward_used_for_policy_update": false,
+  "source_simulator_queried_during_target_evaluation": false,
+  "budgets": [
+    0,
+    512,
+    2048
+  ],
+  "results": {
+    "0": {
+      "mean_return": 958.3254978891068,
+      "std_return": 9.833560314648082,
+      "mean_episode_length": 230.0,
+      "gate_mean": 0.0,
+      "gate_active_fraction": 0.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.0,
+      "episode_returns": [
+        968.1590582037549,
+        948.4919375744587
+      ]
+    },
+    "512": {
+      "mean_return": 187.16128292810382,
+      "std_return": 13.742375592356098,
+      "mean_episode_length": 63.5,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.3364405099918523,
+      "episode_returns": [
+        173.41890733574772,
+        200.9036585204599
+      ]
+    },
+    "2048": {
+      "mean_return": 314.39658899558555,
+      "std_return": 129.88580450423856,
+      "mean_episode_length": 94.5,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.4555003333580557,
+      "episode_returns": [
+        184.51078449134698,
+        444.2823934998241
+      ]
+    }
+  },
+  "improvement_at_final_budget": -643.9289088935213,
+  "relative_final_return": 0.32806868823599444,
+  "monotonic_recovery": false,
+  "config": {
+    "seed": 1811,
+    "env": "walker2d",
+    "device": "cuda",
+    "target": "actuator_080",
+    "budgets": "0,512,2048",
+    "evaluation_episodes": 2,
+    "cognition_warmup": 0,
+    "warmup_noise": 0.3,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "pullback_damping": 0.05,
+    "source_model": "results/walker2d_source_sb3_ppo_phase3_seed1811.zip",
+    "source_norm": "results/walker2d_source_sb3_vecnorm_phase3_seed1811.pkl",
+    "source_twin_checkpoint": "results/walker2d_source_affine_twin_cloud_v2_seed1811.pt",
+    "cognition_checkpoint": "results/walker2d_source_control_sobolev_pm2_calibrated_seed1811.pt",
+    "json_out": "results/walker2d_cognitive_recovery_grid_actuator_080_prescreen_v2_seed1811.json"
+  }
+}

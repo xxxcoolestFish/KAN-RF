@@ -213,10 +213,12 @@ def main(args):
     delta_scale = torch.as_tensor(
         train_transition_np[2],
     ).square().mean(dim=0).sqrt().clamp_min(1e-4)
+    action_dim = int(template.get("action_dim", 3))
     if args.model_type == "sparse_kan":
         model = SparseComposableKANTwin(
             template["state_scale"],
             delta_scale,
+            action_dim=action_dim,
             grid_size=args.grid_size,
             spline_order=args.spline_order,
             pair_modes=args.pair_modes,
@@ -226,6 +228,7 @@ def main(args):
         model = HopperSourceAffineTwin(
             template["state_scale"],
             delta_scale,
+            action_dim=action_dim,
             hidden_dim=args.hidden_dim,
             depth=args.depth,
         ).to(device)

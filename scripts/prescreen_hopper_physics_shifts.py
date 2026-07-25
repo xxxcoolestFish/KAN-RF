@@ -30,6 +30,7 @@ SHIFTS = {
 ENVS = {
     "hopper": {"gym_id": "Hopper-v5", "mass_body": "torso"},
     "walker2d": {"gym_id": "Walker2d-v5", "mass_body": "torso"},
+    "halfcheetah": {"gym_id": "HalfCheetah-v5", "mass_body": "torso"},
 }
 
 

@@ -41,3 +41,19 @@ def test_sparse_composable_twin_shapes_and_penalty():
     assert baseline.shape == (3, 4)
     assert gain.shape == (3, 4, 2)
     assert model.group_sparsity().ndim == 0
+
+
+def test_affine_twin_respects_walker2d_action_dim():
+    model = HopperSourceAffineTwin(
+        torch.ones(17),
+        torch.ones(17),
+        action_dim=6,
+        hidden_dim=16,
+        depth=2,
+    )
+    state = torch.randn(5, 17)
+    action = torch.randn(5, 6)
+    baseline, gain = model.drift_and_gain(state)
+    assert model(state, action).shape == (5, 17)
+    assert baseline.shape == (5, 17)
+    assert gain.shape == (5, 17, 6)
