@@ -14,7 +14,11 @@ from cpbn.hopper_source_twin import (
     HopperSourceAffineTwin,
     SparseComposableKANTwin,
 )
-from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
+from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
+    SHIFTS,
+    make_shifted_env,
+)
 from scripts.train_hopper_control_sobolev_cognition import collect_probes
 from scripts.validate_hopper_joint_online_adaptation import FrozenSourcePolicy
 
@@ -39,9 +43,10 @@ def collect_transitions(
     perturb_probability,
     perturb_scale,
     state_support,
+    env="hopper",
 ):
-    trajectory = make_shifted_env(SHIFTS["source"], seed)()
-    query = make_shifted_env(SHIFTS["source"], seed + 1)()
+    trajectory = make_shifted_env(SHIFTS["source"], seed, env)()
+    query = make_shifted_env(SHIFTS["source"], seed + 1, env)()
     observation, _ = trajectory.reset(seed=seed)
     query.reset(seed=seed + 1)
     generator = np.random.default_rng(seed + 1)
@@ -154,6 +159,7 @@ def main(args):
         args.source_norm,
         torch.device("cpu"),
         args.seed,
+        env=args.env,
     )
     template = torch.load(
         args.template_checkpoint,
@@ -175,6 +181,7 @@ def main(args):
         args.state_perturb_probability,
         args.state_perturb_scale,
         args.state_support,
+        env=args.env,
     )
     validation_transition_np = collect_transitions(
         source_policy,
@@ -185,6 +192,7 @@ def main(args):
         args.state_perturb_probability,
         args.state_perturb_scale,
         args.state_support,
+        env=args.env,
     )
     train_probe_np = collect_probes(
         source_policy,
@@ -192,6 +200,7 @@ def main(args):
         args.probe_epsilon,
         args.seed + 300,
         args.probe_trajectory_noise,
+        env=args.env,
     )[:3]
     validation_probe_np = collect_probes(
         source_policy,
@@ -199,6 +208,7 @@ def main(args):
         args.probe_epsilon,
         args.seed + 400,
         args.probe_trajectory_noise,
+        env=args.env,
     )[:3]
     delta_scale = torch.as_tensor(
         train_transition_np[2],
@@ -307,6 +317,7 @@ def main(args):
         output_active_group_fraction = None
     output = {
         "experiment": "HopperSourceAffineNeuralTwin",
+        "env": args.env,
         "source_only": True,
         "physical_parameters_visible": False,
         "train_metrics": train_metrics,
@@ -326,6 +337,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--train-transitions", type=int, default=30000)
     parser.add_argument("--validation-transitions", type=int, default=4096)

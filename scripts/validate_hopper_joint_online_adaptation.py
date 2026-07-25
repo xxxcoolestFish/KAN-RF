@@ -19,15 +19,16 @@ from cpbn.generic_affine_kan import (
     RecursiveAffineKANEstimator,
 )
 from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
     SHIFTS,
     make_shifted_env,
 )
 
 
 class FrozenSourcePolicy:
-    def __init__(self, model_path, norm_path, device, seed):
+    def __init__(self, model_path, norm_path, device, seed, env="hopper"):
         temporary = DummyVecEnv(
-            [make_shifted_env(SHIFTS["source"], seed + 9000)],
+            [make_shifted_env(SHIFTS["source"], seed + 9000, env)],
         )
         norm = VecNormalize.load(norm_path, temporary)
         self.mean = torch.as_tensor(
@@ -93,7 +94,7 @@ def load_cognition(args, device):
     )
     basis = CompactInteractionKANDictionary(
         payload["state_scale"],
-        torch.ones(3),
+        torch.ones(int(payload.get("action_dim", 3)), device=device),
         pair_modes=int(payload["pair_modes"]),
     ).to(device)
     source = AffineKANContext(
@@ -308,6 +309,7 @@ class CognitiveResidualHopper(gym.Env):
         self.environment = make_shifted_env(
             SHIFTS[args.target],
             args.seed + seed_offset,
+            args.env,
         )()
         self.source_policy = source_policy
         self.basis = basis
@@ -319,10 +321,13 @@ class CognitiveResidualHopper(gym.Env):
         self.update_cognition = update_cognition
         self.transition_sink = transition_sink
         self.action_space = gym.spaces.Box(
-            -1.0, 1.0, shape=(3,), dtype=np.float32,
+            -1.0, 1.0, shape=(basis.action_dim,), dtype=np.float32,
         )
         self.observation_space = gym.spaces.Box(
-            -np.inf, np.inf, shape=(25,), dtype=np.float32,
+            -np.inf,
+            np.inf,
+            shape=(2 * basis.state_dim + basis.action_dim,),
+            dtype=np.float32,
         )
         self.raw_observation = None
         self.buffer = []
@@ -438,7 +443,7 @@ def cognition_warmup(
     device,
 ):
     environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 200,
+        SHIFTS[args.target], args.seed + 200, args.env,
     )()
     observation, _ = environment.reset(seed=args.seed + 200)
     states, actions, deltas = [], [], []
@@ -506,7 +511,7 @@ def evaluate(
     episodes,
 ):
     environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 10000,
+        SHIFTS[args.target], args.seed + 10000, args.env,
     )()
     returns = []
     lengths = []
@@ -531,7 +536,7 @@ def evaluate(
                 return_details=True,
             )
             if model is None:
-                residual = np.zeros(3, dtype=np.float32)
+                residual = np.zeros(basis.action_dim, dtype=np.float32)
             else:
                 residual, _ = model.predict(
                     features, deterministic=True,
@@ -620,6 +625,7 @@ def main(args):
         args.source_norm,
         device,
         args.seed,
+        env=args.env,
     )
     basis, source_context, estimator, delta_scale = load_cognition(
         args, device,
@@ -732,6 +738,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument(
         "--device",
         choices=("auto", "cuda", "cpu"),

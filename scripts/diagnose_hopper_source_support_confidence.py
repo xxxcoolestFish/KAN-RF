@@ -11,7 +11,11 @@ import torch
 
 from cpbn.hopper_source_twin import JointStateSupportCalibrator
 from scripts.diagnose_hopper_pullback_effect import load_source_twin
-from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
+from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
+    SHIFTS,
+    make_shifted_env,
+)
 from scripts.validate_hopper_joint_online_adaptation import FrozenSourcePolicy
 
 
@@ -56,9 +60,10 @@ def collect_source_calibration(
     state_support,
     trajectory_noise,
     device,
+    env="hopper",
 ):
-    trajectory = make_shifted_env(SHIFTS["source"], seed)()
-    query = make_shifted_env(SHIFTS["source"], seed + 1)()
+    trajectory = make_shifted_env(SHIFTS["source"], seed, env)()
+    query = make_shifted_env(SHIFTS["source"], seed + 1, env)()
     observation, _ = trajectory.reset(seed=seed)
     query.reset(seed=seed + 1)
     generator = np.random.default_rng(seed + 2)
@@ -124,9 +129,10 @@ def collect_target_diagnostic(
     seed,
     exploration_noise,
     device,
+    env="hopper",
 ):
-    target_environment = make_shifted_env(SHIFTS[target], seed)()
-    source_query = make_shifted_env(SHIFTS["source"], seed + 1)()
+    target_environment = make_shifted_env(SHIFTS[target], seed, env)()
+    source_query = make_shifted_env(SHIFTS["source"], seed + 1, env)()
     observation, _ = target_environment.reset(seed=seed)
     source_query.reset(seed=seed + 1)
     generator = np.random.default_rng(seed + 2)
@@ -219,6 +225,7 @@ def main(args):
         args.source_norm,
         device,
         args.seed,
+        env=args.env,
     )
     source_twin = load_source_twin(args.source_twin_checkpoint, device)
     reference_state, reference_error = collect_source_calibration(
@@ -231,6 +238,7 @@ def main(args):
         state_support=args.state_support,
         trajectory_noise=args.trajectory_noise,
         device=device,
+        env=args.env,
     )
     calibrator = JointStateSupportCalibrator(
         torch.as_tensor(reference_state, device=device),
@@ -248,6 +256,7 @@ def main(args):
         seed=args.seed + 1000,
         exploration_noise=args.exploration_noise,
         device=device,
+        env=args.env,
     )
     score = calibrator.score(
         torch.as_tensor(target_state, device=device),
@@ -273,6 +282,7 @@ def main(args):
     )
     output = {
         "experiment": "HopperSourceOnlyJointSupportConfidenceGate",
+        "env": args.env,
         "target": args.target,
         "source_only_confidence": True,
         "target_physical_parameters_visible_to_confidence": False,
@@ -336,6 +346,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--target", choices=tuple(SHIFTS), default="combo_medium")
     parser.add_argument("--source-calibration-states", type=int, default=4096)

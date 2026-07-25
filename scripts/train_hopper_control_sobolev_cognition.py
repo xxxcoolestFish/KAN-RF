@@ -13,7 +13,11 @@ from cpbn.generic_affine_kan import (
     AffineKANContext,
     CompactInteractionKANDictionary,
 )
-from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
+from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
+    SHIFTS,
+    make_shifted_env,
+)
 from scripts.validate_hopper_joint_online_adaptation import FrozenSourcePolicy
 
 
@@ -39,9 +43,10 @@ def collect_probes(
     epsilon,
     seed,
     trajectory_noise=0.0,
+    env="hopper",
 ):
-    trajectory = make_shifted_env(SHIFTS["source"], seed)()
-    probe = make_shifted_env(SHIFTS["source"], seed + 1)()
+    trajectory = make_shifted_env(SHIFTS["source"], seed, env)()
+    probe = make_shifted_env(SHIFTS["source"], seed + 1, env)()
     observation, _ = trajectory.reset(seed=seed)
     probe.reset(seed=seed + 1)
     generator = np.random.default_rng(seed + 2)
@@ -108,10 +113,11 @@ def collect_policy_baselines(
     count,
     seed,
     trajectory_noise=0.0,
+    env="hopper",
 ):
     """Probe nominal effects while a noisy source trajectory broadens support."""
-    environment = make_shifted_env(SHIFTS["source"], seed)()
-    probe = make_shifted_env(SHIFTS["source"], seed + 1)()
+    environment = make_shifted_env(SHIFTS["source"], seed, env)()
+    probe = make_shifted_env(SHIFTS["source"], seed + 1, env)()
     observation, _ = environment.reset(seed=seed)
     probe.reset(seed=seed + 1)
     generator = np.random.default_rng(seed + 2)
@@ -223,14 +229,15 @@ def main(args):
         map_location=device,
         weights_only=True,
     )
+    action_dim = int(old.get("action_dim", 3))
     basis = CompactInteractionKANDictionary(
         old["state_scale"],
-        torch.ones(3, device=device),
+        torch.ones(action_dim, device=device),
         pair_modes=int(old["pair_modes"]),
     ).to(device)
     basis.policy_centered = True
     source_policy = FrozenSourcePolicy(
-        args.source_model, args.source_norm, device, args.seed,
+        args.source_model, args.source_norm, device, args.seed, env=args.env,
     )
     arrays = collect_probes(
         source_policy,
@@ -238,6 +245,7 @@ def main(args):
         args.probe_epsilon,
         args.seed + 100,
         args.trajectory_noise,
+        env=args.env,
     )
     state = torch.as_tensor(arrays[0], device=device)
     baseline = torch.as_tensor(arrays[1], device=device)
@@ -248,6 +256,7 @@ def main(args):
         args.baseline_states + args.baseline_validation_states,
         args.seed + 500,
         args.baseline_trajectory_noise,
+        env=args.env,
     )
     baseline_state = torch.as_tensor(baseline_arrays[0], device=device)
     baseline_target = torch.as_tensor(baseline_arrays[1], device=device)
@@ -349,6 +358,7 @@ def main(args):
         "estimator_base_precision": precision.detach().cpu(),
         "estimator_base_right": right.detach().cpu(),
         "pair_modes": int(old["pair_modes"]),
+        "action_dim": action_dim,
         "forgetting_factor": args.forgetting_factor,
         "cognition_ridge": args.cognition_ridge,
         "source_fit_ridge": args.fit_ridge,
@@ -361,6 +371,7 @@ def main(args):
     }
     output = {
         "experiment": "HopperSourceControlSobolevCognition",
+        "env": args.env,
         "source_only": True,
         "physical_parameters_visible": False,
         "train_metrics": train_metrics,
@@ -379,6 +390,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--train-states", type=int, default=1024)
     parser.add_argument("--validation-states", type=int, default=256)

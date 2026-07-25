@@ -18,7 +18,11 @@ from scripts.diagnose_hopper_pullback_effect import (
 from scripts.diagnose_hopper_source_support_confidence import (
     collect_source_calibration,
 )
-from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
+from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
+    SHIFTS,
+    make_shifted_env,
+)
 from scripts.validate_hopper_joint_online_adaptation import (
     FrozenSourcePolicy,
     cognitive_action_and_features,
@@ -47,7 +51,7 @@ def main(args):
     np.random.seed(args.seed)
     device = torch.device(args.device)
     source_policy = FrozenSourcePolicy(
-        args.source_model, args.source_norm, device, args.seed,
+        args.source_model, args.source_norm, device, args.seed, env=args.env,
     )
     source_twin = load_source_twin(args.source_twin_checkpoint, device)
     reference_state, reference_error = collect_source_calibration(
@@ -60,6 +64,7 @@ def main(args):
         state_support=args.state_support,
         trajectory_noise=args.trajectory_noise,
         device=device,
+        env=args.env,
     )
     calibrator = JointStateSupportCalibrator(
         torch.as_tensor(reference_state, device=device),
@@ -124,10 +129,10 @@ def main(args):
     }
 
     source_environment = make_shifted_env(
-        SHIFTS["source"], args.seed + 7000,
+        SHIFTS["source"], args.seed + 7000, args.env,
     )()
     target_environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 7001,
+        SHIFTS[args.target], args.seed + 7001, args.env,
     )()
     source_environment.reset(seed=args.seed + 7000)
     target_environment.reset(seed=args.seed + 7001)
@@ -187,6 +192,7 @@ def main(args):
     }
     output = {
         "experiment": "HopperSourceSupportGatedDistilledPullback",
+        "env": args.env,
         "target": args.target,
         "source_only_gate": True,
         "target_physical_parameters_visible_to_gate": False,
@@ -230,6 +236,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--target", choices=tuple(SHIFTS), default="combo_medium")
     parser.add_argument("--states", type=int, default=128)

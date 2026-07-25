@@ -14,13 +14,17 @@ from cpbn.generic_affine_kan import (
     RecursiveAffineKANEstimator,
     fit_affine_kan_context,
 )
-from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
+from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
+    SHIFTS,
+    make_shifted_env,
+)
 from scripts.validate_hopper_joint_online_adaptation import FrozenSourcePolicy
 
 
 @torch.no_grad()
 def collect(source_policy, shift, count, args, device, generator, seed_offset):
-    environment = make_shifted_env(shift, args.seed + seed_offset)()
+    environment = make_shifted_env(shift, args.seed + seed_offset, args.env)()
     observation, _ = environment.reset(seed=args.seed + seed_offset)
     states, innovations, deltas = [], [], []
     for _ in range(count):
@@ -69,8 +73,9 @@ def main(args):
     print(f"device={device}", flush=True)
     generator = torch.Generator(device=device).manual_seed(args.seed + 1)
     source_policy = FrozenSourcePolicy(
-        args.model, args.norm, device, args.seed,
+        args.model, args.norm, device, args.seed, env=args.env,
     )
+    action_dim = int(source_policy.model.action_space.shape[0])
     source = collect(
         source_policy,
         SHIFTS["source"],
@@ -90,7 +95,7 @@ def main(args):
     ).sqrt().clamp_min(1e-3)
     basis = CompactInteractionKANDictionary(
         state_scale,
-        torch.ones(3, device=device),
+        torch.ones(action_dim, device=device),
         pair_modes=args.pair_modes,
     ).to(device)
     source_context = fit_affine_kan_context(
@@ -121,6 +126,7 @@ def main(args):
             "estimator_base_precision": estimator.base_precision.detach().cpu(),
             "estimator_base_right": estimator.base_right.detach().cpu(),
             "pair_modes": args.pair_modes,
+            "action_dim": action_dim,
             "forgetting_factor": args.forgetting_factor,
             "cognition_ridge": args.cognition_ridge,
             "source_fit_ridge": args.source_fit_ridge,
@@ -178,14 +184,15 @@ def main(args):
             record(transitions)
     output = {
         "experiment": "HopperPolicyCenteredProtoKANCognition",
+        "env": args.env,
         "seed": args.seed,
         "device": str(device),
         "target": args.target,
         "physical_parameters_visible_to_learner": False,
         "reward_used_for_cognition": False,
         "policy_centered": True,
-        "state_dim": 11,
-        "action_dim": 3,
+        "state_dim": basis.state_dim,
+        "action_dim": action_dim,
         "feature_dim": basis.feature_dim,
         "context_feature_dim": (1 + basis.action_dim) * basis.feature_dim,
         "config": vars(args),
@@ -200,6 +207,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--target", default="combo_mild")
     parser.add_argument("--source-samples", type=int, default=32768)
     parser.add_argument("--holdout-samples", type=int, default=4096)

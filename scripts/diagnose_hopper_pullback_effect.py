@@ -14,7 +14,11 @@ from cpbn.hopper_source_twin import (
     SparseComposableKANTwin,
 )
 from cpbn.generic_affine_kan import AffineKANContext
-from scripts.prescreen_hopper_physics_shifts import SHIFTS, make_shifted_env
+from scripts.prescreen_hopper_physics_shifts import (
+    ENVS,
+    SHIFTS,
+    make_shifted_env,
+)
 from scripts.validate_hopper_joint_online_adaptation import (
     FrozenSourcePolicy,
     cognitive_action_and_features,
@@ -31,7 +35,7 @@ def fit_stein_centered_context(
     device,
 ):
     environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 200,
+        SHIFTS[args.target], args.seed + 200, args.env,
     )()
     observation, _ = environment.reset(seed=args.seed + 200)
     generator = torch.Generator(device=device).manual_seed(args.seed + 3)
@@ -127,7 +131,7 @@ def fit_global_control_transform(
     device,
 ):
     environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 200,
+        SHIFTS[args.target], args.seed + 200, args.env,
     )()
     observation, _ = environment.reset(seed=args.seed + 200)
     generator = torch.Generator(device=device).manual_seed(args.seed + 3)
@@ -268,7 +272,7 @@ def fit_orthogonal_control_transform(
     a compact 3x3 gain transform directly and never fit target drift here.
     """
     environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 200,
+        SHIFTS[args.target], args.seed + 200, args.env,
     )()
     observation, _ = environment.reset(seed=args.seed + 200)
     generator = torch.Generator(device=device).manual_seed(args.seed + 3)
@@ -518,10 +522,10 @@ def fit_paired_source_counterfactual_context(
 ):
     """Diagnostic upper bound using a retained source simulator as a twin."""
     target_environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 200,
+        SHIFTS[args.target], args.seed + 200, args.env,
     )()
     source_environment = make_shifted_env(
-        SHIFTS["source"], args.seed + 201,
+        SHIFTS["source"], args.seed + 201, args.env,
     )()
     observation, _ = target_environment.reset(seed=args.seed + 200)
     source_environment.reset(seed=args.seed + 201)
@@ -684,7 +688,7 @@ def fit_distilled_source_counterfactual_context(
             args.source_twin_checkpoint, device,
         )
     target_environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 200,
+        SHIFTS[args.target], args.seed + 200, args.env,
     )()
     observation, _ = target_environment.reset(seed=args.seed + 200)
     generator = torch.Generator(device=device).manual_seed(args.seed + 3)
@@ -828,7 +832,7 @@ def main(args):
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
     source_policy = FrozenSourcePolicy(
-        args.source_model, args.source_norm, device, args.seed,
+        args.source_model, args.source_norm, device, args.seed, env=args.env,
     )
     basis, source_context, estimator, delta_scale = load_cognition(
         args, device,
@@ -895,10 +899,10 @@ def main(args):
         target_context = estimator.context()
     states = states[-args.states:]
     source_environment = make_shifted_env(
-        SHIFTS["source"], args.seed + 7000,
+        SHIFTS["source"], args.seed + 7000, args.env,
     )()
     target_environment = make_shifted_env(
-        SHIFTS[args.target], args.seed + 7001,
+        SHIFTS[args.target], args.seed + 7001, args.env,
     )()
     source_environment.reset(seed=args.seed + 7000)
     target_environment.reset(seed=args.seed + 7001)
@@ -1154,6 +1158,7 @@ def main(args):
     )
     output = {
         "experiment": "HopperPullbackTrueEffectCounterfactual",
+        "env": args.env,
         "target": args.target,
         "states": int(len(states)),
         "physical_parameters_visible_to_learner": False,
@@ -1247,6 +1252,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--target", default="combo_mild")
     parser.add_argument("--states", type=int, default=128)

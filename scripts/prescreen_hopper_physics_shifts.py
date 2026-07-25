@@ -27,13 +27,20 @@ SHIFTS = {
     },
 }
 
+ENVS = {
+    "hopper": {"gym_id": "Hopper-v5", "mass_body": "torso"},
+    "walker2d": {"gym_id": "Walker2d-v5", "mass_body": "torso"},
+}
 
-def make_shifted_env(shift, seed):
+
+def make_shifted_env(shift, seed, env="hopper"):
+    spec = ENVS[env]
+
     def factory():
-        environment = gym.make("Hopper-v5")
+        environment = gym.make(spec["gym_id"])
         model = environment.unwrapped.model
         if "torso_mass" in shift:
-            torso_id = model.body("torso").id
+            torso_id = model.body(spec["mass_body"]).id
             model.body_mass[torso_id] *= shift["torso_mass"]
         if "friction" in shift:
             model.geom_friction[:, 0] *= shift["friction"]
@@ -46,7 +53,7 @@ def make_shifted_env(shift, seed):
 
 def evaluate(model_path, norm_path, shift, args):
     base = DummyVecEnv(
-        [make_shifted_env(shift, args.seed + 10000)],
+        [make_shifted_env(shift, args.seed + 10000, args.env)],
     )
     environment = VecNormalize.load(norm_path, base)
     environment.training = False
@@ -97,6 +104,7 @@ def main(args):
         )
     output = {
         "experiment": "HopperPhysicsShiftPrescreen",
+        "env": args.env,
         "seed": args.seed,
         "episodes": args.episodes,
         "physical_parameters_visible_to_policy": False,
@@ -112,6 +120,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument(
         "--model",

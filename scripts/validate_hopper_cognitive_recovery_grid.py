@@ -13,7 +13,7 @@ from scripts.diagnose_hopper_pullback_effect import (
     fit_distilled_source_counterfactual_context,
     load_source_twin,
 )
-from scripts.prescreen_hopper_physics_shifts import SHIFTS
+from scripts.prescreen_hopper_physics_shifts import ENVS, SHIFTS
 from scripts.validate_hopper_joint_online_adaptation import (
     FrozenSourcePolicy,
     load_cognition,
@@ -37,7 +37,7 @@ def main(args):
         raise ValueError("budgets must be strictly increasing")
 
     source_policy = FrozenSourcePolicy(
-        args.source_model, args.source_norm, device, args.seed,
+        args.source_model, args.source_norm, device, args.seed, env=args.env,
     )
     source_twin = load_source_twin(args.source_twin_checkpoint, device)
     basis, source_context, _, delta_scale = load_cognition(args, device)
@@ -91,6 +91,7 @@ def main(args):
     final = results[str(budgets[-1])]["mean_return"]
     output = {
         "experiment": "HopperCognitiveRecoveryPhysicsGrid",
+        "env": args.env,
         "target": args.target,
         "hidden_shift_not_visible_to_learner": True,
         "source_actor_frozen": True,
@@ -118,6 +119,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument(
         "--target",

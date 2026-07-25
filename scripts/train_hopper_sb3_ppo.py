@@ -6,34 +6,21 @@ import argparse
 import json
 from pathlib import Path
 
-import gymnasium as gym
 import numpy as np
 import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.utils import get_schedule_fn
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
-from scripts.prescreen_hopper_physics_shifts import SHIFTS
+from scripts.prescreen_hopper_physics_shifts import ENVS, SHIFTS, make_shifted_env
 
 
-def make_env(seed, shift):
-    def factory():
-        environment = gym.make("Hopper-v5")
-        model = environment.unwrapped.model
-        if "torso_mass" in shift:
-            torso_id = model.body("torso").id
-            model.body_mass[torso_id] *= shift["torso_mass"]
-        if "friction" in shift:
-            model.geom_friction[:, 0] *= shift["friction"]
-        if "actuator" in shift:
-            model.actuator_gear[:, 0] *= shift["actuator"]
-        environment.reset(seed=seed)
-        return environment
-    return factory
+def make_env(seed, shift, env="hopper"):
+    return make_shifted_env(shift, seed, env)
 
 
 def evaluate(model, norm, shift, args):
     environment = DummyVecEnv(
-        [make_env(args.seed + 10000, shift)],
+        [make_env(args.seed + 10000, shift, args.env)],
     )
     evaluation = VecNormalize(
         environment,
@@ -80,7 +67,7 @@ def main(args):
     shift = SHIFTS[args.physics_shift]
     environments = DummyVecEnv(
         [
-            make_env(args.seed + index, shift)
+            make_env(args.seed + index, shift, args.env)
             for index in range(args.parallel_envs)
         ],
     )
@@ -133,6 +120,7 @@ def main(args):
     normalized.save(args.norm_out)
     output = {
         "experiment": "HopperSourceSB3PPO",
+        "env": args.env,
         "seed": args.seed,
         "device": device,
         "physics_shift": args.physics_shift,
@@ -152,6 +140,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1811)
+    parser.add_argument(
+        "--env", choices=tuple(ENVS), default="hopper",
+    )
     parser.add_argument(
         "--physics-shift",
         choices=tuple(SHIFTS),
