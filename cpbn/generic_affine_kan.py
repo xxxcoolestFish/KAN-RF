@@ -74,6 +74,37 @@ class CompactInteractionKANDictionary(nn.Module):
             )
         return torch.cat(blocks, dim=-1)
 
+    def build_smoothness_matrix(self, dtype=None, device=None):
+        """1-D Laplacian smoothness prior for each per-dimension B-spline block.
+
+        The penalty  Σ_i (w_{i+1} - w_i)^2  is encoded as w^T L w with
+        Neumann-boundary Laplacians on every state-dimension B-spline group.
+        """
+        if dtype is None:
+            dtype = self.grid.dtype
+        if device is None:
+            device = self.grid.device
+        L = torch.zeros(self.feature_dim, self.feature_dim,
+                        dtype=dtype, device=device)
+        for dim_idx in range(self.state_dim):
+            start = 1 + dim_idx * self.contrast_dim
+            end = start + self.contrast_dim
+            size = self.contrast_dim
+            block = torch.zeros(size, size, dtype=dtype, device=device)
+            for i in range(size):
+                if i == 0:
+                    block[i, i] = 1.0
+                    block[i, i + 1] = -1.0
+                elif i == size - 1:
+                    block[i, i] = 1.0
+                    block[i, i - 1] = -1.0
+                else:
+                    block[i, i] = 2.0
+                    block[i, i - 1] = -1.0
+                    block[i, i + 1] = -1.0
+            L[start:end, start:end] = block
+        return L
+
 
 class LearnedMLPDictionary(nn.Module):
     """A conventional learned state dictionary for fair cognition ablations.

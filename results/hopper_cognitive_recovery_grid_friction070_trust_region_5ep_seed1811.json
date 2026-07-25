@@ -1,0 +1,153 @@
+{
+  "experiment": "HopperCognitiveRecoveryPhysicsGrid",
+  "env": "hopper",
+  "target": "friction_070",
+  "hidden_shift_not_visible_to_learner": true,
+  "source_actor_frozen": true,
+  "target_reward_used_for_policy_update": false,
+  "source_simulator_queried_during_target_evaluation": false,
+  "budgets": [
+    0,
+    256,
+    512,
+    1024,
+    2048
+  ],
+  "results": {
+    "0": {
+      "mean_return": 644.885909883338,
+      "std_return": 30.15995266133762,
+      "mean_episode_length": 194.8,
+      "gate_mean": 0.0,
+      "gate_active_fraction": 0.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.0,
+      "episode_returns": [
+        588.0258591950677,
+        672.5879015816753,
+        643.1661777585543,
+        666.1545371540849,
+        654.4950737273073
+      ]
+    },
+    "256": {
+      "mean_return": 698.2530962853664,
+      "std_return": 32.61109425372292,
+      "mean_episode_length": 205.6,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.14705436961935536,
+      "episode_returns": [
+        640.0532873842328,
+        701.2917308274085,
+        692.0996814490818,
+        727.6137899669714,
+        730.2069917991374
+      ]
+    },
+    "512": {
+      "mean_return": 708.3464903578454,
+      "std_return": 22.497040390091353,
+      "mean_episode_length": 207.8,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.10857332001607847,
+      "episode_returns": [
+        672.0481671739236,
+        706.3040137574492,
+        699.2427661180567,
+        731.5814485794939,
+        732.5560561603033
+      ]
+    },
+    "1024": {
+      "mean_return": 665.2457928672098,
+      "std_return": 42.85688955757137,
+      "mean_episode_length": 199.0,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.09140118947627032,
+      "episode_returns": [
+        585.8778231590491,
+        672.687102193764,
+        662.1816620159392,
+        704.7057405852976,
+        700.776636381999
+      ]
+    },
+    "2048": {
+      "mean_return": 649.9215503507767,
+      "std_return": 33.359336652603076,
+      "mean_episode_length": 196.0,
+      "gate_mean": 1.0,
+      "gate_active_fraction": 1.0,
+      "coverage_ratio_mean": 0.0,
+      "signal_to_source_error_mean": 0.0,
+      "action_change_l2_mean": 0.08178993203506178,
+      "episode_returns": [
+        589.3407201232778,
+        662.2353986542824,
+        640.8262730550615,
+        681.3064179225348,
+        675.898941998727
+      ]
+    }
+  },
+  "improvement_at_final_budget": 5.035640467438725,
+  "relative_final_return": 1.0078085757345043,
+  "monotonic_recovery": false,
+  "drift_trust_region": {
+    "calibration_budget": 256,
+    "calibrated_radius": 0.22829656302928925,
+    "256": {
+      "drift_norm": 0.22829656302928925,
+      "trust_active": false,
+      "lagrange_multiplier": 0.0,
+      "unconstrained_norm": 0.22829656302928925
+    },
+    "512": {
+      "drift_norm": 0.22829656302928925,
+      "trust_active": true,
+      "lagrange_multiplier": 21.942491052648087,
+      "unconstrained_norm": 0.25876274704933167
+    },
+    "1024": {
+      "drift_norm": 0.22829656302928925,
+      "trust_active": true,
+      "lagrange_multiplier": 82.89549580274992,
+      "unconstrained_norm": 0.3373381793498993
+    },
+    "2048": {
+      "drift_norm": 0.22829663753509521,
+      "trust_active": true,
+      "lagrange_multiplier": 243.4809214613629,
+      "unconstrained_norm": 0.5024369359016418
+    }
+  },
+  "config": {
+    "seed": 1811,
+    "env": "hopper",
+    "device": "cuda",
+    "target": "friction_070",
+    "budgets": "0,256,512,1024,2048",
+    "evaluation_episodes": 5,
+    "cognition_warmup": 0,
+    "warmup_noise": 0.3,
+    "transform_ridge": 10.0,
+    "drift_ridge": 100.0,
+    "drift_trust_radius": null,
+    "pullback_damping": 0.05,
+    "source_model": "results/hopper_source_sb3_ppo_continued_seed1811.zip",
+    "source_norm": "results/hopper_source_sb3_vecnorm_continued_seed1811.pkl",
+    "source_twin_checkpoint": "results/hopper_source_affine_twin_cloud_seed1811.pt",
+    "cognition_checkpoint": "results/hopper_source_control_sobolev_calibrated_seed1811.pt",
+    "json_out": "results/hopper_cognitive_recovery_grid_friction070_trust_region_5ep_seed1811.json"
+  }
+}

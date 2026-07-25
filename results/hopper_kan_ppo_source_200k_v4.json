@@ -1,0 +1,28 @@
+{
+  "experiment": "HopperKANPolicyPPO",
+  "seed": 1811,
+  "source_return": 231.33990619182586,
+  "source_std": 1.154265849466113,
+  "kan_feature_dim": 298,
+  "config": {
+    "seed": 1811,
+    "env": "hopper",
+    "total_transitions": 200000,
+    "rollout_steps": 2048,
+    "minibatch_size": 64,
+    "update_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "entropy_coefficient": 0.0,
+    "evaluation_episodes": 10,
+    "kan_grid_size": 5,
+    "kan_spline_order": 3,
+    "kan_pair_modes": 2,
+    "smooth_lambda": 0.0,
+    "model_out": "results/hopper_kan_ppo_source_200k_v4",
+    "norm_out": "results/hopper_kan_ppo_source_vecnorm_200k_v4.pkl",
+    "json_out": "results/hopper_kan_ppo_source_200k_v4.json"
+  }
+}

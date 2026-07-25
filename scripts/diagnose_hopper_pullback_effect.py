@@ -674,6 +674,129 @@ def load_source_twin(path, device):
 
 
 @torch.no_grad()
+def solve_drift_trust_region(feature, drift_difference, ridge, trust_radius=None):
+    """Fit drift delta with optional trust-region constraint.
+
+    Solves  min_W ||ΦW - Y||_F^2 + λ||W||_F^2  s.t.  ||W||_F ≤ r
+
+    When the unconstrained solution exceeds the trust radius, the constraint
+    is enforced via a Lagrange multiplier μ ≥ 0:
+
+        W(μ) = (ΦᵀΦ + (λ + μ)I)⁻¹ ΦᵀY
+
+    found by solving the secular equation  φ(μ) = 1/||W(μ)|| - 1/r = 0
+    with safeguarded Newton iteration.
+
+    Args:
+        feature: (N, D) design matrix Φ.
+        drift_difference: (N, S) target matrix Y.
+        ridge: base regularisation λ.
+        trust_radius: if None, return the unconstrained solution.
+
+    Returns:
+        W: (D, S) coefficient matrix.
+        unconstrained_norm: float, ||W_unc||_F (for downstream calibration).
+        trust_active: bool, whether the constraint was binding.
+        lagrange_multiplier: float, final μ.
+    """
+    hessian = feature.T @ feature
+    rhs = feature.T @ drift_difference
+    dimension = hessian.shape[0]
+    identity = torch.eye(dimension, dtype=hessian.dtype, device=hessian.device)
+
+    # ── unconstrained solution ──────────────────────────────────────────
+    W_unc = torch.linalg.solve(hessian + ridge * identity, rhs)
+    unc_norm = float(W_unc.norm())
+
+    if trust_radius is None or unc_norm <= trust_radius:
+        return W_unc, unc_norm, False, 0.0
+
+    # ── edge case: zero or negative radius → return zero drift ──────────
+    if trust_radius <= 0.0:
+        return torch.zeros_like(W_unc), unc_norm, True, float("inf")
+
+    # ── trust region active: secular-equation Newton ─────────────────────
+    r = float(trust_radius)
+    mu = 0.0
+    for _ in range(30):
+        hessian_mu = hessian + (ridge + mu) * identity
+        W = torch.linalg.solve(hessian_mu, rhs)
+        w_norm = float(W.norm())
+
+        phi = 1.0 / w_norm - 1.0 / r
+        if abs(phi * r) < 1e-6:          # relative tolerance
+            break
+
+        # φ'(μ) = tr(Wᵀ (H + (λ+μ)I)⁻¹ W) / ||W||³
+        X = torch.linalg.solve(hessian_mu, W)
+        phi_deriv = float((W * X).sum()) / (w_norm ** 3)
+
+        delta = -phi / max(phi_deriv, 1e-12)
+        mu_next = mu + delta
+        if mu_next < 0.0:
+            mu = mu / 2.0               # safeguard: stay non-negative
+        else:
+            mu = mu_next
+
+    hessian_mu = hessian + (ridge + mu) * identity
+    W = torch.linalg.solve(hessian_mu, rhs)
+    return W, unc_norm, True, float(mu)
+
+
+@torch.no_grad()
+def solve_spectral_ridge(
+    feature,
+    drift_difference,
+    *,
+    base_ridge=100.0,
+    spectral_eta=0.0,
+    spectral_beta=1.0,
+    spectral_mode="max",
+    smoothness_matrix=None,
+    smoothness_lambda=0.0,
+):
+    """Fit drift delta with per-eigenvalue spectral + smoothness regularisation.
+
+    Effective prior:  P = λ₀·I + λ_s·L    (ridge + Laplacian smoothness)
+
+    On top, spectral regularisation adapts λ_i per eigen-direction of ΦᵀΦ + P.
+    """
+    hessian = feature.T @ feature                 # (D, D)
+    rhs = feature.T @ drift_difference            # (D, S)
+
+    # ── effective regularised Hessian (ridge + smoothness) ─────────────
+    hessian_reg = hessian + base_ridge * torch.eye(
+        hessian.shape[0], dtype=hessian.dtype, device=hessian.device,
+    )
+    if smoothness_lambda > 0.0 and smoothness_matrix is not None:
+        hessian_reg = hessian_reg + smoothness_lambda * smoothness_matrix
+
+    # ── eigendecomposition ─────────────────────────────────────────────
+    eigenvalues, eigenvectors = torch.linalg.eigh(hessian_reg)
+    sigma_max = eigenvalues[-1].clamp_min(1e-8)
+    sigma_i = eigenvalues.clamp_min(1e-8)
+
+    # ── per-eigenvalue spectral ridge (applied on top of base + smoothness) ─
+    if spectral_eta <= 0.0:
+        ridge_i = torch.zeros_like(sigma_i)
+    else:
+        if spectral_mode == "mean":
+            reference = eigenvalues.clamp_min(1e-8).mean()
+        else:
+            reference = sigma_max
+        ratio = reference / sigma_i
+        ridge_i = base_ridge * spectral_eta * (ratio ** spectral_beta)
+
+    # ── solve in eigenbasis ────────────────────────────────────────────
+    vt_rhs = eigenvectors.T @ rhs
+    denominator = sigma_i.unsqueeze(1) + ridge_i.unsqueeze(1)
+    W_eig = vt_rhs / denominator
+    W = eigenvectors @ W_eig
+
+    return W, float((base_ridge + ridge_i).min()), float((base_ridge + ridge_i).max())
+
+
+@torch.no_grad()
 def fit_distilled_source_counterfactual_context(
     source_policy,
     basis,
@@ -681,6 +804,7 @@ def fit_distilled_source_counterfactual_context(
     args,
     device,
     source_twin=None,
+    drift_trust_radius=None,
 ):
     """Replace the retained source simulator with a distilled source twin."""
     if source_twin is None:
@@ -745,47 +869,106 @@ def fit_distilled_source_counterfactual_context(
     )
     feature = basis(state)
     _, source_gain = source_context.drift_and_gain(basis, state)
-    transform_design = torch.stack(
-        [
-            source_gain[:, :, source_index]
-            * innovation[:, target_index:target_index + 1]
-            for source_index in range(basis.action_dim)
-            for target_index in range(basis.action_dim)
-        ],
-        dim=-1,
-    ).reshape(-1, basis.action_dim ** 2)
-    transform_identity = torch.eye(
-        basis.action_dim ** 2,
-        dtype=feature.dtype,
-        device=device,
-    )
-    transform_delta = torch.linalg.solve(
-        transform_design.T @ transform_design
-        + args.transform_ridge * transform_identity,
-        transform_design.T @ difference.reshape(-1),
-    ).reshape(basis.action_dim, basis.action_dim)
-    transform = (
-        torch.eye(
+    diagonal_transform = bool(getattr(args, "diagonal_transform", False))
+    if diagonal_transform:
+        transform_design = torch.stack(
+            [
+                source_gain[:, :, index]
+                * innovation[:, index:index + 1]
+                for index in range(basis.action_dim)
+            ],
+            dim=-1,
+        ).reshape(-1, basis.action_dim)
+        transform_identity = torch.eye(
             basis.action_dim,
             dtype=feature.dtype,
             device=device,
         )
-        + transform_delta
-    )
-    control_difference = torch.einsum(
-        "noi,ij,nj->no",
-        source_gain,
-        transform_delta,
-        innovation,
-    )
+        diag_delta = torch.linalg.solve(
+            transform_design.T @ transform_design
+            + args.transform_ridge * transform_identity,
+            transform_design.T @ difference.reshape(-1),
+        )
+        transform_delta = torch.diag(diag_delta)
+        transform = torch.eye(
+            basis.action_dim,
+            dtype=feature.dtype,
+            device=device,
+        )
+        transform[range(basis.action_dim), range(basis.action_dim)] += diag_delta
+        scaled_innovation = innovation * diag_delta[None, :]
+        control_difference = (
+            source_gain @ scaled_innovation.unsqueeze(-1)
+        ).squeeze(-1)
+    else:
+        transform_design = torch.stack(
+            [
+                source_gain[:, :, source_index]
+                * innovation[:, target_index:target_index + 1]
+                for source_index in range(basis.action_dim)
+                for target_index in range(basis.action_dim)
+            ],
+            dim=-1,
+        ).reshape(-1, basis.action_dim ** 2)
+        transform_identity = torch.eye(
+            basis.action_dim ** 2,
+            dtype=feature.dtype,
+            device=device,
+        )
+        transform_delta = torch.linalg.solve(
+            transform_design.T @ transform_design
+            + args.transform_ridge * transform_identity,
+            transform_design.T @ difference.reshape(-1),
+        ).reshape(basis.action_dim, basis.action_dim)
+        transform = (
+            torch.eye(
+                basis.action_dim,
+                dtype=feature.dtype,
+                device=device,
+            )
+            + transform_delta
+        )
+        control_difference = torch.einsum(
+            "noi,ij,nj->no",
+            source_gain,
+            transform_delta,
+            innovation,
+        )
     drift_difference = difference - control_difference
-    drift_identity = torch.eye(
-        feature.shape[-1], dtype=feature.dtype, device=device,
-    )
-    drift_delta = torch.linalg.solve(
-        feature.T @ feature + args.drift_ridge * drift_identity,
-        feature.T @ drift_difference,
-    )
+    spectral_eta = float(getattr(args, "drift_spectral_eta", 0.0) or 0.0)
+    smooth_lambda = float(getattr(args, "drift_smooth_lambda", 0.0) or 0.0)
+    smooth_matrix = None
+    if smooth_lambda > 0.0 and hasattr(basis, "build_smoothness_matrix"):
+        smooth_matrix = basis.build_smoothness_matrix(
+            dtype=feature.dtype, device=device,
+        )
+    if spectral_eta > 0.0 or smooth_lambda > 0.0:
+        drift_delta, _ridge_min, _ridge_max = solve_spectral_ridge(
+            feature,
+            drift_difference,
+            base_ridge=args.drift_ridge,
+            spectral_eta=spectral_eta,
+            spectral_beta=float(
+                getattr(args, "drift_spectral_beta", 1.0) or 1.0,
+            ),
+            spectral_mode=str(
+                getattr(args, "drift_spectral_mode", "max") or "max",
+            ),
+            smoothness_matrix=smooth_matrix,
+            smoothness_lambda=smooth_lambda,
+        )
+        drift_unc_norm = float(drift_delta.norm())
+        drift_trust_active = False
+        drift_lagrange = 0.0
+    else:
+        drift_delta, drift_unc_norm, drift_trust_active, drift_lagrange = (
+            solve_drift_trust_region(
+                feature,
+                drift_difference,
+                args.drift_ridge,
+                trust_radius=drift_trust_radius,
+            )
+        )
     width = basis.feature_dim
     source_blocks = source_context.coefficients.reshape(
         1 + basis.action_dim, width, -1,
@@ -808,6 +991,9 @@ def fit_distilled_source_counterfactual_context(
         + args.transform_ridge * transform_identity,
     ))
     context.paired_source_drift_delta_norm = float(drift_delta.norm())
+    context.drift_unconstrained_norm = drift_unc_norm
+    context.drift_trust_active = drift_trust_active
+    context.drift_lagrange_multiplier = drift_lagrange
     context.source_twin_model = source_twin
     return context, np.asarray(states)
 

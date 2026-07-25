@@ -1,0 +1,30 @@
+{
+  "experiment": "HopperKANPolicyPPO",
+  "seed": 1811,
+  "source_return": 129.1883679896593,
+  "source_std": 34.720315671982064,
+  "kan_feature_dim": 298,
+  "config": {
+    "seed": 1811,
+    "env": "hopper",
+    "total_transitions": 500000,
+    "rollout_steps": 2048,
+    "minibatch_size": 64,
+    "update_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "entropy_coefficient": 0.0,
+    "evaluation_episodes": 10,
+    "feat_type": "bspline",
+    "net_arch": "256,256",
+    "kan_grid_size": 5,
+    "kan_spline_order": 3,
+    "kan_pair_modes": 2,
+    "smooth_lambda": 10.0,
+    "model_out": "results/hopper_kan_ppo_bspline_mlp_500k",
+    "norm_out": "results/hopper_kan_ppo_bspline_mlp_vecnorm_500k.pkl",
+    "json_out": "results/hopper_kan_ppo_bspline_mlp_500k.json"
+  }
+}

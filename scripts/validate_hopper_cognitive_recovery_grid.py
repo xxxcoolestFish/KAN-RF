@@ -60,6 +60,9 @@ def main(args):
         "mean_return": results["0"]["mean_return"],
     }, flush=True)
     original_warmup = args.cognition_warmup
+    drift_trust_radius = getattr(args, "drift_trust_radius", None)
+    drift_trust_calibrated = drift_trust_radius is not None
+    drift_trust_log = {}
     for budget in budgets[1:]:
         args.cognition_warmup = budget
         target_context, _ = fit_distilled_source_counterfactual_context(
@@ -69,7 +72,17 @@ def main(args):
             args,
             device,
             source_twin,
+            drift_trust_radius=(
+                drift_trust_radius if drift_trust_calibrated else None
+            ),
         )
+        if not drift_trust_calibrated:
+            drift_trust_radius = getattr(
+                target_context, "drift_unconstrained_norm", None,
+            )
+            drift_trust_log["calibration_budget"] = budget
+            drift_trust_log["calibrated_radius"] = drift_trust_radius
+            drift_trust_calibrated = True
         results[str(budget)] = evaluate_policy(
             "ungated",
             source_policy,
@@ -81,6 +94,20 @@ def main(args):
             args,
             device,
         )
+        drift_trust_log[str(budget)] = {
+            "drift_norm": getattr(
+                target_context, "paired_source_drift_delta_norm", None,
+            ),
+            "trust_active": getattr(
+                target_context, "drift_trust_active", None,
+            ),
+            "lagrange_multiplier": getattr(
+                target_context, "drift_lagrange_multiplier", None,
+            ),
+            "unconstrained_norm": getattr(
+                target_context, "drift_unconstrained_norm", None,
+            ),
+        }
         print({
             "target": args.target,
             "budget": budget,
@@ -106,6 +133,7 @@ def main(args):
             >= results[str(previous)]["mean_return"]
             for previous, following in zip(budgets, budgets[1:])
         )),
+        "drift_trust_region": drift_trust_log,
         "config": vars(args),
     }
     Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +161,15 @@ def parse_args():
     parser.add_argument("--cognition-warmup", type=int, default=0)
     parser.add_argument("--warmup-noise", type=float, default=0.3)
     parser.add_argument("--transform-ridge", type=float, default=10.0)
+    parser.add_argument("--diagonal-transform", action="store_true")
     parser.add_argument("--drift-ridge", type=float, default=100.0)
+    parser.add_argument("--drift-trust-radius", type=float, default=None)
+    parser.add_argument("--drift-spectral-eta", type=float, default=0.0)
+    parser.add_argument("--drift-spectral-beta", type=float, default=1.0)
+    parser.add_argument("--drift-smooth-lambda", type=float, default=0.0)
+    parser.add_argument(
+        "--drift-spectral-mode", choices=("max", "mean"), default="max",
+    )
     parser.add_argument("--pullback-damping", type=float, default=0.05)
     parser.add_argument(
         "--source-model",
