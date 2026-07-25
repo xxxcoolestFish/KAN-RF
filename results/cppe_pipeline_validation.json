@@ -1,0 +1,50 @@
+{
+  "budget": 512,
+  "test1_reconstruction": {
+    "explained_variance": [
+      0.5332305431365967,
+      0.2506290078163147,
+      0.07162734121084213,
+      0.060328904539346695,
+      0.052445657551288605
+    ],
+    "cumulated_k4": 0.9158157967031002,
+    "mean_error": 0.2460601106286049,
+    "max_error": 0.4588207006454468,
+    "per_shift": {
+      "payload_125": 0.4588207006454468,
+      "payload_150": 0.2608584761619568,
+      "friction_070": 0.1902955174446106,
+      "actuator_080": 0.3332827687263489,
+      "actuator_065": 0.0945209488272667,
+      "combo_mild": 0.25769829750061035,
+      "combo_medium": 0.12694406509399414
+    }
+  },
+  "test2_drift_vs_full": {
+    "drift_dim": 1221,
+    "full_dim": 4884,
+    "drift_cumulated_k4": 0.9158157967031002,
+    "full_cumulated_k4": 0.9916715212166309
+  },
+  "test3_transport_action": {
+    "payload_125": {
+      "mean_raw_error": 0.05448919162154198,
+      "mean_corrected_error": 0.022417135536670685,
+      "improvement_ratio": 0.5885947942733765,
+      "fraction_improved": 1.0
+    },
+    "friction_070": {
+      "mean_raw_error": 0.12888148427009583,
+      "mean_corrected_error": 0.04191417619585991,
+      "improvement_ratio": 0.6747850775718689,
+      "fraction_improved": 1.0
+    },
+    "combo_medium": {
+      "mean_raw_error": 0.19600921869277954,
+      "mean_corrected_error": 0.037520527839660645,
+      "improvement_ratio": 0.8085777163505554,
+      "fraction_improved": 1.0
+    }
+  }
+}
