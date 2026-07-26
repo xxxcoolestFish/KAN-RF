@@ -77,6 +77,201 @@ def compute_counterfactual_action(
     return torch.cat(actions_cf, dim=0)
 
 
+@torch.no_grad()
+def kan_reward_planner(
+    states: torch.Tensor,
+    z_values: np.ndarray,
+    source_policy: FrozenSourcePolicy,
+    source_context: AffineKANContext,
+    basis,
+    pca: CognitivePCA,
+    device: torch.device,
+    horizon: int = 5,
+    n_candidates: int = 64,
+    exploration_scale: float = 0.15,
+):
+    """KAN-based reward-aware counterfactual planner.
+
+    Uses random shooting in the KAN-imagined target world to find
+    reward-maximizing actions. The reward is computed from state/action
+    (forward velocity + health - control cost), not from target env.
+
+    Returns:
+        a_planned: (N, action_dim) first action of best sequence
+    """
+    N = len(states)
+    n_action = basis.action_dim
+    n_feature = basis.feature_dim
+
+    delta_W = torch.tensor(
+        np.stack([pca.decode(z_values[i]) for i in range(N)]),
+        device=device, dtype=torch.float32,
+    )
+    source_blocks = source_context.coefficients.clone().reshape(
+        1 + n_action, n_feature, -1,
+    )
+
+    nominal = source_policy.action(states)
+    best_actions = nominal.clone()
+
+    for i in range(N):
+        s0 = states[i:i+1]
+        dw = delta_W[i].reshape(n_feature, -1)
+        db = source_blocks.clone()
+        db[0] = source_blocks[0] + dw
+        drifted_ctx = AffineKANContext(
+            db.reshape_as(source_context.coefficients)
+        )
+        nom = nominal[i:i+1]
+
+        best_reward = -float('inf')
+        best_first_a = nom.clone()
+
+        # Batch candidates for efficiency
+        noises = torch.randn(n_candidates, horizon, n_action, device=device) * exploration_scale
+        noises[:, 0, :] = 0.0  # first action: start from nominal
+
+        for c in range(n_candidates):
+            s_t = s0.clone()
+            total_r = 0.0
+            alive = True
+            first_a = None
+
+            for t in range(horizon):
+                a_t = (nom + noises[c, t:t+1]).clamp(-1.0, 1.0)
+                if first_a is None:
+                    first_a = a_t.clone()
+
+                effect = drifted_ctx.acceleration(basis, s_t, a_t)
+                s_next = s_t + effect
+
+                # Reward components
+                fwd_vel = s_next[0, 0] - s_t[0, 0]
+                height_ok = (s_next[0, 1] > 0.7).float()
+                angle_ok = (s_next[0, 2:5].abs() < 1.0).all().float()
+                healthy = height_ok * angle_ok
+                ctrl_cost = 0.001 * (a_t ** 2).sum()
+                r_t = fwd_vel + 1.0 * healthy - ctrl_cost
+                total_r += float(r_t)
+
+                if s_next[0, 1] < 0.3 or s_next[0, 2:5].abs().max() > 2.0:
+                    total_r -= 5.0
+                    alive = False
+
+                s_t = s_next
+                if not alive:
+                    break
+
+            if total_r > best_reward:
+                best_reward = total_r
+                best_first_a = first_a.clone()
+
+        best_actions[i:i+1] = best_first_a
+
+    return best_actions
+
+
+def generate_teacher_action(
+    states: torch.Tensor, z_values: np.ndarray, teacher_mode: str,
+    source_policy, source_context, basis, pca, device,
+    blend_ratio: float = 0.3,
+):
+    """Unified interface: generate teacher actions for physics buffer."""
+    if teacher_mode == "planner":
+        a_raw = kan_reward_planner(
+            states, z_values, source_policy, source_context,
+            basis, pca, device,
+        )
+        # Soft blend with source action for stability
+        a_src = source_policy.action(states)
+        return (1.0 - blend_ratio) * a_src + blend_ratio * a_raw
+    else:
+        return compute_soft_cf_target(
+            states, z_values, source_policy, source_context,
+            basis, pca, device, blend_ratio=blend_ratio,
+        )
+
+
+@torch.no_grad()
+def kan_imagination_rollout(
+    init_states: torch.Tensor,      # (N, s_dim)
+    z_values: np.ndarray,           # (N, k)
+    source_policy: FrozenSourcePolicy,
+    source_context: AffineKANContext,
+    basis,
+    pca: CognitivePCA,
+    device: torch.device,
+    horizon: int = 5,
+    regularization: float = 1e-2,
+) -> tuple[list, list, list]:
+    """Generate counterfactual trajectories via KAN world model.
+
+    For each (s_0, z'), rolls out horizon steps in the IMAGINED target physics:
+      s_{t+1} = s_t + f_KAN(s_t, a_cf; W_target)
+    where a_cf is computed via transport_action at each step.
+
+    This produces states s' that are ON-POLICY for target physics,
+    solving the state distribution mismatch.
+
+    Returns: (all_states, all_z, all_actions) — flattened across batch and horizon.
+    """
+    N = len(init_states)
+    n_action = basis.action_dim
+    n_feature = basis.feature_dim
+
+    delta_W = torch.tensor(
+        np.stack([pca.decode(z_values[i]) for i in range(N)]),
+        device=device, dtype=torch.float32,
+    )
+    source_blocks = source_context.coefficients.clone().reshape(
+        1 + n_action, n_feature, -1,
+    )
+
+    all_s, all_z, all_a = [], [], []
+    current_s = init_states.clone()
+
+    for t in range(horizon):
+        nominal = source_policy.action(current_s)
+        source_effect = source_context.acceleration(basis, current_s, nominal)
+
+        actions_cf = []
+        next_states = []
+        for i in range(N):
+            dw = delta_W[i].reshape(n_feature, -1)
+            drifted_blocks = source_blocks.clone()
+            drifted_blocks[0] = source_blocks[0] + dw
+            drifted_ctx = AffineKANContext(
+                drifted_blocks.reshape_as(source_context.coefficients)
+            )
+            a_cf = drifted_ctx.transport_action(
+                basis, current_s[i:i+1],
+                desired_effect=source_effect[i:i+1],
+                nominal_action=nominal[i:i+1],
+                regularization=regularization,
+            )
+            actions_cf.append(a_cf)
+
+            # KAN predicts next state: s' = s + f_KAN(s, a; W_target)
+            effect = drifted_ctx.acceleration(basis, current_s[i:i+1], a_cf)
+            next_s = current_s[i:i+1] + effect
+            next_states.append(next_s)
+
+        a_t = torch.cat(actions_cf, dim=0).clamp(-1.0, 1.0)
+        ns_t = torch.cat(next_states, dim=0)
+
+        all_s.append(current_s.cpu().numpy())
+        all_z.append(z_values)
+        all_a.append(a_t.cpu().numpy())
+
+        current_s = ns_t
+
+    return (
+        np.concatenate(all_s, axis=0),
+        np.tile(z_values, (horizon, 1)),
+        np.concatenate(all_a, axis=0),
+    )
+
+
 def compute_soft_cf_target(
     states: torch.Tensor,
     z_values: np.ndarray,
@@ -169,6 +364,21 @@ def main():
     parser.add_argument("--k-pcs", type=int, default=5)
     # Z sampling
     parser.add_argument("--z-sampling", choices=("1d", "2d"), default="2d")
+    # DAgger
+    parser.add_argument("--dagger", action="store_true",
+                        help="Use DAgger-style student rollout for physics buffer states")
+    parser.add_argument("--dagger-interval", type=int, default=5,
+                        help="Do DAgger collection every N iterations")
+    parser.add_argument("--cf-blend-schedule", choices=("none", "curriculum"), default="none",
+                        help="Curriculum: blend ratio increases 0.2->0.5->1.0 over training")
+    parser.add_argument("--kan-imagination", action="store_true",
+                        help="Use KAN world model to generate counterfactual trajectories")
+    parser.add_argument("--imagination-horizon", type=int, default=5,
+                        help="Horizon for KAN imagination rollout")
+    parser.add_argument("--imagination-threshold", type=float, default=0.0,
+                        help="||ΔW|| threshold for adaptive imagination (0=always on)")
+    parser.add_argument("--teacher", choices=("transport", "planner"), default="transport",
+                        help="Action teacher: transport_action or KAN reward planner")
     # Evaluation
     parser.add_argument("--eval-episodes", type=int, default=10)
     parser.add_argument("--eval-freq", type=int, default=20_000)
@@ -269,6 +479,106 @@ def main():
                     reset_num_timesteps=False, progress_bar=False)
         step += chunk
 
+        # --- Curriculum blend ratio ---
+        if args.cf_blend_schedule == "curriculum":
+            progress = min(1.0, step / args.total_steps)
+            if progress < 0.33:
+                current_blend = 0.2
+            elif progress < 0.66:
+                current_blend = 0.5
+            else:
+                current_blend = 1.0
+        else:
+            current_blend = args.cf_blend
+
+        s_dim_actual = 11  # Hopper state dimension (without z)
+
+        # --- DAgger: student rollout using a single conditioned env ---
+        if args.dagger and args.ablation == "full" and step % (args.eval_freq * args.dagger_interval) == 0:
+            dagger_states = []
+            for ep in range(4):
+                # Create fresh env, copy normalization stats
+                de = DummyVecEnv([make_env])
+                de = VecNormalize(de, training=False, norm_obs=True, norm_reward=False)
+                de.obs_rms = vec_env.obs_rms
+                obs = de.reset()
+                for _ in range(200):
+                    dagger_states.append(obs[0, :s_dim_actual].copy())
+                    action, _ = model.predict(obs, deterministic=False)
+                    obs, _, dones, _ = de.step(action)
+                    if dones[0]:
+                        break
+                de.close()
+            if len(dagger_states) > 0:
+                d_states = torch.tensor(np.stack(dagger_states[:128]),
+                                        device=device, dtype=torch.float32)
+                d_z = pca.sample_z(len(d_states)).astype(np.float32)
+                d_cf = compute_counterfactual_action(
+                    d_states, d_z, source_policy, source_context,
+                    basis, pca, device,
+                )
+                for i in range(len(d_states)):
+                    buffer_s.append(dagger_states[i])
+                    buffer_z.append(d_z[i])
+                    buffer_a.append(d_cf[i].cpu().numpy())
+                if args.debug_loss:
+                    print(f"  [dagger] collected {len(d_states)} states from student rollout",
+                          flush=True)
+
+        # --- KAN imagination: adaptive gate by ||ΔW|| ---
+        if args.kan_imagination and args.ablation == "full":
+            if hasattr(model, 'rollout_buffer') and model.rollout_buffer is not None:
+                rb = model.rollout_buffer
+                obs_data = rb.observations[:rb.pos].copy() if rb.pos > 0 else rb.observations.copy()
+                n_init = min(16, len(obs_data))
+                if n_init > 0:
+                    idx = np.random.choice(len(obs_data), n_init, replace=False)
+                    init_s = torch.tensor(
+                        obs_data[idx][:, :s_dim_actual],
+                        device=device, dtype=torch.float32,
+                    )
+                    z_im = pca.sample_z(n_init).astype(np.float32)
+
+                    # Gate: decode ΔW, compute magnitude, split by threshold
+                    dw_norms = np.array([
+                        np.linalg.norm(pca.decode(z_im[i]))
+                        for i in range(len(z_im))
+                    ])
+                    threshold = args.imagination_threshold
+                    high_mask = dw_norms > threshold
+                    low_mask = ~high_mask
+
+                    n_high = int(high_mask.sum())
+                    n_low = int(low_mask.sum())
+
+                    # High-shift: use KAN imagination
+                    if n_high > 0:
+                        im_s, im_z, im_a = kan_imagination_rollout(
+                            init_s[high_mask], z_im[high_mask],
+                            source_policy, source_context, basis, pca, device,
+                            horizon=args.imagination_horizon,
+                        )
+                        for i in range(len(im_s)):
+                            buffer_s.append(im_s[i])
+                            buffer_z.append(im_z[i])
+                            buffer_a.append(im_a[i])
+
+                    # Low-shift: use direct CF on source states (skip imagination)
+                    if n_low > 0:
+                        a_cf_low = compute_soft_cf_target(
+                            init_s[low_mask], z_im[low_mask],
+                            source_policy, source_context, basis, pca, device,
+                            blend_ratio=current_blend,
+                        )
+                        for i in range(n_low):
+                            buffer_s.append(init_s[low_mask][i].cpu().numpy())
+                            buffer_z.append(z_im[low_mask][i])
+                            buffer_a.append(a_cf_low[i].cpu().numpy())
+
+                    if args.debug_loss:
+                        print(f"  [imagination] high={n_high} (rollout) low={n_low} "
+                              f"(direct) threshold={threshold:.3f}", flush=True)
+
         # --- Generate physics buffer data ---
         if hasattr(model, 'rollout_buffer') and model.rollout_buffer is not None:
             rb = model.rollout_buffer
@@ -296,11 +606,10 @@ def main():
                     z_vals = pca.sample_z(n_states).astype(np.float32)
 
                 if args.ablation in ("full", "random_z"):
-                    # Soft CF target: blend source action + CF compensation
-                    a_cf = compute_soft_cf_target(
-                        states, z_vals, source_policy, source_context,
-                        basis, pca, device,
-                        blend_ratio=args.cf_blend,
+                    a_cf = generate_teacher_action(
+                        states, z_vals, args.teacher,
+                        source_policy, source_context, basis, pca, device,
+                        blend_ratio=current_blend,
                     )
                     for i in range(n_states):
                         buffer_s.append(states_np[i])

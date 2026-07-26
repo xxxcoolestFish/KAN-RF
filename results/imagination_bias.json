@@ -1,0 +1,26 @@
+{
+  "payload_125": {
+    "mmd_source_vs_real": 0.027168829993477625,
+    "mmd_imagination_vs_real": 0.039338500184340805,
+    "mmd_imagination_vs_source": 0.05085361756114076,
+    "mean_shift_real": 0.4744742162352741,
+    "mean_shift_imag": 0.3679713748434053,
+    "mean_error_imag_vs_real": 0.80183622061897
+  },
+  "friction_070": {
+    "mmd_source_vs_real": 0.08334681655349264,
+    "mmd_imagination_vs_real": 0.06274426259577831,
+    "mmd_imagination_vs_source": 0.05194007866775162,
+    "mean_shift_real": 1.1216743296015868,
+    "mean_shift_imag": 0.33764329355123224,
+    "mean_error_imag_vs_real": 1.1845999952465789
+  },
+  "combo_medium": {
+    "mmd_source_vs_real": 0.13609095538282626,
+    "mmd_imagination_vs_real": 0.10771240564008344,
+    "mmd_imagination_vs_source": 0.05249884234003506,
+    "mean_shift_real": 1.716970228908341,
+    "mean_shift_imag": 0.8641890241077055,
+    "mean_error_imag_vs_real": 1.6770192326410331
+  }
+}
