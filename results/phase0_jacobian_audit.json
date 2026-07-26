@@ -1,0 +1,9 @@
+{
+  "cosines": 0.9523809581493432,
+  "sign_agree": 0.9728,
+  "mag_ratio": 1.0782592432086617,
+  "stance_cosines": 0.9523809581493432,
+  "flight_cosines": NaN,
+  "stance_sign": 0.9728,
+  "flight_sign": NaN
+}
