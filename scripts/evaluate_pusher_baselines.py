@@ -76,6 +76,7 @@ def run_controller(args: argparse.Namespace, controller: str) -> dict:
             discount=args.discount,
             initial_std_scale=args.initial_std_scale,
             temporal_correlation=args.temporal_correlation,
+            interpolation_steps=args.interpolation_steps,
             seed=args.seed + 9000,
         )
         if uses_planner
@@ -254,6 +255,7 @@ def run_controller(args: argparse.Namespace, controller: str) -> dict:
             "discount": args.discount,
             "initial_std_scale": args.initial_std_scale,
             "temporal_correlation": args.temporal_correlation,
+            "interpolation_steps": args.interpolation_steps,
             "seed": args.seed,
         },
         "return": summarize([record["return"] for record in episodes]),
@@ -312,6 +314,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--discount", type=float, default=0.99)
     parser.add_argument("--initial-std-scale", type=float, default=0.35)
     parser.add_argument("--temporal-correlation", type=float, default=0.7)
+    parser.add_argument("--interpolation-steps", type=int, default=1)
     parser.add_argument("--debug-every", type=int, default=10)
     parser.add_argument(
         "--json-out",

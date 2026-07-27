@@ -53,9 +53,16 @@ class PusherOracleCEM:
         discount: float = 0.99,
         initial_std_scale: float = 0.35,
         temporal_correlation: float = 0.7,
+        interpolation_steps: int = 1,
         seed: int = 1811,
     ):
-        if horizon < 1 or action_repeat < 1 or population < 2 or iterations < 1:
+        if (
+            horizon < 1
+            or action_repeat < 1
+            or interpolation_steps < 1
+            or population < 2
+            or iterations < 1
+        ):
             raise ValueError("invalid positive planner configuration")
         self.env = gym.make("Pusher-v5")
         self.env.reset(seed=seed)
@@ -67,11 +74,33 @@ class PusherOracleCEM:
         self.discount = discount
         self.initial_std_scale = initial_std_scale
         self.temporal_correlation = temporal_correlation
+        self.interpolation_steps = interpolation_steps
         self.rng = np.random.default_rng(seed)
         self.low = np.asarray(self.env.action_space.low, dtype=np.float64)
         self.high = np.asarray(self.env.action_space.high, dtype=np.float64)
         self.action_dim = int(self.low.size)
         self._warm_mean = np.zeros((horizon, self.action_dim), dtype=np.float64)
+
+    def expand_sequence(self, sequence: np.ndarray) -> np.ndarray:
+        """Expand action knots into per-step actions by linear interpolation."""
+        sequence = np.asarray(sequence, dtype=np.float64)
+        if sequence.shape != (self.horizon, self.action_dim):
+            raise ValueError(
+                f"expected {(self.horizon, self.action_dim)}, "
+                f"got {sequence.shape}"
+            )
+        if self.interpolation_steps == 1:
+            return sequence
+        expanded = []
+        for knot_index, knot in enumerate(sequence):
+            if knot_index + 1 < self.horizon:
+                next_knot = sequence[knot_index + 1]
+                for substep in range(self.interpolation_steps):
+                    alpha = substep / self.interpolation_steps
+                    expanded.append((1.0 - alpha) * knot + alpha * next_knot)
+            else:
+                expanded.extend([knot] * self.interpolation_steps)
+        return np.stack(expanded)
 
     def close(self) -> None:
         self.env.close()
@@ -122,7 +151,7 @@ class PusherOracleCEM:
             self._restore(qpos, qvel)
             discount = 1.0
             total = 0.0
-            for action in sequence:
+            for action in self.expand_sequence(sequence):
                 for _ in range(self.action_repeat):
                     observation, reward, terminated, truncated, _ = (
                         self.env.unwrapped.step(

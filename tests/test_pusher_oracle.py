@@ -101,3 +101,27 @@ def test_rollout_sequences_returns_terminal_batch_and_restores_state():
     assert np.allclose(planner.env.unwrapped.data.qvel, qvel, atol=1e-12)
     planner.close()
     env.close()
+
+
+def test_action_knots_are_linearly_expanded():
+    planner = PusherOracleCEM(
+        horizon=3,
+        action_repeat=1,
+        interpolation_steps=3,
+        population=4,
+        iterations=1,
+        seed=1811,
+    )
+    knots = np.zeros((3, planner.action_dim), dtype=np.float64)
+    knots[1] = 0.9
+    knots[2] = -0.6
+    expanded = planner.expand_sequence(knots)
+    assert expanded.shape == (9, planner.action_dim)
+    assert np.allclose(expanded[0], 0.0)
+    assert np.allclose(expanded[1], 0.3)
+    assert np.allclose(expanded[2], 0.6)
+    assert np.allclose(expanded[3], 0.9)
+    assert np.allclose(expanded[4], 0.4)
+    assert np.allclose(expanded[5], -0.1)
+    assert np.allclose(expanded[6:], -0.6)
+    planner.close()
