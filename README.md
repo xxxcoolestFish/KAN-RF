@@ -47,6 +47,8 @@ a^\star=\arg\min_a
 [`docs/REACHABILITY_ROUTING_STATUS_CN.md`](docs/REACHABILITY_ROUTING_STATUS_CN.md)。
 局部控制敏感性产生的多关节动作同样未能跨过接触模式边界，说明单点 Jacobian
 不足以构造连续接触任务的有效可达边。
+进一步加入已知有效的 SAC 候选动作后，图的选择率仍为 0%；直接 SAC 在相同 60 步
+推进 0.0957，而图只推进 0.00003。这证明当前长期评分与逐层剪枝也是独立瓶颈。
 
 ## 环境
 

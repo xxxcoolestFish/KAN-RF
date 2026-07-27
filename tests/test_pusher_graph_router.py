@@ -74,3 +74,26 @@ def test_sensitivity_router_produces_bounded_control_directions():
     assert (plan.sequence <= env.action_space.high).all()
     router.close()
     env.close()
+
+
+def test_graph_router_accepts_batched_policy_proposal():
+    env = gym.make("Pusher-v5")
+    env.reset(seed=2111)
+    router = PusherOracleGraphRouter(
+        depth=2,
+        branching=8,
+        beam_width=4,
+        seed=2111,
+    )
+    proposal = np.full(env.action_space.shape, 0.2, dtype=np.float32)
+
+    def policy_fn(states):
+        return np.repeat(proposal[None, :], len(states), axis=0)
+
+    plan = router.plan(env, policy_fn=policy_fn)
+    assert plan.proposal_action is not None
+    assert np.allclose(plan.proposal_action, proposal)
+    assert plan.proposal_action_distance is not None
+    assert plan.proposal_action_distance >= 0.0
+    router.close()
+    env.close()

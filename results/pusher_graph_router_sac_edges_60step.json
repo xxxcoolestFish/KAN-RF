@@ -1,0 +1,77 @@
+{
+  "config": {
+    "episodes": 1,
+    "max_steps": 60,
+    "depth": 6,
+    "branching": 24,
+    "beam_width": 48,
+    "action_scale": 0.5,
+    "noise_scale": 0.25,
+    "merge_radius": 0.35,
+    "discount": 0.99,
+    "heuristic_steps": 100,
+    "action_strategy": "primitive",
+    "sensitivity_probe": 0.5,
+    "sensitivity_steps": 3,
+    "sac_model": "results\\pusher-v5-SAC-expert.zip",
+    "seed": 1811,
+    "debug_every": 10,
+    "json_out": "results\\pusher_graph_router_sac_edges_60step.json"
+  },
+  "return": {
+    "mean": -24.918621805328602,
+    "std": 0.0,
+    "min": -24.918621805328602,
+    "max": -24.918621805328602
+  },
+  "final_distance": {
+    "mean": 0.257622493449617,
+    "std": 0.0,
+    "min": 0.257622493449617,
+    "max": 0.257622493449617
+  },
+  "distance_progress": {
+    "mean": 2.949481488845329e-05,
+    "std": 0.0,
+    "min": 2.949481488845329e-05,
+    "max": 2.949481488845329e-05
+  },
+  "success_final_005": 0.0,
+  "success_any_005": 0.0,
+  "mean_planning_ms": {
+    "mean": 618.8552833414482,
+    "std": 0.0,
+    "min": 618.8552833414482,
+    "max": 618.8552833414482
+  },
+  "mean_merge_rate": {
+    "mean": 0.06470586104470043,
+    "std": 0.0,
+    "min": 0.06470586104470043,
+    "max": 0.06470586104470043
+  },
+  "episodes": [
+    {
+      "episode": 0,
+      "seed": 1811,
+      "return": -24.918621805328602,
+      "steps": 60,
+      "initial_distance": 0.25765198826450547,
+      "final_distance": 0.257622493449617,
+      "minimum_distance": 0.2576221221571933,
+      "final_contact_distance": 0.08024510907027885,
+      "minimum_contact_distance": 0.0744623295981088,
+      "distance_progress": 2.949481488845329e-05,
+      "success_final_005": false,
+      "success_any_005": false,
+      "mean_planning_ms": 618.8552833414482,
+      "mean_observation_error": 3.7621021014731484e-08,
+      "mean_reward_error": 0.0,
+      "mean_distance_error": 0.0,
+      "mean_merge_rate": 0.06470586104470043,
+      "mean_route_end_distance": 0.25764216118605127,
+      "mean_proposal_action_distance": 2.636371440345581,
+      "proposal_selection_rate": 0.0
+    }
+  ]
+}

@@ -57,6 +57,8 @@ class GraphPlanResult:
     planning_ms: float
     layers: tuple[GraphLayerTrace, ...]
     sensitivity: ControlSensitivity | None
+    proposal_action: np.ndarray | None
+    proposal_action_distance: float | None
 
 
 @dataclass
@@ -139,6 +141,7 @@ class PusherOracleGraphRouter:
         self,
         depth: int,
         sensitivity: ControlSensitivity | None,
+        proposal_action: np.ndarray | None,
     ) -> np.ndarray:
         warm = self._warm_sequence[depth]
         magnitude = 0.5 * (self.high - self.low) * self.action_scale
@@ -146,6 +149,14 @@ class PusherOracleGraphRouter:
             np.zeros(self.action_dim, dtype=np.float64),
             np.clip(warm, self.low, self.high),
         ]
+        if proposal_action is not None:
+            actions.append(
+                np.clip(
+                    np.asarray(proposal_action, dtype=np.float64),
+                    self.low,
+                    self.high,
+                )
+            )
         if sensitivity is None:
             for action_index in range(self.action_dim):
                 positive = np.zeros(self.action_dim, dtype=np.float64)
@@ -293,6 +304,7 @@ class PusherOracleGraphRouter:
         self,
         source_env: gym.Env,
         debug_callback: Callable[[GraphLayerTrace], None] | None = None,
+        policy_fn: Callable[[np.ndarray], np.ndarray] | None = None,
     ) -> GraphPlanResult:
         start = perf_counter()
         source = source_env.unwrapped
@@ -326,11 +338,41 @@ class PusherOracleGraphRouter:
             if self.action_strategy == "sensitivity"
             else None
         )
+        root_proposal = None
 
         for depth in range(self.depth):
-            action_library = self._action_library(depth, sensitivity)
+            if policy_fn is None:
+                proposal_actions = [None] * len(frontier)
+            else:
+                proposal_batch = np.asarray(
+                    policy_fn(
+                        np.stack(
+                            [node.observation for node in frontier]
+                        )
+                    ),
+                    dtype=np.float64,
+                )
+                expected_shape = (len(frontier), self.action_dim)
+                if proposal_batch.shape != expected_shape:
+                    raise ValueError(
+                        "policy_fn must return actions with shape "
+                        f"{expected_shape}, got {proposal_batch.shape}"
+                    )
+                proposal_actions = list(proposal_batch)
+                if depth == 0:
+                    root_proposal = proposal_batch[0].copy()
             successors: list[_GraphNode] = []
-            for parent in frontier:
+            parent_count = len(frontier)
+            for parent, proposal_action in zip(
+                frontier,
+                proposal_actions,
+                strict=True,
+            ):
+                action_library = self._action_library(
+                    depth,
+                    sensitivity,
+                    proposal_action,
+                )
                 for action in action_library:
                     self._restore(parent.qpos, parent.qvel)
                     observation, reward, terminated, truncated, info = (
@@ -394,7 +436,7 @@ class PusherOracleGraphRouter:
             route = frontier[0]
             trace = GraphLayerTrace(
                 depth=depth + 1,
-                parents=max(1, len(successors) // len(action_library)),
+                parents=parent_count,
                 expanded=len(successors),
                 unique=len(merged),
                 merged=len(successors) - len(merged),
@@ -429,4 +471,14 @@ class PusherOracleGraphRouter:
             planning_ms=(perf_counter() - start) * 1000.0,
             layers=tuple(traces),
             sensitivity=sensitivity,
+            proposal_action=(
+                None
+                if root_proposal is None
+                else root_proposal.astype(np.float32)
+            ),
+            proposal_action_distance=(
+                None
+                if root_proposal is None
+                else float(np.linalg.norm(sequence[0] - root_proposal))
+            ),
         )

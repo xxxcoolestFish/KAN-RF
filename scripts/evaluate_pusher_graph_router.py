@@ -45,6 +45,7 @@ def main() -> None:
     )
     parser.add_argument("--sensitivity-probe", type=float, default=0.5)
     parser.add_argument("--sensitivity-steps", type=int, default=3)
+    parser.add_argument("--sac-model")
     parser.add_argument("--seed", type=int, default=1811)
     parser.add_argument("--debug-every", type=int, default=10)
     parser.add_argument(
@@ -52,6 +53,18 @@ def main() -> None:
         default="results/pusher_graph_router_exact.json",
     )
     args = parser.parse_args()
+    model = None
+    if args.sac_model is not None:
+        from stable_baselines3 import SAC
+
+        model = SAC.load(args.sac_model, device="auto")
+
+        def policy_fn(states: np.ndarray) -> np.ndarray:
+            actions, _ = model.predict(states, deterministic=True)
+            return np.asarray(actions)
+
+    else:
+        policy_fn = None
 
     episodes = []
     for episode in range(args.episodes):
@@ -82,6 +95,8 @@ def main() -> None:
         distance_errors = []
         merge_rates = []
         best_layer_distances = []
+        proposal_distances = []
+        proposal_selections = []
 
         for step in range(args.max_steps):
             show_debug = (
@@ -104,7 +119,11 @@ def main() -> None:
                         flush=True,
                     )
 
-            plan = router.plan(env, debug_callback=debug)
+            plan = router.plan(
+                env,
+                debug_callback=debug,
+                policy_fn=policy_fn,
+            )
             if show_debug and plan.sensitivity is not None:
                 singular_values = np.asarray(
                     plan.sensitivity.singular_values
@@ -148,6 +167,11 @@ def main() -> None:
             best_layer_distances.append(
                 plan.layers[-1].route_distance
             )
+            if plan.proposal_action_distance is not None:
+                proposal_distances.append(plan.proposal_action_distance)
+                proposal_selections.append(
+                    float(plan.proposal_action_distance < 1e-6)
+                )
 
             if show_debug or terminated or truncated:
                 print(
@@ -163,6 +187,8 @@ def main() -> None:
                     f"obs_error={observation_error:.2e} "
                     f"reward_error={reward_error:.2e} "
                     f"distance_error={distance_error:.2e} "
+                    f"proposal_dist="
+                    f"{plan.proposal_action_distance if plan.proposal_action_distance is not None else float('nan'):.3f} "
                     f"plan_ms={plan.planning_ms:.1f}",
                     flush=True,
                 )
@@ -198,6 +224,16 @@ def main() -> None:
             "mean_distance_error": float(mean(distance_errors)),
             "mean_merge_rate": float(mean(merge_rates)),
             "mean_route_end_distance": float(mean(best_layer_distances)),
+            "mean_proposal_action_distance": (
+                float(mean(proposal_distances))
+                if proposal_distances
+                else None
+            ),
+            "proposal_selection_rate": (
+                float(mean(proposal_selections))
+                if proposal_selections
+                else None
+            ),
         }
         episodes.append(record)
         router.close()

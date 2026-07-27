@@ -1,0 +1,58 @@
+{
+  "sac": {
+    "controller": "sac",
+    "config": {
+      "episodes": 1,
+      "max_steps": 60,
+      "horizon": 6,
+      "action_repeat": 2,
+      "population": 128,
+      "elite_fraction": 0.1,
+      "iterations": 3,
+      "discount": 0.99,
+      "initial_std_scale": 0.35,
+      "temporal_correlation": 0.7,
+      "interpolation_steps": 1,
+      "seed": 1811
+    },
+    "return": {
+      "mean": -19.424380190884197,
+      "std": 0.0,
+      "min": -19.424380190884197,
+      "max": -19.424380190884197
+    },
+    "final_distance": {
+      "mean": 0.16199103079693553,
+      "std": 0.0,
+      "min": 0.16199103079693553,
+      "max": 0.16199103079693553
+    },
+    "distance_progress": {
+      "mean": 0.09566095746756995,
+      "std": 0.0,
+      "min": 0.09566095746756995,
+      "max": 0.09566095746756995
+    },
+    "success_final_005": 0.0,
+    "success_any_005": 0.0,
+    "episodes": [
+      {
+        "episode": 0,
+        "seed": 1811,
+        "return": -19.424380190884197,
+        "steps": 60,
+        "initial_distance": 0.25765198826450547,
+        "final_distance": 0.16199103079693553,
+        "minimum_distance": 0.16031914676787587,
+        "distance_progress": 0.09566095746756995,
+        "success_final_005": false,
+        "success_any_005": false,
+        "mean_action_norm": 0.5613628466924031,
+        "mean_planning_ms": 0.0,
+        "reward_dist": -13.294231291895429,
+        "reward_near": -3.5055084789095408,
+        "reward_ctrl": -2.6246404200792313
+      }
+    ]
+  }
+}
