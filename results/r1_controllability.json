@@ -1,0 +1,215 @@
+{
+  "results": {
+    "vx=-0.10": {
+      "mean_return": 553.4370919767576,
+      "last10_return": 546.6920130793621,
+      "first5_return": 564.2309607998515,
+      "last5_return": 551.8890226149297,
+      "learning_delta": -12.341938184921787,
+      "mean_error": 0.11283492527284862,
+      "last10_error": 0.10742697710807003,
+      "n_cycles": 30,
+      "desired_delta": -0.1,
+      "axis": "vx"
+    },
+    "vx=+0.00": {
+      "mean_return": 578.6342565400707,
+      "last10_return": 576.2836096249443,
+      "first5_return": 574.5243148248667,
+      "last5_return": 580.2353024060067,
+      "learning_delta": 5.710987581139989,
+      "mean_error": 0.06449672526780666,
+      "last10_error": 0.05881962954351853,
+      "n_cycles": 30,
+      "desired_delta": 0.0,
+      "axis": "vx"
+    },
+    "vx=+0.10": {
+      "mean_return": 660.161782210774,
+      "last10_return": 669.0625121828112,
+      "first5_return": 640.6102534392257,
+      "last5_return": 676.1892087733634,
+      "learning_delta": 35.57895533413762,
+      "mean_error": 0.10655136589951378,
+      "last10_error": 0.10186043244702866,
+      "n_cycles": 30,
+      "desired_delta": 0.1,
+      "axis": "vx"
+    },
+    "vx=+0.20": {
+      "mean_return": 636.0842034465209,
+      "last10_return": 627.5040457912039,
+      "first5_return": 652.1006781968816,
+      "last5_return": 624.8567183066992,
+      "learning_delta": -27.243959890182396,
+      "mean_error": 0.189960150821397,
+      "last10_error": 0.19292301276584983,
+      "n_cycles": 30,
+      "desired_delta": 0.2,
+      "axis": "vx"
+    },
+    "vx=+0.30": {
+      "mean_return": 642.7234164828857,
+      "last10_return": 649.5435518136685,
+      "first5_return": 654.6607377103564,
+      "last5_return": 652.0152875075112,
+      "learning_delta": -2.645450202845268,
+      "mean_error": 0.281020643523054,
+      "last10_error": 0.28266314835006306,
+      "n_cycles": 30,
+      "desired_delta": 0.3,
+      "axis": "vx"
+    },
+    "vx=+0.40": {
+      "mean_return": 647.0303079569198,
+      "last10_return": 652.4710171550023,
+      "first5_return": 651.7584594851103,
+      "last5_return": 654.4974521103696,
+      "learning_delta": 2.738992625259357,
+      "mean_error": 0.37706241902405424,
+      "last10_error": 0.37957873490533894,
+      "n_cycles": 30,
+      "desired_delta": 0.4,
+      "axis": "vx"
+    },
+    "vx=+0.50": {
+      "mean_return": 647.9116377169116,
+      "last10_return": 656.4745785636347,
+      "first5_return": 640.975682201713,
+      "last5_return": 657.8813504580559,
+      "learning_delta": 16.905668256342892,
+      "mean_error": 0.4754632731436592,
+      "last10_error": 0.47707793674567994,
+      "n_cycles": 30,
+      "desired_delta": 0.5,
+      "axis": "vx"
+    },
+    "z=-0.15": {
+      "mean_return": 580.294089538954,
+      "last10_return": 585.7546719564391,
+      "first5_return": 575.3815305600273,
+      "last5_return": 601.1698708942707,
+      "learning_delta": 25.788340334243458,
+      "mean_error": 0.3116121205947584,
+      "last10_error": 0.31283651569999504,
+      "n_cycles": 30,
+      "desired_delta": -0.15,
+      "axis": "z"
+    },
+    "z=-0.05": {
+      "mean_return": 581.8694946402338,
+      "last10_return": 586.5942455731328,
+      "first5_return": 574.5705150864967,
+      "last5_return": 600.8747944333679,
+      "learning_delta": 26.304279346871226,
+      "mean_error": 0.1251234735681243,
+      "last10_error": 0.12585497743095644,
+      "n_cycles": 30,
+      "desired_delta": -0.05,
+      "axis": "z"
+    },
+    "z=+0.00": {
+      "mean_return": 578.6342565400707,
+      "last10_return": 576.2836096249443,
+      "first5_return": 574.5243148248667,
+      "last5_return": 580.2353024060067,
+      "learning_delta": 5.710987581139989,
+      "mean_error": 0.06449672526780666,
+      "last10_error": 0.05881962954351853,
+      "n_cycles": 30,
+      "desired_delta": 0.0,
+      "axis": "z"
+    },
+    "z=+0.05": {
+      "mean_return": 579.7563973045217,
+      "last10_return": 576.218169917659,
+      "first5_return": 574.4770423430377,
+      "last5_return": 580.2332889730199,
+      "learning_delta": 5.756246629982115,
+      "mean_error": 0.11568619685682567,
+      "last10_error": 0.1102107257373863,
+      "n_cycles": 30,
+      "desired_delta": 0.05,
+      "axis": "z"
+    },
+    "z=+0.15": {
+      "mean_return": 582.6106487536621,
+      "last10_return": 576.9962733655401,
+      "first5_return": 577.1937049032443,
+      "last5_return": 581.0647481773638,
+      "learning_delta": 3.8710432741194154,
+      "mean_error": 0.30151377048817807,
+      "last10_error": 0.2982431777291968,
+      "n_cycles": 30,
+      "desired_delta": 0.15,
+      "axis": "z"
+    },
+    "z=+0.25": {
+      "mean_return": 579.4155108026916,
+      "last10_return": 578.8125735584601,
+      "first5_return": 576.1879295749236,
+      "last5_return": 582.9925144439096,
+      "learning_delta": 6.804584868986012,
+      "mean_error": 0.4987126559379283,
+      "last10_error": 0.49557778366656835,
+      "n_cycles": 30,
+      "desired_delta": 0.25,
+      "axis": "z"
+    },
+    "combo=+0.15": {
+      "mean_return": 657.907038410697,
+      "last10_return": 662.9019568164952,
+      "first5_return": 649.7593348448333,
+      "last5_return": 660.6495677763172,
+      "learning_delta": 10.890232931483865,
+      "mean_error": 0.18952590573540254,
+      "last10_error": 0.1868127406356863,
+      "n_cycles": 30,
+      "desired_delta": 0.15,
+      "axis": "combo"
+    },
+    "combo=+0.30": {
+      "mean_return": 644.1541953712343,
+      "last10_return": 649.6314387355346,
+      "first5_return": 655.691211607974,
+      "last5_return": 652.0854563498071,
+      "learning_delta": -3.6057552581668233,
+      "mean_error": 0.39264701883864633,
+      "last10_error": 0.3915016087461988,
+      "n_cycles": 30,
+      "desired_delta": 0.3,
+      "axis": "combo"
+    },
+    "combo=+0.40": {
+      "mean_return": 646.8619638157867,
+      "last10_return": 652.5089148854283,
+      "first5_return": 649.5516460313723,
+      "last5_return": 654.5014397633142,
+      "learning_delta": 4.949793731941895,
+      "mean_error": 0.5318209669576975,
+      "last10_error": 0.5309052679480303,
+      "n_cycles": 30,
+      "desired_delta": 0.4,
+      "axis": "combo"
+    }
+  },
+  "config": {
+    "deltas_vx": [
+      -0.1,
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5
+    ],
+    "deltas_z": [
+      -0.15,
+      -0.05,
+      0.0,
+      0.05,
+      0.15,
+      0.25
+    ]
+  }
+}

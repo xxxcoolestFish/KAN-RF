@@ -1,0 +1,72 @@
+﻿python.exe : 2026-07-27 01:22:39.514576: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may s
+ee slightly different numerical results due to floating-point round-off errors from different computation orders. To tu
+rn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+At line:1 char:592
++ ... 1.log 2>&1; & "C:\Users\32510\miniconda3\envs\dl_env\python.exe" scri ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-07-27 01:2...ONEDNN_OPTS=0`.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-07-27 01:22:42.188086: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly d
+ifferent numerical results due to floating-point round-off errors from different computation orders. To turn them off, 
+set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+========================================================================
+ILC-1 Ablation: 1 seeds × 4 B_t types × 40 trials
+========================================================================
+
+[1/4] Loading components...
+C:\Users\32510\miniconda3\envs\dl_env\lib\site-packages\stable_baselines3\common\on_policy_algorithm.py:150: UserWarnin
+g: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (yo
+u are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245
+ for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model wi
+ll train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+
+[2/4] Building Transport reference...
+  Reference: 66 steps/cycle, shape=(20, 11)
+
+[3/4] Running 1 seeds × 4 B_t types × 3 refs...
+
+  --- seed=1911/kan/tr ---
+    return=606.8 (first5=613.3 last5=630.7) err=0.0669 (first5=0.0478 last5=0.0929) cycles=40/40
+
+  --- seed=1911/kan/delta_0.15 ---
+    return=625.1 (first5=658.6 last5=646.5) err=0.1332 (first5=0.1320 last5=0.1433) cycles=40/40
+
+  --- seed=1911/kan/delta_0.3 ---
+    return=619.9 (first5=654.3 last5=636.1) err=0.2367 (first5=0.2396 last5=0.2383) cycles=40/40
+
+  --- seed=1911/proportional/tr ---
+    return=643.6 (first5=666.0 last5=652.3) err=0.0673 (first5=0.0630 last5=0.0763) cycles=40/40
+
+  --- seed=1911/shuffled/tr ---
+    return=640.6 (first5=667.0 last5=650.2) err=0.0719 (first5=0.0632 last5=0.0805) cycles=40/40
+
+  --- seed=1911/shuffled/delta_0.15 ---
+    return=614.9 (first5=660.9 last5=634.8) err=0.1404 (first5=0.1348 last5=0.1392) cycles=40/40
+
+  --- seed=1911/shuffled/delta_0.3 ---
+    return=618.8 (first5=645.0 last5=629.5) err=0.2433 (first5=0.2427 last5=0.2444) cycles=40/40
+
+  --- seed=1911/negative/tr ---
+    return=604.9 (first5=663.0 last5=548.1) err=0.0981 (first5=0.0570 last5=0.1432) cycles=40/40
+
+  --- seed=1911/negative/delta_0.15 ---
+    return=541.0 (first5=619.3 last5=529.4) err=0.2405 (first5=0.1478 last5=0.2451) cycles=40/40
+
+  --- seed=1911/negative/delta_0.3 ---
+    return=528.1 (first5=577.9 last5=524.2) err=0.3548 (first5=0.2864 last5=0.3546) cycles=40/40
+
+[4/4] Summary
+========================================================================
+
+         B_t Type     Mean R     First5      Last5      Delta      Error       FwdR      CtrlR
+  -------------------------------------------------------------------------------------
+              kan      606.8      613.3      630.7      +17.4     0.0669      606.9        0.2
+     proportional      643.6      666.0      652.3      -13.7     0.0673      643.7        0.2
+         shuffled      640.6      667.0      650.2      -16.8     0.0719      640.7        0.2
+         negative      604.9      663.0      548.1     -114.9     0.0981      605.1        0.2
+
+  Transport baseline: 617.2 (no ILC)
+
+  Saved to results/ilc1_ablation_s1911.json

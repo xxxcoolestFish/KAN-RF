@@ -1,0 +1,27 @@
+============================================================
+CartPole KAN + Transport: pole length 0.5 ¡ú 0.7
+============================================================
+
+[1/4] Setting up environments...
+
+[2/4] Training PPO on source (half_length=0.5)...
+  Loading existing checkpoint (hidden=96)...
+  Training new critic (10k steps)...
+  Source performance: 500.0 ¡À 0.0
+  Target (no adaptation): 500.0 ¡À 0.0
+
+[3/4] Training KAN...
+  Source KAN fitted: 75 features
+  Target KAN fitted (warmup)
+
+[4/4] Testing controllers...
+
+  --- frozen KAN ---
+          frozen/Transport: 500.0 ¡À 0.0
+          frozen/alpha=0.1: 367.4 ¡À 98.0
+
+  --- online KAN ---
+          online/Transport: 500.0 ¡À 0.0
+          online/alpha=0.1: 498.8 ¡À 8.4
+
+  Saved to results/cartpole_kan_transport.json

@@ -1,0 +1,34 @@
+2026-07-27 02:15:52.616943: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-07-27 02:15:55.409815: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+============================================================
+R0: Oracle Target Reference Upper Bound
+============================================================
+
+[1/4] Loading components...
+C:\Users\32510\miniconda3\envs\dl_env\lib\site-packages\stable_baselines3\common\on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+
+[2/4] Oracle policy...
+  Training friction Oracle PPO (200000 steps)...
+  Oracle trained: 1262 ¡À 48
+
+[3/4] Building references...
+  Transport ref: 64 steps
+  Oracle ref: 44 steps
+
+[4/4] ILC trials (40 each)...
+  kan/Transport_ref: R=578.5 f5=574.5 l5=582.1 E=0.0628
+  kan/Oracle_ref: R=496.1 f5=507.8 l5=494.7 E=1.4548
+  kan/delta_0.30: R=654.9 f5=649.7 l5=645.8 E=0.2093
+
+============================================================
+  Reference                Return     First5      Last5
+  --------------------------------------------------
+  Transport_ref             578.5      574.5      582.1
+  Oracle_ref                496.1      507.8      494.7
+  delta_0.30                654.9      649.7      645.8
+
+  Transport baseline: 578.5
+  Oracle ref return: 496.1
+  => FAIL: Executor cannot improve beyond ~655 even with oracle reference.
+  Saved to results/r0_oracle_reference.json

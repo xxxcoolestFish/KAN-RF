@@ -1,0 +1,33 @@
+2026-07-27 08:56:50.899028: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-07-27 08:56:52.960748: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+R1.5 fix: achievement + residual reset ablation
+[1/2] Loading...
+C:\Users\32510\miniconda3\envs\dl_env\lib\site-packages\stable_baselines3\common\on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+  Ref: 64 steps
+
+[2/2] Fixed + switches + residual ablation
+  FIXED vx=0.00: R=578.3 last5=572.3 vx=-0.39 err=0.0670 |u|=0.132 fell=0%
+  FIXED vx=0.10: R=657.0 last5=661.9 vx=-0.36 err=0.1065 |u|=0.527 fell=0%
+  FIXED vx=0.20: R=638.3 last5=630.2 vx=-0.37 err=0.1897 |u|=0.983 fell=0%
+
+  Switches:
+  S1(0.0): last5R=572.3 |u|=0.132
+    S2(0.1) KEEP residual: R=646.2 last5=645.3 vx=-0.37 err=0.1016 |u|=0.521 fell=0%
+    S2(0.1) RESET residual: R=642.5 last5=659.1 vx=-0.37 err=0.1032 |u|=0.543 fell=0%
+  S1(0.2): last5R=630.2 |u|=0.983
+    S2(0.1) KEEP residual: R=642.6 last5=644.1 vx=-0.37 err=0.1027 |u|=0.561 fell=0%
+    S2(0.1) RESET residual: R=642.5 last5=659.1 vx=-0.37 err=0.1032 |u|=0.543 fell=0%
+
+============================================================
+  Fixed Commands (achieved vx corrected):
+      vx   Return    Last5   Ach_vx    Error      |u|   Fall
+    0.00    578.3    572.3    -0.39   0.0670    0.132     0%
+    0.10    657.0    661.9    -0.36   0.1065    0.527     0%
+    0.20    638.3    630.2    -0.37   0.1897    0.983     0%
+
+  Switches (keep vs reset residual):
+        Switch   Keep_last5  Reset_last5     Fixed_c2
+       0.0¡ú0.1        645.3        659.1        661.9
+       0.2¡ú0.1        644.1        659.1        661.9
+  Saved to results/r1p5_fixed.json
