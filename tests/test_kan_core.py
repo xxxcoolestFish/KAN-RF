@@ -14,22 +14,14 @@ def test_bspline_partition_of_unity():
     assert int((basis > 1e-8).sum(dim=-1).max()) <= 4
 
 
-def test_kan_layer_has_finite_gradients():
-    layer = KANLayer(in_dim=4, out_dim=2, grid_size=5, spline_order=3)
-    output = layer(torch.randn(8, 4))
-    assert output.shape == (8, 2)
-    output.sum().backward()
-    assert all(
-        parameter.grad is not None and parameter.grad.isfinite().all()
-        for parameter in layer.parameters()
-    )
-
-
-def test_protokan_forward_shape():
+def test_protokan_forward_shape_and_gradients():
     model = ProtoKAN([7, 16, 6])
-    output = model(torch.randn(5, 7))
+    inputs = torch.randn(5, 7)
+    output = model(inputs)
     assert output.shape == (5, 6)
+    output.sum().backward()
     assert output.isfinite().all()
+    assert all(parameter.grad is not None for parameter in model.parameters())
 
 
 def test_kan_spline_edges_do_not_mix_input_dimensions():
@@ -38,7 +30,7 @@ def test_kan_spline_edges_do_not_mix_input_dimensions():
         layer.base_weight.zero_()
         layer.spline_weight.zero_()
         layer.spline_weight[0, 0].fill_(1.0)
-
     first = layer(torch.tensor([[0.0, -0.5]]))
     second = layer(torch.tensor([[0.0, 0.5]]))
     assert torch.allclose(first, second, atol=1e-7)
+

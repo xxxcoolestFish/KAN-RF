@@ -15,6 +15,9 @@ saved_data/
 # Logs and outputs
 logs/
 outputs/
+results/*.log
+results/*.pt
+results/*.npz
 
 # Regenerable experiment artifacts
 results/_*

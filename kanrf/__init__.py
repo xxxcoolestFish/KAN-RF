@@ -6,6 +6,15 @@ from kanrf._network import KAN
 from kanrf._protokan import ProtoKAN, ProtoKANLayer
 from kanrf._regularization import jacobian_loss, p_spline_penalty, true_jacobian
 from kanrf._uncertainty import compute_per_step_uncertainty, compute_uncertainty
+from kanrf.effect_interface import (
+    ControllabilityStats,
+    EffectEncoder,
+    MLPDynamics,
+    ProtoKANDynamics,
+    controllability_loss,
+    effect_action_jacobian,
+    effect_covariance_loss,
+)
 
 __all__ = [
     "KAN",
@@ -16,6 +25,13 @@ __all__ = [
     "bspline_derivative",
     "compute_per_step_uncertainty",
     "compute_uncertainty",
+    "ControllabilityStats",
+    "EffectEncoder",
+    "MLPDynamics",
+    "ProtoKANDynamics",
+    "controllability_loss",
+    "effect_action_jacobian",
+    "effect_covariance_loss",
     "extend_grid",
     "jacobian_loss",
     "p_spline_penalty",

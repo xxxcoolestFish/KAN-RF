@@ -1,81 +1,74 @@
-# KAN-RF：持续认知驱动的物理泛化
+# KAN-RF：任务可控效果接口
 
-这是项目的协作交接分支，面向当前 Hopper 论文候选路线。
+当前分支 `research/task-controllable-effect-interface` 是一次干净的方法重构。
+旧 Hopper、CPPE、ILC 和 Planner-Router 实验仍保存在原分支和 Git 历史中，
+不再混入本分支的代码与结论。
 
-研究目标是：只在一种源物理环境中训练任务策略和认知模型；部署后物理参数发生未知变化时，认知模型仅利用新获得的状态转移持续学习，并把更新后的动力学规律转化为决策可直接使用的控制等价动作，使闭环任务性能在有限交互预算内快速恢复。
+## 研究问题
 
-## 从这里开始
+我们只在一个固定物理环境中学习任务。认知网络仅通过
+`(state, action, next_state)` 学习动力学，任务网络通过奖励学习任务意图。
+两者之间不再使用人工挑选的速度、高度或关节维度，而是学习一个同时满足
+“任务充分”和“动作可控”的效果空间：
 
-第一次接手项目，请按顺序阅读：
+\[
+z=\psi(s),\qquad
+\delta z=R_\phi(s,g),\qquad
+a^\star=\arg\min_a
+\|\psi(F_\theta(s,a))-(z+\delta z)\|^2.
+\]
 
-1. [`docs/COLLABORATOR_HANDOFF_CN.md`](docs/COLLABORATOR_HANDOFF_CN.md)：完整交接，包括研究目的、数学方法、实验结论、失败路线、复现方式和下一步任务。
-2. [`docs/HOPPER_CLOSED_LOOP_COGNITIVE_TRANSPORT_STAGE_CN.md`](docs/HOPPER_CLOSED_LOOP_COGNITIVE_TRANSPORT_STAGE_CN.md)：当前最新有效 Hopper 方法。
-3. [`docs/EXPERIMENT_INDEX.md`](docs/EXPERIMENT_INDEX.md)：代码和结果文件索引。
-4. [`paper/README.md`](paper/README.md)：论文草稿状态。注意：当前 LaTeX 仍是较早的 PCET/CartPole/Two-Link 草稿，尚未与最新 Hopper 结果完全同步。
+当前阶段只验证固定物理环境中的任务完成能力，不测试物理泛化。
 
-## 当前最可信结果
+## 第一阶段实验
 
-在隐藏的 `combo_medium` 物理变化下，冻结源 Actor，只用目标环境转移更新认知模型：
+环境：`Pusher-v5`。
 
-| 目标转移数 | Hopper 平均回报 |
-|---:|---:|
-| 0 | \(341.2\pm0.8\) |
-| 256 | \(367.8\pm7.4\) |
-| 512 | \(388.6\pm6.2\) |
-| 1024 | \(399.3\pm3.9\) |
-| 2048 | \(407.0\pm1.9\) |
+1. 标准 SAC：确认任务、奖励和可达到的性能上界。
+2. 真实 MuJoCo Oracle-CEM：排除认知模型误差，验证规划闭环。
+3. 自动效果空间：依次比较完整状态、PCA、随机投影和学习表示。
+4. ProtoKAN 替换 Oracle：只有前三步通过后才进行。
 
-三个随机种子的归一化恢复 AUC 为 \(0.767\pm0.043\)。
-
-这证明了“在线认知更新能够通过控制等价接口改善闭环决策”的可行性，但还不能证明对任意物理变化普遍有效。载荷变化存在负迁移，摩擦变化存在后期漂移，KAN/MLP 公平消融也尚未补齐。
-
-## 核心入口
-
-- `scripts/validate_hopper_cognitive_recovery_grid.py`：固定协议的单环境恢复曲线。
-- `scripts/validate_hopper_joint_online_adaptation.py`：认知与决策联合在线适应框架。
-- `scripts/train_hopper_sb3_ppo.py`：源 PPO Actor。
-- `scripts/validate_hopper_centered_protokan_cognition.py`：源策略中心化 ProtoKAN 检查点。
-- `scripts/train_hopper_control_sobolev_cognition.py`：源控制 Sobolev 认知。
-- `scripts/train_hopper_source_affine_twin.py`：源控制仿射数字孪生。
+详细方法和判决标准见
+[`docs/METHOD_AND_EXPERIMENT_PLAN_CN.md`](docs/METHOD_AND_EXPERIMENT_PLAN_CN.md)。
 
 ## 环境
 
-本机实验统一使用 Conda 环境 `dl_env`：
+所有 Python 命令必须使用本机 Conda 环境 `dl_env`：
 
 ```powershell
-C:\Users\32510\miniconda3\Scripts\conda.exe run -n dl_env python -m pytest -q
+C:\Users\32510\miniconda3\envs\dl_env\python.exe -m pytest -q
 ```
 
-已验证的主要版本：
+已确认 CUDA 可用，训练脚本默认使用 GPU；MuJoCo 模拟与 Oracle-CEM 主要运行在 CPU。
 
-- Python 3.10.19
-- PyTorch 2.5.1，CUDA 12.1
-- NumPy 2.0.1
-- Gymnasium 1.3.0
-- MuJoCo 3.10.0
-- Stable-Baselines3 2.4.1
+## 快速开始
 
-也可以安装研究依赖：
+环境与数值检查：
 
 ```powershell
-python -m pip install -e ".[research,test]"
+C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.inspect_pusher_env
 ```
 
-## 分支与历史
+快速 Oracle-CEM smoke test：
 
-- 当前协作分支：`collab/handoff-latest-20260725`
-- 整理前论文候选：`research/paper-candidate-v1`
-- 完整研究历史：`archive/research-history-20260725`
-- 完整历史归档提交：`5f20465`
+```powershell
+C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.evaluate_pusher_baselines `
+  --controllers zero random oracle --episodes 2 --max-steps 25 `
+  --horizon 3 --action-repeat 2 --population 32 --iterations 2 --debug-every 5
+```
 
-协作分支移除了旧 Acrobot、早期 Hopper 和大量失败实验文件，但它们没有被永久删除，均可从归档分支恢复。
+训练 SAC：
 
-## 文件管理
+```powershell
+C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.train_pusher_sac `
+  --total-steps 500000 --device cuda --log-every 5000 --eval-every 25000
+```
 
-模型权重和归一化状态不进入 Git：
+## 目录
 
-- `*.pt`
-- `*.zip`
-- `*.pkl`
-
-正式的小型 JSON 指标可以提交。Smoke 结果、日志、LaTeX 中间文件和生成的 PDF 均被忽略。
+- `kanrf/`：KAN/ProtoKAN 核心、效果接口和 Oracle 规划器。
+- `scripts/`：本阶段唯一实验入口。
+- `tests/`：数值、状态恢复、梯度与形状测试。
+- `docs/`：当前方法与实验记录。
+- `results/`：正式 JSON 指标；模型和日志由 `.gitignore` 排除。
