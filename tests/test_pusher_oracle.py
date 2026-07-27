@@ -40,7 +40,9 @@ def test_oracle_action_is_finite_and_bounded():
     )
     result = planner.plan(env)
     assert result.action.shape == env.action_space.shape
+    assert result.sequence.shape == (2, env.action_space.shape[0])
     assert np.isfinite(result.action).all()
+    assert np.isfinite(result.sequence).all()
     assert (result.action >= env.action_space.low).all()
     assert (result.action <= env.action_space.high).all()
     planner.close()

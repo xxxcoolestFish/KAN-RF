@@ -1,0 +1,19 @@
+{
+  "transitions": 40000,
+  "train_count": 32000,
+  "validation_count": 8000,
+  "effect_dim": 4,
+  "ranking_groups": 0,
+  "ranking_candidates": 64,
+  "mode_counts": {
+    "expert": 10000,
+    "mild_noise": 10000,
+    "strong_noise": 10000,
+    "random": 10000
+  },
+  "validation_rmse": 0.7639358043670654,
+  "validation_correlation": 0.996898889541626,
+  "best_validation_mse": 0.5835978984832764,
+  "training_seconds": 13.036927900044248,
+  "checkpoint": "C:\\Users\\32510\\Desktop\\RF\\KAN-RF\\results\\pusher_task_effect_value_d4_capacity.pt"
+}

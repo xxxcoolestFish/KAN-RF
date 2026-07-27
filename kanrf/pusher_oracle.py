@@ -27,6 +27,7 @@ class CEMIteration:
 @dataclass(frozen=True)
 class PlanResult:
     action: np.ndarray
+    sequence: np.ndarray
     predicted_return: float
     planning_ms: float
     iterations: tuple[CEMIteration, ...]
@@ -261,6 +262,7 @@ class PusherOracleCEM:
         self._warm_mean[-1] = 0.0
         return PlanResult(
             action=best_sequence[0].astype(np.float32),
+            sequence=best_sequence.astype(np.float32),
             predicted_return=best_return,
             planning_ms=(perf_counter() - start) * 1000.0,
             iterations=tuple(traces),
