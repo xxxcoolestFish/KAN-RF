@@ -39,6 +39,14 @@ class GraphLayerTrace:
 
 
 @dataclass(frozen=True)
+class ControlSensitivity:
+    rank: int
+    singular_values: tuple[float, ...]
+    task_gradient_norm: float
+    directed_actions: np.ndarray
+
+
+@dataclass(frozen=True)
 class GraphPlanResult:
     action: np.ndarray
     sequence: np.ndarray
@@ -48,6 +56,7 @@ class GraphPlanResult:
     predicted_first_distance: float
     planning_ms: float
     layers: tuple[GraphLayerTrace, ...]
+    sensitivity: ControlSensitivity | None
 
 
 @dataclass
@@ -79,6 +88,9 @@ class PusherOracleGraphRouter:
         merge_radius: float = 0.35,
         discount: float = 0.99,
         heuristic_steps: int = 100,
+        action_strategy: str = "primitive",
+        sensitivity_probe: float = 0.5,
+        sensitivity_steps: int = 3,
         seed: int = 1811,
     ):
         if depth < 1 or branching < 2 or beam_width < 1:
@@ -89,6 +101,10 @@ class PusherOracleGraphRouter:
             raise ValueError("merge_radius must be positive")
         if heuristic_steps < 0:
             raise ValueError("heuristic_steps must be non-negative")
+        if action_strategy not in ("primitive", "sensitivity"):
+            raise ValueError("unknown action strategy")
+        if sensitivity_probe <= 0.0 or sensitivity_steps < 1:
+            raise ValueError("invalid sensitivity configuration")
         self.env = gym.make("Pusher-v5")
         self.env.reset(seed=seed)
         self.depth = depth
@@ -99,6 +115,9 @@ class PusherOracleGraphRouter:
         self.merge_radius = merge_radius
         self.discount = discount
         self.heuristic_steps = heuristic_steps
+        self.action_strategy = action_strategy
+        self.sensitivity_probe = sensitivity_probe
+        self.sensitivity_steps = sensitivity_steps
         self.rng = np.random.default_rng(seed)
         self.low = np.asarray(self.env.action_space.low, dtype=np.float64)
         self.high = np.asarray(self.env.action_space.high, dtype=np.float64)
@@ -116,23 +135,126 @@ class PusherOracleGraphRouter:
         base.set_state(qpos.copy(), qvel.copy())
         base.data.ctrl[:] = 0.0
 
-    def _action_library(self, depth: int) -> np.ndarray:
+    def _action_library(
+        self,
+        depth: int,
+        sensitivity: ControlSensitivity | None,
+    ) -> np.ndarray:
         warm = self._warm_sequence[depth]
         magnitude = 0.5 * (self.high - self.low) * self.action_scale
         actions = [
             np.zeros(self.action_dim, dtype=np.float64),
             np.clip(warm, self.low, self.high),
         ]
-        for action_index in range(self.action_dim):
-            positive = np.zeros(self.action_dim, dtype=np.float64)
-            positive[action_index] = magnitude[action_index]
-            actions.extend((positive, -positive))
+        if sensitivity is None:
+            for action_index in range(self.action_dim):
+                positive = np.zeros(self.action_dim, dtype=np.float64)
+                positive[action_index] = magnitude[action_index]
+                actions.extend((positive, -positive))
+        else:
+            actions.extend(sensitivity.directed_actions)
         while len(actions) < self.branching:
+            center = (
+                sensitivity.directed_actions[
+                    len(actions) % len(sensitivity.directed_actions)
+                ]
+                if (
+                    sensitivity is not None
+                    and len(sensitivity.directed_actions) > 0
+                )
+                else warm
+            )
             perturbation = self.rng.normal(
                 size=self.action_dim
             ) * (self.high - self.low) * self.noise_scale
-            actions.append(np.clip(warm + perturbation, self.low, self.high))
+            actions.append(np.clip(center + perturbation, self.low, self.high))
         return np.stack(actions[: self.branching])
+
+    def _probe(
+        self,
+        qpos: np.ndarray,
+        qvel: np.ndarray,
+        action: np.ndarray,
+    ) -> tuple[np.ndarray, float]:
+        self._restore(qpos, qvel)
+        observation = None
+        info = {}
+        for _ in range(self.sensitivity_steps):
+            observation, _, terminated, truncated, info = (
+                self.env.unwrapped.step(action.astype(np.float32))
+            )
+            if terminated or truncated:
+                break
+        state_reward = float(
+            info.get("reward_dist", -object_goal_distance(self.env))
+            + info.get("reward_near", -self._contact_distance())
+        )
+        return np.asarray(observation, dtype=np.float64), state_reward
+
+    def _control_sensitivity(
+        self,
+        qpos: np.ndarray,
+        qvel: np.ndarray,
+    ) -> ControlSensitivity:
+        jacobian_columns = []
+        task_gradient = np.zeros(self.action_dim, dtype=np.float64)
+        for action_index in range(self.action_dim):
+            positive = np.zeros(self.action_dim, dtype=np.float64)
+            positive[action_index] = self.sensitivity_probe
+            negative = -positive
+            positive_observation, positive_reward = self._probe(
+                qpos,
+                qvel,
+                positive,
+            )
+            negative_observation, negative_reward = self._probe(
+                qpos,
+                qvel,
+                negative,
+            )
+            denominator = 2.0 * self.sensitivity_probe
+            jacobian_columns.append(
+                (positive_observation - negative_observation) / denominator
+            )
+            task_gradient[action_index] = (
+                positive_reward - negative_reward
+            ) / denominator
+        jacobian = np.stack(jacobian_columns, axis=1)
+        _, singular_values, right_vectors = np.linalg.svd(
+            jacobian,
+            full_matrices=False,
+        )
+        target_norm = float(
+            np.mean(0.5 * (self.high - self.low)) * self.action_scale
+        )
+        directed_actions = []
+        task_gradient_norm = float(np.linalg.norm(task_gradient))
+        if task_gradient_norm > 1e-9:
+            task_direction = (
+                task_gradient / task_gradient_norm * target_norm
+            )
+            directed_actions.extend(
+                (
+                    0.5 * task_direction,
+                    task_direction,
+                    -task_direction,
+                )
+            )
+        for direction in right_vectors:
+            scaled = direction * target_norm
+            directed_actions.extend((scaled, -scaled))
+        self._restore(qpos, qvel)
+        return ControlSensitivity(
+            rank=int(np.linalg.matrix_rank(jacobian)),
+            singular_values=tuple(
+                float(value) for value in singular_values
+            ),
+            task_gradient_norm=task_gradient_norm,
+            directed_actions=np.asarray(
+                directed_actions,
+                dtype=np.float64,
+            ),
+        )
 
     def _merge(self, nodes: list[_GraphNode]) -> list[_GraphNode]:
         observations = np.stack([node.observation for node in nodes])
@@ -199,9 +321,14 @@ class PusherOracleGraphRouter:
         )
         frontier = [root]
         traces: list[GraphLayerTrace] = []
+        sensitivity = (
+            self._control_sensitivity(source_qpos, source_qvel)
+            if self.action_strategy == "sensitivity"
+            else None
+        )
 
         for depth in range(self.depth):
-            action_library = self._action_library(depth)
+            action_library = self._action_library(depth, sensitivity)
             successors: list[_GraphNode] = []
             for parent in frontier:
                 for action in action_library:
@@ -301,4 +428,5 @@ class PusherOracleGraphRouter:
             predicted_first_distance=best.first_distance,
             planning_ms=(perf_counter() - start) * 1000.0,
             layers=tuple(traces),
+            sensitivity=sensitivity,
         )

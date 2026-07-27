@@ -38,6 +38,13 @@ def main() -> None:
     parser.add_argument("--merge-radius", type=float, default=0.35)
     parser.add_argument("--discount", type=float, default=0.99)
     parser.add_argument("--heuristic-steps", type=int, default=100)
+    parser.add_argument(
+        "--action-strategy",
+        choices=("primitive", "sensitivity"),
+        default="primitive",
+    )
+    parser.add_argument("--sensitivity-probe", type=float, default=0.5)
+    parser.add_argument("--sensitivity-steps", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1811)
     parser.add_argument("--debug-every", type=int, default=10)
     parser.add_argument(
@@ -60,6 +67,9 @@ def main() -> None:
             merge_radius=args.merge_radius,
             discount=args.discount,
             heuristic_steps=args.heuristic_steps,
+            action_strategy=args.action_strategy,
+            sensitivity_probe=args.sensitivity_probe,
+            sensitivity_steps=args.sensitivity_steps,
             seed=args.seed + 9000 + episode,
         )
         initial_distance = object_goal_distance(env)
@@ -95,6 +105,19 @@ def main() -> None:
                     )
 
             plan = router.plan(env, debug_callback=debug)
+            if show_debug and plan.sensitivity is not None:
+                singular_values = np.asarray(
+                    plan.sensitivity.singular_values
+                )
+                print(
+                    "  "
+                    f"sensitivity_rank={plan.sensitivity.rank} "
+                    f"singular_values="
+                    f"{np.array2string(singular_values, precision=3)} "
+                    f"task_grad_norm="
+                    f"{plan.sensitivity.task_gradient_norm:.3e}",
+                    flush=True,
+                )
             observation, reward, terminated, truncated, _ = env.step(
                 plan.action
             )

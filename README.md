@@ -45,6 +45,8 @@ a^\star=\arg\min_a
 新的可达图路由分支首先使用精确动力学验证带动作边的直接执行。第一版能够让机械臂
 接近物体，但无法发现建立接触和推动所需的协调动作。实验、调试证据和当前边界见
 [`docs/REACHABILITY_ROUTING_STATUS_CN.md`](docs/REACHABILITY_ROUTING_STATUS_CN.md)。
+局部控制敏感性产生的多关节动作同样未能跨过接触模式边界，说明单点 Jacobian
+不足以构造连续接触任务的有效可达边。
 
 ## 环境
 

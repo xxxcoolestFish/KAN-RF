@@ -51,3 +51,26 @@ def test_graph_router_actions_are_bounded_and_reports_merging():
     assert any(layer.merged > 0 for layer in plan.layers)
     router.close()
     env.close()
+
+
+def test_sensitivity_router_produces_bounded_control_directions():
+    env = gym.make("Pusher-v5")
+    env.reset(seed=2011)
+    router = PusherOracleGraphRouter(
+        depth=2,
+        branching=20,
+        beam_width=4,
+        action_strategy="sensitivity",
+        sensitivity_steps=2,
+        seed=2011,
+    )
+    plan = router.plan(env)
+    assert plan.sensitivity is not None
+    assert 0 < plan.sensitivity.rank <= env.action_space.shape[0]
+    assert len(plan.sensitivity.singular_values) == env.action_space.shape[0]
+    assert np.isfinite(plan.sensitivity.singular_values).all()
+    assert np.isfinite(plan.sensitivity.task_gradient_norm)
+    assert (plan.sequence >= env.action_space.low).all()
+    assert (plan.sequence <= env.action_space.high).all()
+    router.close()
+    env.close()

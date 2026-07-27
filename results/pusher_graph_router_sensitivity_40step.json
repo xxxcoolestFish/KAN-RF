@@ -1,0 +1,74 @@
+{
+  "config": {
+    "episodes": 1,
+    "max_steps": 40,
+    "depth": 6,
+    "branching": 24,
+    "beam_width": 48,
+    "action_scale": 0.5,
+    "noise_scale": 0.25,
+    "merge_radius": 0.35,
+    "discount": 0.99,
+    "heuristic_steps": 100,
+    "action_strategy": "sensitivity",
+    "sensitivity_probe": 0.5,
+    "sensitivity_steps": 3,
+    "seed": 1811,
+    "debug_every": 5,
+    "json_out": "results\\pusher_graph_router_sensitivity_smoke.json"
+  },
+  "return": {
+    "mean": -18.46410267180853,
+    "std": 0.0,
+    "min": -18.46410267180853,
+    "max": -18.46410267180853
+  },
+  "final_distance": {
+    "mean": 0.2571850109827139,
+    "std": 0.0,
+    "min": 0.2571850109827139,
+    "max": 0.2571850109827139
+  },
+  "distance_progress": {
+    "mean": 0.0004669772817915696,
+    "std": 0.0,
+    "min": 0.0004669772817915696,
+    "max": 0.0004669772817915696
+  },
+  "success_final_005": 0.0,
+  "success_any_005": 0.0,
+  "mean_planning_ms": {
+    "mean": 591.660652498831,
+    "std": 0.0,
+    "min": 591.660652498831,
+    "max": 591.660652498831
+  },
+  "mean_merge_rate": {
+    "mean": 0.07851666175885903,
+    "std": 0.0,
+    "min": 0.07851666175885903,
+    "max": 0.07851666175885903
+  },
+  "episodes": [
+    {
+      "episode": 0,
+      "seed": 1811,
+      "return": -18.46410267180853,
+      "steps": 40,
+      "initial_distance": 0.25765198826450547,
+      "final_distance": 0.2571850109827139,
+      "minimum_distance": 0.2571850109827139,
+      "final_contact_distance": 0.08825434869662982,
+      "minimum_contact_distance": 0.07298017747497615,
+      "distance_progress": 0.0004669772817915696,
+      "success_final_005": false,
+      "success_any_005": false,
+      "mean_planning_ms": 591.660652498831,
+      "mean_observation_error": 3.697132277196975e-08,
+      "mean_reward_error": 0.0,
+      "mean_distance_error": 0.0,
+      "mean_merge_rate": 0.07851666175885903,
+      "mean_route_end_distance": 0.257533084536826
+    }
+  ]
+}
