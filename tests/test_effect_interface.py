@@ -5,10 +5,28 @@ from kanrf import (
     MLPDynamics,
     ProtoKANDynamics,
     TaskEffectValue,
+    control_equivalence_loss,
     controllability_loss,
     effect_action_jacobian,
     effect_covariance_loss,
 )
+
+
+def test_control_equivalence_loss_detects_wrong_best_candidate():
+    exact = torch.tensor([[3.0, 2.0, 1.0], [0.0, 0.5, -1.0]])
+    correct = exact.clone().requires_grad_(True)
+    wrong = torch.tensor(
+        [[1.0, 2.0, 3.0], [0.5, 0.0, -1.0]],
+        requires_grad=True,
+    )
+    correct_stats = control_equivalence_loss(correct, exact)
+    wrong_stats = control_equivalence_loss(wrong, exact)
+    assert correct_stats.advantage_loss < wrong_stats.advantage_loss
+    assert correct_stats.margin_loss < wrong_stats.margin_loss
+    assert correct_stats.top1_agreement == 1.0
+    assert wrong_stats.top1_agreement == 0.0
+    (wrong_stats.advantage_loss + wrong_stats.margin_loss).backward()
+    assert wrong.grad is not None
 
 
 def test_task_effect_value_normalization_and_shapes():

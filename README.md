@@ -33,8 +33,9 @@ a^\star=\arg\min_a
 [`docs/METHOD_AND_EXPERIMENT_PLAN_CN.md`](docs/METHOD_AND_EXPERIMENT_PLAN_CN.md)。
 
 当前已完成 Gate A，并通过容量对照、配对策略后悔诊断和一次规划器在环数据
-聚合定位 Gate B 的闭环可行动性缺口。当前 4 维接口保留约 88% 的精确 Critic
-推进能力，但尚未达到严格成功阈值。完整实验结果、失败对照和未完成边界见
+聚合定位 Gate B 的闭环可行动性缺口。加入候选优势和困难间隔训练后，当前
+4 维接口保留约 93.5% 的精确 Critic 推进能力，但尚未达到严格成功阈值。
+完整实验结果、失败对照和未完成边界见
 [`docs/CURRENT_STATUS_CN.md`](docs/CURRENT_STATUS_CN.md)。
 
 ## 环境

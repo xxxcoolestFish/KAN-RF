@@ -158,6 +158,83 @@ class ControllabilityStats:
     condition_number: torch.Tensor
 
 
+@dataclass(frozen=True)
+class ControlEquivalenceStats:
+    advantage_loss: torch.Tensor
+    margin_loss: torch.Tensor
+    exact_margin: torch.Tensor
+    top1_agreement: torch.Tensor
+
+
+def control_equivalence_loss(
+    predicted_scores: torch.Tensor,
+    exact_scores: torch.Tensor,
+    minimum_margin: float = 0.05,
+    maximum_margin: float = 1.0,
+) -> ControlEquivalenceStats:
+    """Match local advantages and separate the exact best from hard negatives."""
+    if predicted_scores.shape != exact_scores.shape:
+        raise ValueError("predicted_scores and exact_scores must have equal shape")
+    if predicted_scores.ndim != 2 or predicted_scores.shape[1] < 2:
+        raise ValueError("scores must have shape [groups, candidates>=2]")
+
+    exact_centered = exact_scores - exact_scores.mean(dim=-1, keepdim=True)
+    predicted_centered = predicted_scores - predicted_scores.mean(
+        dim=-1,
+        keepdim=True,
+    )
+    local_scale = exact_centered.std(
+        dim=-1,
+        keepdim=True,
+        unbiased=False,
+    ).clamp_min(0.25)
+    advantage_loss = F.smooth_l1_loss(
+        predicted_centered / local_scale,
+        exact_centered / local_scale,
+    )
+
+    exact_best_indices = exact_scores.argmax(dim=-1)
+    batch_indices = torch.arange(
+        exact_scores.shape[0],
+        device=exact_scores.device,
+    )
+    predicted_best_scores = predicted_scores[
+        batch_indices,
+        exact_best_indices,
+    ]
+    exact_best_scores = exact_scores[batch_indices, exact_best_indices]
+    negative_mask = F.one_hot(
+        exact_best_indices,
+        num_classes=exact_scores.shape[-1],
+    ).bool()
+    predicted_hard_negative = predicted_scores.masked_fill(
+        negative_mask,
+        -torch.inf,
+    ).max(dim=-1).values
+    exact_second_best = exact_scores.masked_fill(
+        negative_mask,
+        -torch.inf,
+    ).max(dim=-1).values
+    exact_margin = exact_best_scores - exact_second_best
+    desired_margin = exact_margin.clamp(
+        min=minimum_margin,
+        max=maximum_margin,
+    )
+    margin_loss = F.relu(
+        desired_margin
+        - (predicted_best_scores - predicted_hard_negative)
+    ).mean()
+    top1_agreement = (
+        predicted_scores.argmax(dim=-1) == exact_best_indices
+    ).float().mean()
+    return ControlEquivalenceStats(
+        advantage_loss=advantage_loss,
+        margin_loss=margin_loss,
+        exact_margin=exact_margin.mean(),
+        top1_agreement=top1_agreement,
+    )
+
+
 def controllability_loss(
     jacobian: torch.Tensor,
     eps: float = 1e-4,
