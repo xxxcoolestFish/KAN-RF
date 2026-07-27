@@ -35,6 +35,60 @@ class EffectEncoder(nn.Module):
         return self.net(states)
 
 
+class TaskEffectValue(nn.Module):
+    """Low-dimensional task effect whose readout approximates source value."""
+
+    def __init__(
+        self,
+        obs_dim: int,
+        effect_dim: int,
+        hidden_dim: int = 128,
+    ):
+        super().__init__()
+        self.obs_dim = obs_dim
+        self.effect_dim = effect_dim
+        self.hidden_dim = hidden_dim
+        self.encoder = EffectEncoder(obs_dim, effect_dim, hidden_dim)
+        self.value_head = _mlp([effect_dim, hidden_dim, hidden_dim, 1])
+        self.register_buffer("obs_mean", torch.zeros(obs_dim))
+        self.register_buffer("obs_std", torch.ones(obs_dim))
+        self.register_buffer("value_mean", torch.zeros(()))
+        self.register_buffer("value_std", torch.ones(()))
+
+    def set_normalization(
+        self,
+        observations: torch.Tensor,
+        values: torch.Tensor,
+        eps: float = 1e-6,
+    ) -> None:
+        """Store training-set normalization inside the model."""
+        with torch.no_grad():
+            self.obs_mean.copy_(observations.mean(dim=0))
+            self.obs_std.copy_(
+                observations.std(dim=0, unbiased=False).clamp_min(eps)
+            )
+            self.value_mean.copy_(values.mean())
+            self.value_std.copy_(
+                values.std(unbiased=False).clamp_min(eps)
+            )
+
+    def encode(self, states: torch.Tensor) -> torch.Tensor:
+        normalized = (states - self.obs_mean) / self.obs_std
+        return self.encoder(normalized)
+
+    def normalized_value_from_effects(
+        self,
+        effects: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.value_head(effects).squeeze(-1)
+
+    def forward(self, states: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        effects = self.encode(states)
+        normalized_values = self.normalized_value_from_effects(effects)
+        values = normalized_values * self.value_std + self.value_mean
+        return effects, values
+
+
 class MLPDynamics(nn.Module):
     """Residual one-step dynamics baseline."""
 
@@ -140,4 +194,3 @@ def effect_covariance_loss(effects: torch.Tensor, eps: float = 1e-4) -> torch.Te
     covariance = centered.T @ centered / max(effects.shape[0] - 1, 1)
     off_diagonal = covariance - torch.diag(torch.diagonal(covariance))
     return variance_loss + off_diagonal.pow(2).mean()
-

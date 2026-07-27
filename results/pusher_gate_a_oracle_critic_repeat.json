@@ -1,0 +1,91 @@
+{
+  "oracle_critic": {
+    "controller": "oracle_critic",
+    "config": {
+      "episodes": 3,
+      "max_steps": 100,
+      "horizon": 3,
+      "action_repeat": 3,
+      "population": 64,
+      "elite_fraction": 0.1,
+      "iterations": 2,
+      "discount": 0.99,
+      "initial_std_scale": 0.15,
+      "temporal_correlation": 0.8,
+      "seed": 1811
+    },
+    "return": {
+      "mean": -24.06930047832133,
+      "std": 1.7723664515554678,
+      "min": -25.398992252735887,
+      "max": -21.564382827108723
+    },
+    "final_distance": {
+      "mean": 0.06048782468723519,
+      "std": 0.009831874966935605,
+      "min": 0.052079484272918614,
+      "max": 0.07428227678054836
+    },
+    "distance_progress": {
+      "mean": 0.19581346447573603,
+      "std": 0.014323511666842816,
+      "min": 0.18336971148395712,
+      "max": 0.21587763985277122
+    },
+    "success_final_005": 0.0,
+    "success_any_005": 0.3333333333333333,
+    "episodes": [
+      {
+        "episode": 0,
+        "seed": 1811,
+        "return": -25.24452635511938,
+        "steps": 100,
+        "initial_distance": 0.25765198826450547,
+        "final_distance": 0.07428227678054836,
+        "minimum_distance": 0.07428227678054836,
+        "distance_progress": 0.18336971148395712,
+        "success_final_005": false,
+        "success_any_005": false,
+        "mean_action_norm": 0.4732596256583929,
+        "mean_planning_ms": 171.2741749966517,
+        "reward_dist": -17.90914195709926,
+        "reward_near": -3.939801542573869,
+        "reward_ctrl": -3.395582855446264
+      },
+      {
+        "episode": 1,
+        "seed": 1912,
+        "return": -25.398992252735887,
+        "steps": 100,
+        "initial_distance": 0.26795712412568984,
+        "final_distance": 0.052079484272918614,
+        "minimum_distance": 0.052079484272918614,
+        "distance_progress": 0.21587763985277122,
+        "success_final_005": false,
+        "success_any_005": false,
+        "mean_action_norm": 0.3849234595894814,
+        "mean_planning_ms": 191.99316799873486,
+        "reward_dist": -16.239752787016126,
+        "reward_near": -6.012870418373225,
+        "reward_ctrl": -3.146369047346525
+      },
+      {
+        "episode": 2,
+        "seed": 2013,
+        "return": -21.564382827108723,
+        "steps": 100,
+        "initial_distance": 0.24329475509871837,
+        "final_distance": 0.05510171300823859,
+        "minimum_distance": 0.04828364431614108,
+        "distance_progress": 0.18819304209047977,
+        "success_final_005": false,
+        "success_any_005": true,
+        "mean_action_norm": 0.3476519637182355,
+        "mean_planning_ms": 191.75209901062772,
+        "reward_dist": -12.971967254150043,
+        "reward_near": -5.772285418118962,
+        "reward_ctrl": -2.820130154839717
+      }
+    ]
+  }
+}

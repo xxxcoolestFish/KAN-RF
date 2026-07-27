@@ -4,10 +4,25 @@ from kanrf import (
     EffectEncoder,
     MLPDynamics,
     ProtoKANDynamics,
+    TaskEffectValue,
     controllability_loss,
     effect_action_jacobian,
     effect_covariance_loss,
 )
+
+
+def test_task_effect_value_normalization_and_shapes():
+    observations = torch.randn(32, 6)
+    values = torch.randn(32) * 3.0 + 7.0
+    model = TaskEffectValue(obs_dim=6, effect_dim=3, hidden_dim=16)
+    model.set_normalization(observations, values)
+    effects, predictions = model(observations)
+    assert effects.shape == (32, 3)
+    assert predictions.shape == (32,)
+    assert torch.isfinite(effects).all()
+    assert torch.isfinite(predictions).all()
+    assert torch.allclose(model.obs_mean, observations.mean(dim=0))
+    assert torch.allclose(model.value_mean, values.mean())
 
 
 def test_effect_jacobian_has_expected_shape_and_gradients():
@@ -40,4 +55,3 @@ def test_protokan_dynamics_shape():
     next_states = model(torch.randn(3, 23), torch.randn(3, 7))
     assert next_states.shape == (3, 23)
     assert next_states.isfinite().all()
-

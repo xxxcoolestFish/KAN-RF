@@ -32,6 +32,10 @@ a^\star=\arg\min_a
 详细方法和判决标准见
 [`docs/METHOD_AND_EXPERIMENT_PLAN_CN.md`](docs/METHOD_AND_EXPERIMENT_PLAN_CN.md)。
 
+当前已完成 Gate A，并定位到 Gate B 的闭环可行动性缺口。完整实验结果、
+失败对照和未完成边界见
+[`docs/CURRENT_STATUS_CN.md`](docs/CURRENT_STATUS_CN.md)。
+
 ## 环境
 
 所有 Python 命令必须使用本机 Conda 环境 `dl_env`：

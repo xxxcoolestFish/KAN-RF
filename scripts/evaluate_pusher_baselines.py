@@ -30,8 +30,42 @@ def load_sac(path: str | None):
     return SAC.load(path, device="auto")
 
 
+def load_effect_value(path: str | None):
+    if path is None:
+        raise ValueError("--effect-model is required for oracle_effect")
+    import torch
+
+    from kanrf.effect_interface import TaskEffectValue
+
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    if checkpoint.get("format") != "task_effect_value_v1":
+        raise ValueError(
+            f"unsupported effect checkpoint: {checkpoint.get('format')}"
+        )
+    model = TaskEffectValue(**checkpoint["config"])
+    model.load_state_dict(checkpoint["state_dict"])
+    model.eval()
+    return model
+
+
 def run_controller(args: argparse.Namespace, controller: str) -> dict:
-    model = load_sac(args.sac_model) if controller == "sac" else None
+    uses_terminal_value = controller in (
+        "oracle_terminal",
+        "oracle_effect",
+        "oracle_critic",
+    )
+    uses_policy_proposal = controller in ("oracle_proposal", "oracle_critic")
+    uses_sac = (
+        controller == "sac"
+        or controller in ("oracle_terminal", "oracle_critic")
+        or uses_policy_proposal
+    )
+    uses_planner = controller.startswith("oracle")
+    model = (
+        load_sac(args.sac_model)
+        if uses_sac
+        else None
+    )
     planner = (
         PusherOracleCEM(
             horizon=args.horizon,
@@ -44,7 +78,12 @@ def run_controller(args: argparse.Namespace, controller: str) -> dict:
             temporal_correlation=args.temporal_correlation,
             seed=args.seed + 9000,
         )
-        if controller == "oracle"
+        if uses_planner
+        else None
+    )
+    effect_model = (
+        load_effect_value(args.effect_model)
+        if controller == "oracle_effect"
         else None
     )
     rng = np.random.default_rng(args.seed + 7000)
@@ -77,7 +116,7 @@ def run_controller(args: argparse.Namespace, controller: str) -> dict:
             elif controller == "sac":
                 action, _ = model.predict(observation, deterministic=True)
                 plan_result = None
-            elif controller == "oracle":
+            elif uses_planner:
                 show_cem = args.debug_every > 0 and step % args.debug_every == 0
 
                 def debug(trace) -> None:
@@ -93,7 +132,49 @@ def run_controller(args: argparse.Namespace, controller: str) -> dict:
                             flush=True,
                         )
 
-                plan_result = planner.plan(env, debug_callback=debug)
+                if uses_sac and (uses_terminal_value or uses_policy_proposal):
+                    import torch
+
+                    def policy_fn(states):
+                        predicted, _ = model.predict(states, deterministic=True)
+                        return predicted
+
+                if controller in ("oracle_terminal", "oracle_critic"):
+                    def terminal_value_fn(states):
+                        obs_tensor, _ = model.policy.obs_to_tensor(states)
+                        with torch.no_grad():
+                            terminal_actions = model.actor(
+                                obs_tensor, deterministic=True
+                            )
+                            q_values = model.critic(obs_tensor, terminal_actions)
+                            minimum_q = torch.minimum(q_values[0], q_values[1])
+                        return minimum_q.squeeze(-1).cpu().numpy()
+
+                elif controller == "oracle_effect":
+                    import torch
+
+                    def terminal_value_fn(states):
+                        state_tensor = torch.as_tensor(
+                            states,
+                            dtype=torch.float32,
+                        )
+                        with torch.no_grad():
+                            _, values = effect_model(state_tensor)
+                        return values.cpu().numpy()
+
+                else:
+                    terminal_value_fn = None
+
+                if uses_policy_proposal:
+                    proposal = planner.policy_proposal(env, policy_fn)
+                else:
+                    proposal = None
+                plan_result = planner.plan(
+                    env,
+                    debug_callback=debug,
+                    terminal_value_fn=terminal_value_fn,
+                    proposal_sequence=proposal,
+                )
                 action = plan_result.action
                 planning_times.append(plan_result.planning_ms)
             else:
@@ -206,10 +287,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--controllers",
         nargs="+",
-        choices=("zero", "random", "sac", "oracle"),
+        choices=(
+            "zero",
+            "random",
+            "sac",
+            "oracle",
+            "oracle_proposal",
+            "oracle_terminal",
+            "oracle_effect",
+            "oracle_critic",
+        ),
         default=("zero", "random", "oracle"),
     )
     parser.add_argument("--sac-model")
+    parser.add_argument("--effect-model")
     parser.add_argument("--episodes", type=int, default=3)
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument("--seed", type=int, default=1811)

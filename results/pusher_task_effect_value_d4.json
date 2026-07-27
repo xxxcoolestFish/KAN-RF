@@ -1,0 +1,17 @@
+{
+  "transitions": 20000,
+  "train_count": 16000,
+  "validation_count": 4000,
+  "effect_dim": 4,
+  "mode_counts": {
+    "expert": 5000,
+    "mild_noise": 5000,
+    "strong_noise": 5000,
+    "random": 5000
+  },
+  "validation_rmse": 1.0872828960418701,
+  "validation_correlation": 0.9938353300094604,
+  "best_validation_mse": 1.182184100151062,
+  "training_seconds": 4.510572600062005,
+  "checkpoint": "C:\\Users\\32510\\Desktop\\RF\\KAN-RF\\results\\pusher_task_effect_value_d4.pt"
+}

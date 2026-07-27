@@ -45,3 +45,57 @@ def test_oracle_action_is_finite_and_bounded():
     assert (result.action <= env.action_space.high).all()
     planner.close()
     env.close()
+
+
+def test_terminal_value_is_added_to_oracle_return():
+    env = gym.make("Pusher-v5")
+    env.reset(seed=1811)
+    qpos = env.unwrapped.data.qpos.copy()
+    qvel = env.unwrapped.data.qvel.copy()
+    planner = PusherOracleCEM(
+        horizon=2,
+        action_repeat=1,
+        population=4,
+        iterations=1,
+        discount=0.9,
+        seed=1811,
+    )
+    sequences = np.zeros((4, 2, env.action_space.shape[0]), dtype=np.float32)
+    plain = planner.evaluate_sequences(qpos, qvel, sequences)
+    valued = planner.evaluate_sequences(
+        qpos,
+        qvel,
+        sequences,
+        terminal_value_fn=lambda states: np.ones(len(states)),
+    )
+    assert np.allclose(valued - plain, 0.9**2)
+    planner.close()
+    env.close()
+
+
+def test_rollout_sequences_returns_terminal_batch_and_restores_state():
+    env = gym.make("Pusher-v5")
+    env.reset(seed=1811)
+    qpos = env.unwrapped.data.qpos.copy()
+    qvel = env.unwrapped.data.qvel.copy()
+    planner = PusherOracleCEM(
+        horizon=2,
+        action_repeat=2,
+        population=4,
+        iterations=1,
+        discount=0.9,
+        seed=1811,
+    )
+    sequences = np.zeros((4, 2, env.action_space.shape[0]), dtype=np.float32)
+    rewards, terminal_observations, discounts = planner.rollout_sequences(
+        qpos,
+        qvel,
+        sequences,
+    )
+    assert rewards.shape == (4,)
+    assert terminal_observations.shape == (4, 23)
+    assert np.allclose(discounts, 0.9**4)
+    assert np.allclose(planner.env.unwrapped.data.qpos, qpos, atol=1e-12)
+    assert np.allclose(planner.env.unwrapped.data.qvel, qvel, atol=1e-12)
+    planner.close()
+    env.close()
