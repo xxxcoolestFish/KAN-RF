@@ -30,6 +30,9 @@
 上一阶段 Oracle 控制等价实验及其局限见
 [Oracle 上限报告](docs/ORACLE_CONTROL_EQUIVALENCE_ADAPTER_GATE_CN.md)。
 
+样条梯度扩散的已验证边界见
+[样条耦合外推快速门](docs/SPLINE_COUPLING_EXTRAPOLATION_GATE_CN.md)。
+
 ## 当前保留代码
 
 ```text
@@ -91,9 +94,9 @@ C:\Users\32510\miniconda3\envs\dl_env\python.exe `
 
 ## 下一步
 
-先实现 rank-1 的 `FewEnvironmentDynamics`：
+下一步实现 rank-1 的系数空间 `FewEnvironmentDynamics`：
 
-1. 在两个匿名源环境中学习共享 ProtoKAN 和一个参数变化方向；
+1. 在两个匿名源环境中学习共享 ProtoKAN 和一个跨环境系数变化方向；
 2. 进入目标环境后仅更新低维 latent；
 3. 对比单源 ProtoKAN、同容量 MLP 和全参数微调；
 4. 分别测试插值和外推；
