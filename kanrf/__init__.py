@@ -12,10 +12,12 @@ from kanrf.control_equivalence_adapter import (
     solve_local_control_equivalence,
     weighted_norm,
 )
+from kanrf.function_modulated_dynamics import ActionModulatedProtoKAN
 
 __all__ = [
     "KAN",
     "KANLayer",
+    "ActionModulatedProtoKAN",
     "ProtoKAN",
     "ProtoKANLayer",
     "bspline_basis",

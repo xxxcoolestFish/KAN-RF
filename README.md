@@ -33,6 +33,9 @@
 样条梯度扩散的已验证边界见
 [样条耦合外推快速门](docs/SPLINE_COUPLING_EXTRAPOLATION_GATE_CN.md)。
 
+共享函数坐标与低维动作调制的首次正结果见
+[函数对齐动作调制 ProtoKAN 快速门](docs/FUNCTION_MODULATED_PROTOKAN_GATE_CN.md)。
+
 ## 当前保留代码
 
 ```text
@@ -94,10 +97,10 @@ C:\Users\32510\miniconda3\envs\dl_env\python.exe `
 
 ## 下一步
 
-下一步实现 rank-1 的系数空间 `FewEnvironmentDynamics`：
+当前 rank-1 函数调制快速门已经通过。下一步保持结构不变，扩大物理变化：
 
-1. 在两个匿名源环境中学习共享 ProtoKAN 和一个跨环境系数变化方向；
-2. 进入目标环境后仅更新低维 latent；
-3. 对比单源 ProtoKAN、同容量 MLP 和全参数微调；
-4. 分别测试插值和外推；
-5. Gate A 通过后再连接决策网络。
+1. 增加质量、摩擦和复合变化；
+2. 保持每个目标环境 64 条无奖励转移预算；
+3. 对比不适应、全参数微调和低维 latent 适应；
+4. 检查反事实效果改善能否转化为控制恢复；
+5. 多类变化通过后再训练历史 context 编码器。
