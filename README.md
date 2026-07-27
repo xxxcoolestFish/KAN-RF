@@ -36,6 +36,9 @@
 共享函数坐标与低维动作调制的首次正结果见
 [函数对齐动作调制 ProtoKAN 快速门](docs/FUNCTION_MODULATED_PROTOKAN_GATE_CN.md)。
 
+认知函数到 Actor 低秩参数调制的闭环结果见
+[认知必经低秩 Actor 闭环快速门](docs/COGNITIVE_LOWRANK_CONTROL_GATE_CN.md)。
+
 ## 当前保留代码
 
 ```text
@@ -46,12 +49,16 @@ kanrf/
   _protokan.py                  ProtoKAN
   _regularization.py            导数与样条正则
   _uncertainty.py               预测不确定性
+  cognition_modulated_actor.py  认知必经的低秩 Actor 参数调制
+  function_modulated_dynamics.py  共享函数坐标认知模型
   control_equivalence_adapter.py  局部控制等价 Oracle 接口
   pusher_oracle.py              Pusher 状态克隆与 Oracle 工具
 
 scripts/
   inspect_pusher_env.py
   train_pusher_sac.py
+  quick_validate_function_modulated_protokan.py
+  quick_validate_cognitive_lowrank_lqr.py
   quick_validate_oracle_control_equivalence_adapter.py
 
 tests/
@@ -97,10 +104,11 @@ C:\Users\32510\miniconda3\envs\dl_env\python.exe `
 
 ## 下一步
 
-当前 rank-1 函数调制快速门已经通过。下一步保持结构不变，扩大物理变化：
+当前认知函数适应门和低秩 Actor 闭环机制门均出现正信号。下一步不再调整
+低维 LQR，而是把固定接口接入多环境 Actor-Critic：
 
-1. 增加质量、摩擦和复合变化；
-2. 保持每个目标环境 64 条无奖励转移预算；
-3. 对比不适应、全参数微调和低维 latent 适应；
-4. 检查反事实效果改善能否转化为控制恢复；
-5. 多类变化通过后再训练历史 context 编码器。
+1. 先保证所有源环境的 Actor 达到预设性能门；
+2. 目标环境保持 64 条连续无奖励转移预算；
+3. 冻结目标 Actor，只改变认知 latent，隔离认知贡献；
+4. 对比 pooled、concat、低秩调制和认知置零；
+5. 通过后再加入历史 context 编码器和目标 Actor 持续学习。

@@ -12,12 +12,18 @@ from kanrf.control_equivalence_adapter import (
     solve_local_control_equivalence,
     weighted_norm,
 )
+from kanrf.cognition_modulated_actor import (
+    CognitionModulatedActor,
+    LowRankCognitiveLinear,
+)
 from kanrf.function_modulated_dynamics import ActionModulatedProtoKAN
 
 __all__ = [
     "KAN",
     "KANLayer",
     "ActionModulatedProtoKAN",
+    "CognitionModulatedActor",
+    "LowRankCognitiveLinear",
     "ProtoKAN",
     "ProtoKANLayer",
     "bspline_basis",
