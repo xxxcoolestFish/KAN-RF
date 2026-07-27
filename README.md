@@ -1,92 +1,100 @@
-# KAN-RF：任务可控效果接口
+# KAN-RF：少环境动力学适应
 
-当前分支 `research/task-controllable-effect-interface` 是一次干净的方法重构。
-旧 Hopper、CPPE、ILC 和 Planner-Router 实验仍保存在原分支和 Git 历史中，
-不再混入本分支的代码与结论。
+当前分支：`research/few-environment-adaptation`
 
-## 研究问题
+## 研究目标
 
-我们只在一个固定物理环境中学习任务。认知网络仅通过
-`(state, action, next_state)` 学习动力学，任务网络通过奖励学习任务意图。
-两者之间不再使用人工挑选的速度、高度或关节维度，而是学习一个同时满足
-“任务充分”和“动作可控”的效果空间：
+只使用极少数源物理环境学习动力学的共享规律和变化方向。在未知目标环境中，
+不读取真实物理参数、不使用环境 ID，只利用少量无奖励转移
+`(state, action, next_state)` 识别当前动力学，并快速恢复控制性能。
+
+我们分别限制：
+
+- 源环境数量 \(K\)；
+- 目标环境转移数量 \(N\)；
+- 目标环境带奖励交互数量。
+
+目标不是用大量 domain randomization 训练一个保守策略，而是研究：
 
 \[
-z=\psi(s),\qquad
-\delta z=R_\phi(s,g),\qquad
-a^\star=\arg\min_a
-\|\psi(F_\theta(s,a))-(z+\delta z)\|^2.
+\text{少环境动力学变化学习}
+\rightarrow
+\text{少转移在线识别}
+\rightarrow
+\text{闭环控制恢复}.
 \]
 
-当前阶段只验证固定物理环境中的任务完成能力，不测试物理泛化。
+完整数学假设、实验门槛和创新边界见
+[研究路线](docs/FEW_ENVIRONMENT_RESEARCH_PLAN_CN.md)。
 
-## 第一阶段实验
+上一阶段 Oracle 控制等价实验及其局限见
+[Oracle 上限报告](docs/ORACLE_CONTROL_EQUIVALENCE_ADAPTER_GATE_CN.md)。
 
-环境：`Pusher-v5`。
+## 当前保留代码
 
-1. 标准 SAC：确认任务、奖励和可达到的性能上界。
-2. 真实 MuJoCo Oracle-CEM：排除认知模型误差，验证规划闭环。
-3. 自动效果空间：依次比较完整状态、PCA、随机投影和学习表示。
-4. ProtoKAN 替换 Oracle：只有前三步通过后才进行。
+```text
+kanrf/
+  _bspline.py                   B-spline 基函数
+  _layer.py                     KAN 层
+  _network.py                   KAN 网络
+  _protokan.py                  ProtoKAN
+  _regularization.py            导数与样条正则
+  _uncertainty.py               预测不确定性
+  control_equivalence_adapter.py  局部控制等价 Oracle 接口
+  pusher_oracle.py              Pusher 状态克隆与 Oracle 工具
 
-详细方法和判决标准见
-[`docs/METHOD_AND_EXPERIMENT_PLAN_CN.md`](docs/METHOD_AND_EXPERIMENT_PLAN_CN.md)。
+scripts/
+  inspect_pusher_env.py
+  train_pusher_sac.py
+  quick_validate_oracle_control_equivalence_adapter.py
 
-当前已完成 Gate A，并通过容量对照、配对策略后悔诊断和一次规划器在环数据
-聚合定位 Gate B 的闭环可行动性缺口。加入候选优势和困难间隔训练后，当前
-4 维接口保留约 93.5% 的精确 Critic 推进能力，但尚未达到严格成功阈值。
-完整实验结果、失败对照和未完成边界见
-[`docs/CURRENT_STATUS_CN.md`](docs/CURRENT_STATUS_CN.md)。
+tests/
+  test_kan_core.py
+  test_pusher_oracle.py
+  test_control_equivalence_adapter.py
+```
 
-最新最小对照还表明：沿经验可达方向匹配局部 Critic 梯度会把平均最终距离从
-0.0678 轻微恶化到 0.0701，并将配对策略后悔从 0.1673 放大到 0.5088。因此该方向
-已被否决；当前瓶颈仍是有限时域候选序列的控制等价，而不是静态价值或局部梯度拟合。
+旧 Router、可达图、效果空间和残差策略实验已从本分支移除，完整保存在：
 
-新的可达图路由分支首先使用精确动力学验证带动作边的直接执行。第一版能够让机械臂
-接近物体，但无法发现建立接触和推动所需的协调动作。实验、调试证据和当前边界见
-[`docs/REACHABILITY_ROUTING_STATUS_CN.md`](docs/REACHABILITY_ROUTING_STATUS_CN.md)。
-局部控制敏感性产生的多关节动作同样未能跨过接触模式边界，说明单点 Jacobian
-不足以构造连续接触任务的有效可达边。
-进一步加入已知有效的 SAC 候选动作后，图的选择率仍为 0%；直接 SAC 在相同 60 步
-推进 0.0957，而图只推进 0.00003。这证明当前长期评分与逐层剪枝也是独立瓶颈。
+```text
+archive/pre-few-env-pivot-20260727
+```
 
 ## 环境
 
-所有 Python 命令必须使用本机 Conda 环境 `dl_env`：
+所有 Python 命令必须使用本地 conda 环境 `dl_env`：
 
 ```powershell
 C:\Users\32510\miniconda3\envs\dl_env\python.exe -m pytest -q
 ```
 
-已确认 CUDA 可用，训练脚本默认使用 GPU；MuJoCo 模拟与 Oracle-CEM 主要运行在 CPU。
-
-## 快速开始
-
-环境与数值检查：
+环境检查：
 
 ```powershell
 C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.inspect_pusher_env
 ```
 
-快速 Oracle-CEM smoke test：
-
-```powershell
-C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.evaluate_pusher_baselines `
-  --controllers zero random oracle --episodes 2 --max-steps 25 `
-  --horizon 3 --action-repeat 2 --population 32 --iterations 2 --debug-every 5
-```
-
-训练 SAC：
+源 SAC 训练：
 
 ```powershell
 C:\Users\32510\miniconda3\envs\dl_env\python.exe -m scripts.train_pusher_sac `
-  --total-steps 500000 --device cuda --log-every 5000 --eval-every 25000
+  --total-steps 500000 --device cuda
 ```
 
-## 目录
+Oracle 控制等价快速门：
 
-- `kanrf/`：KAN/ProtoKAN 核心、效果接口和 Oracle 规划器。
-- `scripts/`：本阶段唯一实验入口。
-- `tests/`：数值、状态恢复、梯度与形状测试。
-- `docs/`：当前方法与实验记录。
-- `results/`：正式 JSON 指标；模型和日志由 `.gitignore` 排除。
+```powershell
+C:\Users\32510\miniconda3\envs\dl_env\python.exe `
+  -m scripts.quick_validate_oracle_control_equivalence_adapter `
+  --device cuda
+```
+
+## 下一步
+
+先实现 rank-1 的 `FewEnvironmentDynamics`：
+
+1. 在两个匿名源环境中学习共享 ProtoKAN 和一个参数变化方向；
+2. 进入目标环境后仅更新低维 latent；
+3. 对比单源 ProtoKAN、同容量 MLP 和全参数微调；
+4. 分别测试插值和外推；
+5. Gate A 通过后再连接决策网络。
