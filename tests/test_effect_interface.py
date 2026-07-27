@@ -6,10 +6,38 @@ from kanrf import (
     ProtoKANDynamics,
     TaskEffectValue,
     control_equivalence_loss,
+    controllable_gradient_loss,
     controllability_loss,
     effect_action_jacobian,
     effect_covariance_loss,
 )
+
+
+def test_controllable_gradient_loss_only_penalizes_reachable_direction():
+    exact = torch.zeros(2, 3)
+    displacement = torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    orthogonal_error = torch.tensor(
+        [[0.0, 2.0, 0.0], [0.0, 0.0, 3.0]],
+        requires_grad=True,
+    )
+    aligned_error = torch.tensor(
+        [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0]],
+        requires_grad=True,
+    )
+    orthogonal_loss = controllable_gradient_loss(
+        orthogonal_error,
+        exact,
+        displacement,
+    )
+    aligned_loss = controllable_gradient_loss(
+        aligned_error,
+        exact,
+        displacement,
+    )
+    assert torch.allclose(orthogonal_loss, torch.zeros(()))
+    assert aligned_loss > 0
+    aligned_loss.backward()
+    assert aligned_error.grad is not None
 
 
 def test_control_equivalence_loss_detects_wrong_best_candidate():

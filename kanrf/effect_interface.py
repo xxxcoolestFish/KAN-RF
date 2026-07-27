@@ -235,6 +235,30 @@ def control_equivalence_loss(
     )
 
 
+def controllable_gradient_loss(
+    predicted_gradients: torch.Tensor,
+    exact_gradients: torch.Tensor,
+    reachable_displacements: torch.Tensor,
+    eps: float = 1e-6,
+) -> torch.Tensor:
+    """Match value slopes only along empirically reachable directions."""
+    if (
+        predicted_gradients.shape != exact_gradients.shape
+        or predicted_gradients.shape != reachable_displacements.shape
+    ):
+        raise ValueError("gradient and displacement shapes must match")
+    directions = F.normalize(
+        reachable_displacements,
+        p=2,
+        dim=-1,
+        eps=eps,
+    )
+    projected_error = (
+        (predicted_gradients - exact_gradients) * directions
+    ).sum(dim=-1)
+    return projected_error.pow(2).mean()
+
+
 def controllability_loss(
     jacobian: torch.Tensor,
     eps: float = 1e-4,

@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 from kanrf.effect_interface import (
     TaskEffectValue,
+    controllable_gradient_loss,
     control_equivalence_loss,
     effect_covariance_loss,
 )
@@ -212,6 +213,7 @@ def collect_groups(
 
 def train_round(
     effect: TaskEffectValue,
+    teacher,
     cumulative_groups: dict[str, np.ndarray],
     replay_observations: np.ndarray,
     replay_values: np.ndarray,
@@ -270,6 +272,7 @@ def train_round(
         epoch_value = 0.0
         epoch_advantage = 0.0
         epoch_margin = 0.0
+        epoch_gradient = 0.0
         epoch_replay = 0.0
         epoch_agreement = 0.0
         batches = 0
@@ -300,6 +303,59 @@ def train_round(
                 minimum_margin=args.minimum_margin,
                 maximum_margin=args.maximum_margin,
             )
+            if args.gradient_weight > 0.0:
+                gradient_count = min(
+                    args.gradient_candidates,
+                    group_terminals.shape[1],
+                )
+                gradient_states = (
+                    group_terminals[:, :gradient_count]
+                    .detach()
+                    .clone()
+                    .requires_grad_(True)
+                )
+                _, student_gradient_values = effect(
+                    gradient_states.flatten(0, 1)
+                )
+                student_gradients = torch.autograd.grad(
+                    student_gradient_values.sum(),
+                    gradient_states,
+                    create_graph=True,
+                )[0]
+                teacher_states = (
+                    gradient_states.detach()
+                    .clone()
+                    .requires_grad_(True)
+                )
+                teacher_flat = teacher_states.flatten(0, 1)
+                teacher_actions = teacher.actor(
+                    teacher_flat,
+                    deterministic=True,
+                )
+                teacher_q_values = teacher.critic(
+                    teacher_flat,
+                    teacher_actions,
+                )
+                teacher_values = torch.minimum(
+                    teacher_q_values[0],
+                    teacher_q_values[1],
+                )
+                teacher_gradients = torch.autograd.grad(
+                    teacher_values.sum(),
+                    teacher_states,
+                    create_graph=False,
+                )[0].detach()
+                reachable_displacements = (
+                    gradient_states.detach()
+                    - group_terminals.mean(dim=1, keepdim=True)
+                )
+                gradient_loss = controllable_gradient_loss(
+                    student_gradients,
+                    teacher_gradients,
+                    reachable_displacements,
+                )
+            else:
+                gradient_loss = terminal_value_loss.new_zeros(())
             replay_indices = torch.randint(
                 0,
                 len(replay_states),
@@ -321,6 +377,7 @@ def train_round(
                 args.terminal_value_weight * terminal_value_loss
                 + args.advantage_weight * equivalence.advantage_loss
                 + args.margin_weight * equivalence.margin_loss
+                + args.gradient_weight * gradient_loss
                 + args.replay_weight * replay_loss
                 + args.covariance_weight * covariance_loss
             )
@@ -331,6 +388,7 @@ def train_round(
             epoch_value += float(terminal_value_loss.detach())
             epoch_advantage += float(equivalence.advantage_loss.detach())
             epoch_margin += float(equivalence.margin_loss.detach())
+            epoch_gradient += float(gradient_loss.detach())
             epoch_replay += float(replay_loss.detach())
             epoch_agreement += float(equivalence.top1_agreement.detach())
             batches += 1
@@ -383,6 +441,7 @@ def train_round(
                 f"value={epoch_value / batches:.4f} "
                 f"adv={epoch_advantage / batches:.4f} "
                 f"margin={epoch_margin / batches:.4f} "
+                f"gradient={epoch_gradient / batches:.4f} "
                 f"replay={epoch_replay / batches:.4f} "
                 f"agree={epoch_agreement / batches:.3f} "
                 f"val_obj={float(validation_objective):.4f} "
@@ -393,6 +452,7 @@ def train_round(
             "train_value_loss": epoch_value / batches,
             "train_advantage_loss": epoch_advantage / batches,
             "train_margin_loss": epoch_margin / batches,
+            "train_gradient_loss": epoch_gradient / batches,
             "train_replay_loss": epoch_replay / batches,
             "train_top1_agreement": epoch_agreement / batches,
             "validation_objective": float(validation_objective),
@@ -450,6 +510,8 @@ def main() -> None:
     parser.add_argument("--terminal-value-weight", type=float, default=1.0)
     parser.add_argument("--advantage-weight", type=float, default=1.0)
     parser.add_argument("--margin-weight", type=float, default=0.5)
+    parser.add_argument("--gradient-weight", type=float, default=0.0)
+    parser.add_argument("--gradient-candidates", type=int, default=8)
     parser.add_argument("--replay-weight", type=float, default=1.0)
     parser.add_argument("--covariance-weight", type=float, default=1e-3)
     parser.add_argument("--minimum-margin", type=float, default=0.05)
@@ -467,6 +529,8 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--debug-every", type=int, default=10)
     args = parser.parse_args()
+    if args.gradient_weight > 0.0 and args.gradient_candidates < 1:
+        parser.error("--gradient-candidates must be positive when enabled")
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -506,6 +570,7 @@ def main() -> None:
         all_collection_records.extend(records)
         effect, metrics = train_round(
             effect,
+            teacher,
             cumulative_groups,
             replay_observations,
             replay_values,
@@ -522,6 +587,8 @@ def main() -> None:
                 "round": round_index,
                 "input_model": str(Path(args.input_model).resolve()),
                 "group_count": metrics["group_count"],
+                "gradient_weight": args.gradient_weight,
+                "gradient_candidates": args.gradient_candidates,
             },
         }
         checkpoint_path = Path(

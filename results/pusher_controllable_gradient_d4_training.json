@@ -1,0 +1,80 @@
+{
+  "config": {
+    "sac_model": "results\\pusher-v5-SAC-expert.zip",
+    "input_model": "results\\pusher_control_equivalent_d4_round2.pt",
+    "output_prefix": "results\\pusher_controllable_gradient_d4",
+    "rounds": 1,
+    "episodes_per_round": 1,
+    "steps_per_episode": 60,
+    "candidates_per_group": 24,
+    "query_noise_scale": 0.15,
+    "replay_states": 10000,
+    "epochs_per_round": 8,
+    "group_batch_size": 8,
+    "replay_batch_size": 512,
+    "learning_rate": 5e-05,
+    "weight_decay": 1e-05,
+    "terminal_value_weight": 1.0,
+    "advantage_weight": 1.0,
+    "margin_weight": 0.5,
+    "gradient_weight": 0.25,
+    "gradient_candidates": 8,
+    "replay_weight": 1.0,
+    "covariance_weight": 0.001,
+    "minimum_margin": 0.05,
+    "maximum_margin": 1.0,
+    "validation_fraction": 0.2,
+    "horizon": 3,
+    "action_repeat": 3,
+    "population": 64,
+    "elite_fraction": 0.1,
+    "iterations": 2,
+    "discount": 0.99,
+    "initial_std_scale": 0.15,
+    "temporal_correlation": 0.8,
+    "seed": 4811,
+    "device": "cuda",
+    "debug_every": 10
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "checkpoint": "C:\\Users\\32510\\Desktop\\RF\\KAN-RF\\results\\pusher_controllable_gradient_d4_round1.pt",
+      "collection": [
+        {
+          "round": 1,
+          "episode": 0,
+          "seed": 5820,
+          "return": -25.010790537168642,
+          "initial_distance": 0.2993798417687213,
+          "final_distance": 0.13373107726597258,
+          "progress": 0.1656487645027487,
+          "mean_exact_vs_student_regret": 0.2824684635603455
+        }
+      ],
+      "train_value_loss": 0.03200410399585962,
+      "train_advantage_loss": 0.08424786229928334,
+      "train_margin_loss": 0.0771072084705035,
+      "train_gradient_loss": 0.6644884943962097,
+      "train_replay_loss": 0.021924558250854414,
+      "train_top1_agreement": 0.9375,
+      "validation_objective": 0.2895902991294861,
+      "validation_top1_agreement": 0.75,
+      "best_validation_objective": 0.2895902991294861,
+      "group_count": 60
+    }
+  ],
+  "collection_records": [
+    {
+      "round": 1,
+      "episode": 0,
+      "seed": 5820,
+      "return": -25.010790537168642,
+      "initial_distance": 0.2993798417687213,
+      "final_distance": 0.13373107726597258,
+      "progress": 0.1656487645027487,
+      "mean_exact_vs_student_regret": 0.2824684635603455
+    }
+  ],
+  "seconds": 28.103330900077708
+}
